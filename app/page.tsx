@@ -10,38 +10,31 @@ import {
   Star,
   Trophy,
   Users,
+  Zap,
 } from "lucide-react";
 
 export default function Home() {
   const ranking = [
-    { n: "1", medal: "👑", avatar: "🧑🏻", name: "The Warriors", pts: "2.450 pt", color: "text-lime-300" },
-    { n: "2", medal: "♛", avatar: "🐺", name: "Rival Team", pts: "2.210 pt", color: "text-slate-200" },
-    { n: "3", medal: "⭐", avatar: "🦈", name: "Black Sharks", pts: "1.980 pt", color: "text-slate-200" },
-    { n: "4", medal: "", avatar: "👨🏽", name: "I Magnifici", pts: "1.760 pt", color: "text-slate-200" },
-    { n: "5", medal: "", avatar: "🧔🏻", name: "Dream Team", pts: "1.520 pt", color: "text-slate-200" },
+    { n: "1", name: "The Warriors", pts: "2.450 pt", badge: "W" },
+    { n: "2", name: "Rival Team", pts: "2.210 pt", badge: "R" },
+    { n: "3", name: "Black Sharks", pts: "1.980 pt", badge: "B" },
+    { n: "4", name: "I Magnifici", pts: "1.760 pt", badge: "M" },
+    { n: "5", name: "Dream Team", pts: "1.520 pt", badge: "D" },
   ];
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#020617] text-white">
-      <div className="pointer-events-none fixed inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_4%,rgba(34,211,238,.16),transparent_27%),radial-gradient(circle_at_88%_5%,rgba(168,85,247,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_45%,#020617_100%)]" />
-        <div className="absolute right-[-320px] top-[125px] h-[780px] w-[780px] rounded-full border border-cyan-400/10" />
-        <div className="absolute right-[-260px] top-[190px] h-[660px] w-[660px] rounded-full border border-blue-500/12" />
-        <div className="absolute right-[-205px] top-[255px] h-[540px] w-[540px] rounded-full border border-fuchsia-500/12" />
-        <div className="absolute right-[-155px] top-[390px] h-[2px] w-[650px] -rotate-[31deg] bg-gradient-to-r from-transparent via-cyan-400/90 to-transparent blur-[.7px]" />
-        <div className="absolute right-[-125px] top-[442px] h-[2px] w-[650px] -rotate-[31deg] bg-gradient-to-r from-transparent via-blue-500/90 to-transparent blur-[.7px]" />
-        <div className="absolute right-[-100px] top-[496px] h-[2px] w-[650px] -rotate-[31deg] bg-gradient-to-r from-transparent via-fuchsia-500/90 to-transparent blur-[.7px]" />
-      </div>
+      <Background />
 
-      <section className="relative z-10 mx-auto max-w-[1220px] px-6 py-8">
-        <nav className="flex items-center justify-between">
+      <section className="relative z-10 mx-auto max-w-[1240px] px-5 py-7">
+        <nav className="flex items-center justify-between gap-5">
           <div className="flex items-center gap-4">
             <LogoMark />
             <div>
-              <div className="text-[35px] font-black leading-none tracking-tight text-white drop-shadow-[0_2px_10px_rgba(255,255,255,.18)]">
+              <div className="text-[35px] font-black leading-none tracking-tight text-white">
                 Rivalo
               </div>
-              <div className="mt-2 text-[13px] font-black tracking-[.34em] text-cyan-300 drop-shadow-[0_0_12px_rgba(34,211,238,.5)]">
+              <div className="mt-2 text-[13px] font-black tracking-[.34em] text-cyan-300">
                 OWN THE GAME
               </div>
             </div>
@@ -52,25 +45,25 @@ export default function Home() {
               Home
               <span className="absolute -bottom-[18px] left-0 h-[3px] w-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500" />
             </a>
-            <a className="hover:text-white" href="#features">Funzionalità</a>
-            <a className="hover:text-white" href="#ranking">Classifiche</a>
-            <a className="hover:text-white" href="#sports">Sport</a>
-            <a className="hover:text-white" href="#">Blog</a>
+            <a href="#features" className="hover:text-white">Funzionalità</a>
+            <a href="#ranking" className="hover:text-white">Classifiche</a>
+            <a href="#sports" className="hover:text-white">Sport</a>
+            <a href="#" className="hover:text-white">Beta</a>
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="hidden rounded-2xl border border-white/25 bg-white/[.025] px-8 py-4 text-[15px] font-bold backdrop-blur transition hover:bg-white/[.075] sm:block">
+            <button className="hidden rounded-2xl border border-white/20 bg-white/[.03] px-8 py-4 text-[15px] font-bold backdrop-blur transition hover:bg-white/[.08] sm:block">
               Accedi
             </button>
-            <button className="rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-7 py-4 text-[15px] font-black shadow-[0_0_35px_rgba(168,85,247,.24)] transition hover:scale-105">
+            <button className="rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-7 py-4 text-[15px] font-black shadow-[0_0_35px_rgba(168,85,247,.25)] transition hover:scale-105">
               Prova la Beta
             </button>
           </div>
         </nav>
 
-        <section className="mt-[74px] grid items-start gap-10 lg:grid-cols-[.99fr_1.01fr]">
+        <section className="mt-[72px] grid items-start gap-12 lg:grid-cols-[1fr_1fr]">
           <div>
-            <div className="mb-7 inline-flex rounded-full border border-cyan-400/55 bg-cyan-400/[.055] px-6 py-3 text-[15px] font-black uppercase tracking-wide shadow-[0_0_25px_rgba(34,211,238,.14)]">
+            <div className="mb-7 inline-flex rounded-full border border-cyan-400/60 bg-cyan-400/[.055] px-6 py-3 text-[15px] font-black uppercase tracking-wide shadow-[0_0_25px_rgba(34,211,238,.14)]">
               <span className="text-lime-300">Calcetto</span>
               <span className="mx-3 text-cyan-400">•</span>
               <span className="text-cyan-300">Padel</span>
@@ -78,7 +71,7 @@ export default function Home() {
               <span className="text-fuchsia-300">Tennis</span>
             </div>
 
-            <h1 className="max-w-[650px] text-[55px] font-black leading-[1.08] tracking-[-.045em] md:text-[72px]">
+            <h1 className="max-w-[665px] text-[54px] font-black leading-[1.07] tracking-[-.045em] md:text-[72px]">
               Competizione.
               <br />
               Statistiche.
@@ -90,25 +83,26 @@ export default function Home() {
               </span>
             </h1>
 
-            <p className="mt-7 max-w-[560px] text-[18.5px] leading-[1.75] text-slate-300">
+            <p className="mt-7 max-w-[565px] text-[18.5px] leading-[1.75] text-slate-300">
               Crea il tuo gruppo, organizza le partite, sfida i tuoi amici
               e scala le classifiche. Ogni partita conta.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-5">
-              <button className="group flex items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-10 py-5 text-lg font-black shadow-[0_0_34px_rgba(168,85,247,.24)] transition hover:scale-105">
+              <button className="group flex items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-10 py-5 text-lg font-black shadow-[0_0_34px_rgba(168,85,247,.25)] transition hover:scale-105">
                 Inizia ora
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
                   <ChevronRight className="transition group-hover:translate-x-1" size={22} />
                 </span>
               </button>
+
               <button className="flex items-center gap-4 rounded-2xl border border-white/16 bg-white/[.025] px-8 py-5 text-lg font-black backdrop-blur transition hover:bg-white/[.075]">
                 Scopri come funziona
                 <PlayCircle size={25} />
               </button>
             </div>
 
-            <div className="mt-12 grid max-w-[520px] grid-cols-3 overflow-hidden rounded-3xl border border-white/10 bg-[#071126]/75 p-2 backdrop-blur">
+            <div className="mt-12 grid max-w-[530px] grid-cols-3 overflow-hidden rounded-3xl border border-white/10 bg-[#071126]/80 p-2 backdrop-blur">
               <HeroStat icon={<Trophy size={34} />} value="24.7K" label="Partite giocate" color="text-lime-300" />
               <HeroStat icon={<Users size={34} />} value="5.892" label="Giocatori attivi" color="text-fuchsia-400" border />
               <HeroStat icon={<BarChart3 size={34} />} value="92%" label="Attività settimanale" color="text-cyan-300" border />
@@ -118,7 +112,7 @@ export default function Home() {
           <PhoneMockup />
         </section>
 
-        <section id="features" className="mt-[74px] grid gap-4 md:grid-cols-5">
+        <section id="features" className="mt-[76px] grid gap-4 md:grid-cols-5">
           <Feature icon={<Users size={44} />} title="Crea il tuo gruppo" text="Invita i tuoi amici e costruisci la tua squadra." color="text-lime-300" />
           <Feature icon={<CalendarDays size={44} />} title="Organizza partite" text="Scegli data, ora e campo. Noi pensiamo al resto." color="text-fuchsia-400" />
           <Feature icon={<BarChart3 size={44} />} title="Statistiche reali" text="Ogni partita, ogni voto, ogni dettaglio conta." color="text-cyan-300" />
@@ -136,17 +130,16 @@ export default function Home() {
             </div>
 
             <div>
-              {ranking.map((r) => (
+              {ranking.map((r, i) => (
                 <div key={r.name} className="flex items-center justify-between border-b border-white/[.06] py-[15px] last:border-none">
                   <div className="flex items-center gap-4">
                     <div className="w-5 font-black text-cyan-300">{r.n}</div>
-                    <div className="w-5 text-center">{r.medal}</div>
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20 text-xl">
-                      {r.avatar}
-                    </div>
+                    <TeamBadge label={r.badge} rank={i + 1} />
                     <div className="font-semibold text-slate-100">{r.name}</div>
                   </div>
-                  <div className={`font-black ${r.color}`}>{r.pts}</div>
+                  <div className={i === 0 ? "font-black text-lime-300" : "font-black text-slate-200"}>
+                    {r.pts}
+                  </div>
                 </div>
               ))}
             </div>
@@ -155,9 +148,9 @@ export default function Home() {
           <div id="sports" className="rounded-[2rem] border border-white/10 bg-[#061126]/78 p-6 shadow-2xl backdrop-blur">
             <h2 className="mb-6 text-2xl font-black">Sport disponibili</h2>
             <div className="grid grid-cols-3 gap-3">
-              <Sport title="Calcetto" sub="5v5" emoji="⚽" bg="from-lime-500/20 via-slate-900 to-slate-950" />
-              <Sport title="Padel" sub="Doppio" emoji="🎾" bg="from-fuchsia-600/28 via-purple-950/45 to-slate-950" />
-              <Sport title="Tennis" sub="Singolare / Doppio" emoji="🏸" bg="from-blue-600/30 via-blue-950/55 to-slate-950" />
+              <SportCard title="Calcetto" sub="5v5" variant="football" />
+              <SportCard title="Padel" sub="Doppio" variant="padel" />
+              <SportCard title="Tennis" sub="Singolare / Doppio" variant="tennis" />
             </div>
           </div>
 
@@ -194,24 +187,68 @@ export default function Home() {
   );
 }
 
+function Background() {
+  return (
+    <div className="pointer-events-none fixed inset-0">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_4%,rgba(34,211,238,.16),transparent_27%),radial-gradient(circle_at_88%_5%,rgba(168,85,247,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_45%,#020617_100%)]" />
+      <div className="absolute right-[-320px] top-[125px] h-[780px] w-[780px] rounded-full border border-cyan-400/10" />
+      <div className="absolute right-[-260px] top-[190px] h-[660px] w-[660px] rounded-full border border-blue-500/12" />
+      <div className="absolute right-[-205px] top-[255px] h-[540px] w-[540px] rounded-full border border-fuchsia-500/12" />
+      <div className="absolute right-[-155px] top-[390px] h-[2px] w-[650px] -rotate-[31deg] bg-gradient-to-r from-transparent via-cyan-400/90 to-transparent blur-[.7px]" />
+      <div className="absolute right-[-125px] top-[442px] h-[2px] w-[650px] -rotate-[31deg] bg-gradient-to-r from-transparent via-blue-500/90 to-transparent blur-[.7px]" />
+      <div className="absolute right-[-100px] top-[496px] h-[2px] w-[650px] -rotate-[31deg] bg-gradient-to-r from-transparent via-fuchsia-500/90 to-transparent blur-[.7px]" />
+    </div>
+  );
+}
+
 function LogoMark() {
   return (
-    <div className="relative h-[82px] w-[82px] shrink-0">
-      <div className="absolute left-[2px] top-[3px] text-[78px] font-black italic leading-none text-white drop-shadow-[0_0_16px_rgba(255,255,255,.65)]">
-        R
-      </div>
-      <div className="absolute left-[0px] top-[3px] text-[78px] font-black italic leading-none text-cyan-400 opacity-70 blur-[1px]">
-        R
-      </div>
-      <div className="absolute left-[5px] top-[7px] text-[78px] font-black italic leading-none text-fuchsia-500 opacity-70 blur-[1px]">
-        R
-      </div>
+    <div className="relative h-[84px] w-[84px] shrink-0">
+      <div className="absolute inset-0 rounded-3xl bg-cyan-400/25 blur-2xl" />
+      <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-3xl bg-fuchsia-500/20 blur-2xl" />
 
-      <div className="absolute left-[18px] top-[30px] h-[20px] w-[30px] -skew-x-[18deg] rounded-[4px] bg-[#020617]" />
+      <svg viewBox="0 0 120 120" className="relative h-[84px] w-[84px]" aria-label="Rivalo logo">
+        <defs>
+          <linearGradient id="logoEdge" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#22d3ee" />
+            <stop offset="50%" stopColor="#3b82f6" />
+            <stop offset="100%" stopColor="#d946ef" />
+          </linearGradient>
+          <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="-4" dy="2" stdDeviation="5" floodColor="#22d3ee" floodOpacity=".65" />
+            <feDropShadow dx="5" dy="5" stdDeviation="6" floodColor="#d946ef" floodOpacity=".55" />
+          </filter>
+        </defs>
 
-      <div className="absolute bottom-[10px] left-[2px] h-[12px] w-[76px] -rotate-45 rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 shadow-[0_0_20px_rgba(168,85,247,.9)]" />
+        <path
+          d="M20 103 L20 16 H72 C92 16 105 29 105 47 C105 61 96 72 82 77 L104 103 H75 L57 79 H49 L49 103 Z"
+          fill="url(#logoEdge)"
+          opacity=".95"
+          transform="translate(-5 5)"
+        />
 
-      <div className="absolute bottom-[20px] left-[18px] h-[6px] w-[52px] -rotate-45 rounded-full bg-fuchsia-500 blur-[3px]" />
+        <path
+          d="M20 100 L20 13 H71 C93 13 106 27 106 46 C106 61 97 72 83 77 L105 100 H74 L56 76 H49 L49 100 Z"
+          fill="white"
+          filter="url(#softGlow)"
+        />
+
+        <path
+          d="M49 36 H67 C75 36 80 40 80 47 C80 54 75 58 67 58 H49 Z"
+          fill="#020617"
+        />
+
+        <path
+          d="M21 100 L49 76 H61 L29 114 Z"
+          fill="url(#logoEdge)"
+        />
+
+        <path
+          d="M73 78 L105 100 H76 L58 78 Z"
+          fill="#d946ef"
+          opacity=".55"
+        />
+      </svg>
     </div>
   );
 }
@@ -236,15 +273,91 @@ function Feature({ icon, title, text, color }: { icon: React.ReactNode; title: s
   );
 }
 
-function Sport({ title, sub, emoji, bg }: { title: string; sub: string; emoji: string; bg: string }) {
+function TeamBadge({ label, rank }: { label: string; rank: number }) {
+  const colors = rank === 1 ? "from-lime-300 to-cyan-400" : rank === 2 ? "from-cyan-400 to-blue-500" : "from-fuchsia-500 to-blue-500";
   return (
-    <div className={`relative min-h-[260px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${bg} p-4`}>
-      <div className="absolute left-1/2 top-12 -translate-x-1/2 text-[86px] drop-shadow-[0_18px_24px_rgba(0,0,0,.55)]">{emoji}</div>
+    <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br ${colors} p-[2px]`}>
+      <div className="flex h-full w-full items-center justify-center rounded-full bg-[#071126] text-sm font-black text-white">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function SportCard({ title, sub, variant }: { title: string; sub: string; variant: "football" | "padel" | "tennis" }) {
+  return (
+    <div className="relative min-h-[260px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#08152f] via-[#071126] to-[#020617] p-4 shadow-2xl">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(34,211,238,.18),transparent_35%)]" />
+      <div className="relative mx-auto mt-8 flex h-32 w-32 items-center justify-center">
+        {variant === "football" && <FootballIcon />}
+        {variant === "padel" && <PadelIcon />}
+        {variant === "tennis" && <TennisIcon />}
+      </div>
       <div className="absolute bottom-5 left-4">
         <div className="text-2xl font-black">{title}</div>
         <div className="mt-1 text-sm text-slate-300">{sub}</div>
       </div>
     </div>
+  );
+}
+
+function FootballIcon() {
+  return (
+    <svg viewBox="0 0 120 120" className="h-32 w-32 drop-shadow-[0_18px_25px_rgba(0,0,0,.45)]">
+      <defs>
+        <radialGradient id="ball" cx="40%" cy="30%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="65%" stopColor="#cbd5e1" />
+          <stop offset="100%" stopColor="#64748b" />
+        </radialGradient>
+      </defs>
+      <circle cx="60" cy="60" r="42" fill="url(#ball)" />
+      <path d="M60 34 75 45 70 63H50L45 45Z" fill="#020617" />
+      <path d="M35 52 45 45 50 63 38 72Z" fill="#020617" opacity=".9" />
+      <path d="M85 52 75 45 70 63 82 72Z" fill="#020617" opacity=".9" />
+      <path d="M50 63H70L76 82 60 92 44 82Z" fill="#020617" opacity=".9" />
+      <circle cx="60" cy="60" r="42" fill="none" stroke="#22d3ee" strokeOpacity=".45" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function PadelIcon() {
+  return (
+    <svg viewBox="0 0 120 120" className="h-32 w-32 drop-shadow-[0_18px_25px_rgba(0,0,0,.45)]">
+      <defs>
+        <linearGradient id="padelGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#d946ef" />
+          <stop offset="100%" stopColor="#3b82f6" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="55" cy="48" rx="28" ry="38" fill="url(#padelGrad)" stroke="#f0abfc" strokeWidth="2" transform="rotate(-22 55 48)" />
+      <g fill="#020617" opacity=".85">
+        {Array.from({ length: 18 }).map((_, i) => (
+          <circle key={i} cx={42 + (i % 6) * 7} cy={34 + Math.floor(i / 6) * 10} r="2.2" />
+        ))}
+      </g>
+      <rect x="64" y="75" width="13" height="38" rx="6" fill="#111827" stroke="#d946ef" strokeWidth="2" transform="rotate(-32 64 75)" />
+      <circle cx="85" cy="88" r="14" fill="#d9f99d" stroke="#bef264" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function TennisIcon() {
+  return (
+    <svg viewBox="0 0 120 120" className="h-32 w-32 drop-shadow-[0_18px_25px_rgba(0,0,0,.45)]">
+      <defs>
+        <linearGradient id="tennisGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#f97316" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="57" cy="45" rx="27" ry="39" fill="none" stroke="url(#tennisGrad)" strokeWidth="5" transform="rotate(20 57 45)" />
+      <path d="M43 25 C56 38 65 55 72 75" stroke="#94a3b8" strokeWidth="1" opacity=".55" />
+      <path d="M33 47 C48 48 64 44 82 35" stroke="#94a3b8" strokeWidth="1" opacity=".55" />
+      <path d="M49 22 C60 39 68 57 75 78" stroke="#94a3b8" strokeWidth="1" opacity=".55" />
+      <rect x="63" y="76" width="13" height="39" rx="6" fill="#111827" stroke="#22d3ee" strokeWidth="2" transform="rotate(31 63 76)" />
+      <circle cx="88" cy="86" r="14" fill="#d9f99d" stroke="#bef264" strokeWidth="2" />
+    </svg>
   );
 }
 
@@ -259,7 +372,7 @@ function FooterItem({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 function PhoneMockup() {
   return (
-    <div className="relative mx-auto w-full max-w-[478px] lg:-mt-8 lg:translate-x-2">
+    <div className="relative mx-auto w-full max-w-[480px] lg:-mt-8 lg:translate-x-2">
       <div className="absolute inset-0 rounded-[4rem] bg-cyan-400/20 blur-3xl" />
       <div className="relative rotate-[3.5deg] rounded-[4.1rem] border border-white/25 bg-gradient-to-br from-slate-700 to-black p-3 shadow-[0_0_65px_rgba(34,211,238,.18)]">
         <div className="rounded-[3.62rem] border border-white/10 bg-[#050b1f] p-5">
@@ -283,13 +396,13 @@ function PhoneMockup() {
 
             <div className="rounded-2xl border border-fuchsia-400/10 bg-[#080d24] p-4">
               <div className="text-sm font-semibold text-slate-300">Stato attuale</div>
-              <div className="mt-6 text-xl font-black text-lime-300">ON FIRE 🔥</div>
+              <div className="mt-6 text-xl font-black text-lime-300">ON FIRE</div>
               <div className="mt-7 text-xs text-slate-400">2.350 / 3.000 XP</div>
             </div>
           </div>
 
           <div className="relative mt-5 overflow-hidden rounded-[1.7rem] border border-blue-400/25 bg-gradient-to-br from-blue-700/30 to-blue-950/80 p-5">
-            <div className="absolute right-[-10px] top-0 text-[130px] opacity-10">🏃</div>
+            <div className="absolute right-5 top-9 h-24 w-16 rounded-full bg-cyan-300/10 blur-xl" />
             <div className="relative flex items-start justify-between">
               <div>
                 <div className="text-sm text-slate-300">La tua card</div>
@@ -311,15 +424,9 @@ function PhoneMockup() {
           <div className="mt-5 rounded-[1.7rem] border border-white/5 bg-white/[.035] p-5">
             <div className="text-sm font-bold text-slate-200">Prossima partita</div>
             <div className="mt-5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-3xl">🦁</span>
-                <span className="font-black">Rival Team</span>
-              </div>
-              <span className="rounded-lg bg-white/5 px-2 py-1 text-xs text-slate-400">VS</span>
-              <div className="flex items-center gap-2">
-                <span className="font-black">Black Sharks</span>
-                <span className="text-3xl">🦈</span>
-              </div>
+              <div className="font-black">Rival Team</div>
+              <span className="rounded-lg bg-white/5 px-2 py-1 text-xs text-cyan-300">VS</span>
+              <div className="font-black">Black Sharks</div>
             </div>
             <div className="mt-4 text-center text-sm text-slate-300">
               Sab 17 Mag • 21:00
