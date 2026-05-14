@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth, db } from "../../lib/firebase";
 import { BarChart3, CalendarDays, LogOut, Trophy, Users, Zap } from "lucide-react";
 
 type RivaloProfile = {
