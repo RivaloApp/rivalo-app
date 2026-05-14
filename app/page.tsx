@@ -1,7 +1,6 @@
 import {
   BarChart3,
   CalendarDays,
-  CheckCircle2,
   ChevronRight,
   LockKeyhole,
   PlayCircle,
@@ -16,7 +15,7 @@ import {
 export default function Home() {
   const ranking = [
     { n: "1", medal: "👑", avatar: "🧑🏻", name: "The Warriors", pts: "2.450 pt", color: "text-lime-300" },
-    { n: "2", medal: "2", avatar: "🐺", name: "Rival Team", pts: "2.210 pt", color: "text-slate-200" },
+    { n: "2", medal: "♛", avatar: "🐺", name: "Rival Team", pts: "2.210 pt", color: "text-slate-200" },
     { n: "3", medal: "⭐", avatar: "🦈", name: "Black Sharks", pts: "1.980 pt", color: "text-slate-200" },
     { n: "4", medal: "", avatar: "👨🏽", name: "I Magnifici", pts: "1.760 pt", color: "text-slate-200" },
     { n: "5", medal: "", avatar: "🧔🏻", name: "Dream Team", pts: "1.520 pt", color: "text-slate-200" },
@@ -25,40 +24,33 @@ export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_4%,rgba(34,211,238,.15),transparent_24%),radial-gradient(circle_at_88%_4%,rgba(168,85,247,.15),transparent_28%),linear-gradient(180deg,#020617_0%,#030712_45%,#020617_100%)]" />
-        <div className="absolute right-[-310px] top-[120px] h-[780px] w-[780px] rounded-full border border-cyan-400/10" />
-        <div className="absolute right-[-250px] top-[185px] h-[660px] w-[660px] rounded-full border border-blue-500/12" />
-        <div className="absolute right-[-190px] top-[250px] h-[540px] w-[540px] rounded-full border border-fuchsia-500/12" />
-        <div className="absolute right-[-130px] top-[385px] h-[2px] w-[620px] -rotate-[31deg] bg-gradient-to-r from-transparent via-cyan-400/90 to-transparent blur-[.7px]" />
-        <div className="absolute right-[-110px] top-[435px] h-[2px] w-[620px] -rotate-[31deg] bg-gradient-to-r from-transparent via-blue-500/90 to-transparent blur-[.7px]" />
-        <div className="absolute right-[-90px] top-[490px] h-[2px] w-[620px] -rotate-[31deg] bg-gradient-to-r from-transparent via-fuchsia-500/90 to-transparent blur-[.7px]" />
-        <div className="absolute left-[-120px] bottom-[-120px] h-[350px] w-[350px] rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_4%,rgba(34,211,238,.16),transparent_27%),radial-gradient(circle_at_88%_5%,rgba(168,85,247,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_45%,#020617_100%)]" />
+        <div className="absolute right-[-320px] top-[125px] h-[780px] w-[780px] rounded-full border border-cyan-400/10" />
+        <div className="absolute right-[-260px] top-[190px] h-[660px] w-[660px] rounded-full border border-blue-500/12" />
+        <div className="absolute right-[-205px] top-[255px] h-[540px] w-[540px] rounded-full border border-fuchsia-500/12" />
+        <div className="absolute right-[-155px] top-[390px] h-[2px] w-[650px] -rotate-[31deg] bg-gradient-to-r from-transparent via-cyan-400/90 to-transparent blur-[.7px]" />
+        <div className="absolute right-[-125px] top-[442px] h-[2px] w-[650px] -rotate-[31deg] bg-gradient-to-r from-transparent via-blue-500/90 to-transparent blur-[.7px]" />
+        <div className="absolute right-[-100px] top-[496px] h-[2px] w-[650px] -rotate-[31deg] bg-gradient-to-r from-transparent via-fuchsia-500/90 to-transparent blur-[.7px]" />
       </div>
 
       <section className="relative z-10 mx-auto max-w-[1220px] px-6 py-8">
         <nav className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="relative flex h-[78px] w-[78px] items-center justify-center">
-  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-400/30 via-blue-500/20 to-fuchsia-500/30 blur-xl" />
-
-  <div className="absolute left-[10px] top-[6px] text-[70px] font-black italic leading-none text-white drop-shadow-[0_0_14px_rgba(255,255,255,.55)]">
-    R
-  </div>
-
-  <div className="absolute bottom-[12px] left-[4px] h-[12px] w-[68px] -rotate-45 rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 shadow-[0_0_20px_rgba(168,85,247,.9)]" />
-
-  <div className="absolute bottom-[22px] left-[18px] h-[7px] w-[50px] -rotate-45 rounded-full bg-fuchsia-500 blur-[2px]" />
-</div>
+            <LogoMark />
             <div>
-              <div className="text-[35px] font-black leading-none tracking-tight">Rivalo</div>
-              <div className="mt-2 text-[13px] font-black tracking-[.34em] text-cyan-300">OWN THE GAME</div>
+              <div className="text-[35px] font-black leading-none tracking-tight text-white drop-shadow-[0_2px_10px_rgba(255,255,255,.18)]">
+                Rivalo
+              </div>
+              <div className="mt-2 text-[13px] font-black tracking-[.34em] text-cyan-300 drop-shadow-[0_0_12px_rgba(34,211,238,.5)]">
+                OWN THE GAME
+              </div>
             </div>
           </div>
 
           <div className="hidden items-center gap-9 text-[15px] font-semibold text-slate-200 lg:flex">
             <a className="relative text-white" href="#">
               Home
-              <span className="absolute -bottom-[18px] left-0 h-[2px] w-full rounded-full bg-blue-500" />
+              <span className="absolute -bottom-[18px] left-0 h-[3px] w-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500" />
             </a>
             <a className="hover:text-white" href="#features">Funzionalità</a>
             <a className="hover:text-white" href="#ranking">Classifiche</a>
@@ -204,14 +196,22 @@ export default function Home() {
 
 function LogoMark() {
   return (
-    <div className="relative h-[74px] w-[74px]">
-      <div className="absolute left-0 top-0 h-[58px] w-[58px] -skew-x-12 rounded-xl bg-white shadow-[0_0_24px_rgba(255,255,255,.32)]" />
-      <div className="absolute left-[8px] top-[8px] h-[42px] w-[42px] -skew-x-12 rounded-lg bg-[#071126]" />
-      <div className="absolute left-[12px] top-[5px] -skew-x-12 text-[58px] font-black italic leading-none text-white drop-shadow-[0_0_14px_rgba(34,211,238,.75)]">
+    <div className="relative h-[82px] w-[82px] shrink-0">
+      <div className="absolute left-[2px] top-[3px] text-[78px] font-black italic leading-none text-white drop-shadow-[0_0_16px_rgba(255,255,255,.65)]">
         R
       </div>
-      <div className="absolute bottom-[6px] left-[2px] h-[12px] w-[62px] -rotate-45 rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 shadow-[0_0_18px_rgba(168,85,247,.8)]" />
-      <div className="absolute bottom-[17px] left-[20px] h-[8px] w-[48px] -rotate-45 rounded-full bg-fuchsia-500 blur-[3px]" />
+      <div className="absolute left-[0px] top-[3px] text-[78px] font-black italic leading-none text-cyan-400 opacity-70 blur-[1px]">
+        R
+      </div>
+      <div className="absolute left-[5px] top-[7px] text-[78px] font-black italic leading-none text-fuchsia-500 opacity-70 blur-[1px]">
+        R
+      </div>
+
+      <div className="absolute left-[18px] top-[30px] h-[20px] w-[30px] -skew-x-[18deg] rounded-[4px] bg-[#020617]" />
+
+      <div className="absolute bottom-[10px] left-[2px] h-[12px] w-[76px] -rotate-45 rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 shadow-[0_0_20px_rgba(168,85,247,.9)]" />
+
+      <div className="absolute bottom-[20px] left-[18px] h-[6px] w-[52px] -rotate-45 rounded-full bg-fuchsia-500 blur-[3px]" />
     </div>
   );
 }
