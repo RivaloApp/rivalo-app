@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { auth } from "../../lib/firebase";
+import { auth, db } from "../../lib/firebase";
 import { ChevronRight, LockKeyhole, Mail, UserRound } from "lucide-react";
 
 export default function SignupPage() {
