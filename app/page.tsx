@@ -1,8 +1,8 @@
 import { Trophy, Users, Zap } from "lucide-react";
-import { FeatureCard } from "@/components/FeatureCard";
-import { PlayerCard } from "@/components/PlayerCard";
-import { SportCard } from "@/components/SportCard";
-import { dictionary } from "@/lib/i18n";
+import { FeatureCard } from "../components/FeatureCard";
+import { PlayerCard } from "../components/PlayerCard";
+import { SportCard } from "../components/SportCard";
+import { dictionary } from "../lib/i18n";
 
 export default function Home() {
   const t = dictionary.it;
