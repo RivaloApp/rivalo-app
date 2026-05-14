@@ -1,16 +1,24 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp } from "firebase/app";
+import {
+  getAuth
+} from "firebase/auth";
+
+import {
+  getFirestore
+} from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+  apiKey: "AIzaSyCL8ndFoMl6oYZ1_DsiTo7-6LFkvze9hGo",
+  authDomain: "rivalo-f38cf.firebaseapp.com",
+  projectId: "rivalo-f38cf",
+  storageBucket: "rivalo-f38cf.firebasestorage.app",
+  messagingSenderId: "31724539960",
+  appId: "1:31724539960:web:87bcecdda9d36503f396cd",
+  measurementId: "G-G0N1NRP6YG"
 };
 
-export const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+
 export const auth = getAuth(app);
+
 export const db = getFirestore(app);
