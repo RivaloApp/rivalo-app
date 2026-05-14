@@ -38,7 +38,17 @@ export default function Home() {
       <section className="relative z-10 mx-auto max-w-[1220px] px-6 py-8">
         <nav className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <LogoMark />
+            <div className="relative flex h-[78px] w-[78px] items-center justify-center">
+  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-400/30 via-blue-500/20 to-fuchsia-500/30 blur-xl" />
+
+  <div className="absolute left-[10px] top-[6px] text-[70px] font-black italic leading-none text-white drop-shadow-[0_0_14px_rgba(255,255,255,.55)]">
+    R
+  </div>
+
+  <div className="absolute bottom-[12px] left-[4px] h-[12px] w-[68px] -rotate-45 rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 shadow-[0_0_20px_rgba(168,85,247,.9)]" />
+
+  <div className="absolute bottom-[22px] left-[18px] h-[7px] w-[50px] -rotate-45 rounded-full bg-fuchsia-500 blur-[2px]" />
+</div>
             <div>
               <div className="text-[35px] font-black leading-none tracking-tight">Rivalo</div>
               <div className="mt-2 text-[13px] font-black tracking-[.34em] text-cyan-300">OWN THE GAME</div>
