@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth } from "../../lib/firebase";
 import { ChevronRight, LockKeyhole, Mail } from "lucide-react";
 
 export default function LoginPage() {
