@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  query,
+  serverTimestamp,
+  where,
+} from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import {
   ArrowLeft,
@@ -16,28 +23,64 @@ import {
   Users,
 } from "lucide-react";
 
+type RivaloGroup = {
+  id: string;
+  name: string;
+  city: string;
+  sport: string;
+  mode: string;
+  privacy: string;
+  members?: string[];
+  rankingEnabled?: boolean;
+  fairPlayEnabled?: boolean;
+  premiumPlan?: string;
+};
+
 export default function GroupsPage() {
   const [user, setUser] = useState<User | null>(null);
+  const [groups, setGroups] = useState<RivaloGroup[]>([]);
   const [groupName, setGroupName] = useState("");
   const [city, setCity] = useState("");
   const [sport, setSport] = useState("calcetto");
   const [mode, setMode] = useState("amichevole");
   const [privacy, setPrivacy] = useState("privato");
   const [saving, setSaving] = useState(false);
+  const [loadingGroups, setLoadingGroups] = useState(true);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
         window.location.href = "/login";
         return;
       }
 
       setUser(currentUser);
+      await loadGroups(currentUser.uid);
     });
 
     return () => unsubscribe();
   }, []);
+
+  async function loadGroups(uid: string) {
+    setLoadingGroups(true);
+
+    try {
+      const q = query(collection(db, "groups"), where("members", "array-contains", uid));
+      const snap = await getDocs(q);
+
+      const list = snap.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<RivaloGroup, "id">),
+      }));
+
+      setGroups(list);
+    } catch {
+      setGroups([]);
+    } finally {
+      setLoadingGroups(false);
+    }
+  }
 
   async function createGroup(e: React.FormEvent) {
     e.preventDefault();
@@ -69,7 +112,9 @@ export default function GroupsPage() {
       setSport("calcetto");
       setMode("amichevole");
       setPrivacy("privato");
-      setMessage("Gruppo creato. Ora potrai usarlo per partite, ranking e campionati.");
+      setMessage("Gruppo creato e salvato.");
+
+      await loadGroups(user.uid);
     } catch {
       setMessage("Errore durante la creazione del gruppo.");
     } finally {
@@ -81,7 +126,7 @@ export default function GroupsPage() {
     <main className="min-h-screen bg-[#020617] text-white">
       <Background />
 
-      <section className="relative z-10 mx-auto max-w-6xl px-5 py-8">
+      <section className="relative z-10 mx-auto max-w-7xl px-5 py-8">
         <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-black text-cyan-300">
           <ArrowLeft size={17} />
           Torna alla dashboard
@@ -115,7 +160,7 @@ export default function GroupsPage() {
               <Users className="text-cyan-300" size={30} />
               <div>
                 <h2 className="text-2xl font-black">Nuovo gruppo</h2>
-                <p className="mt-1 text-sm text-slate-400">Crea la tua prima community Rivalo.</p>
+                <p className="mt-1 text-sm text-slate-400">Crea la tua community Rivalo.</p>
               </div>
             </div>
 
@@ -181,6 +226,37 @@ export default function GroupsPage() {
           </form>
         </div>
 
+        <section className="mt-8 rounded-[2rem] border border-white/10 bg-white/[.045] p-6 shadow-2xl backdrop-blur">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <div className="text-sm font-black uppercase tracking-[.28em] text-cyan-300">
+                I tuoi gruppi
+              </div>
+              <h2 className="mt-2 text-3xl font-black">Community attive</h2>
+            </div>
+
+            <div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-200">
+              {groups.length} gruppi
+            </div>
+          </div>
+
+          {loadingGroups ? (
+            <div className="mt-6 rounded-2xl border border-white/10 bg-[#020617]/60 p-5 text-slate-300">
+              Caricamento gruppi...
+            </div>
+          ) : groups.length === 0 ? (
+            <div className="mt-6 rounded-2xl border border-white/10 bg-[#020617]/60 p-5 text-slate-300">
+              Non hai ancora gruppi. Creane uno per iniziare a usare ranking, partite e campionati.
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {groups.map((group) => (
+                <GroupCard key={group.id} group={group} />
+              ))}
+            </div>
+          )}
+        </section>
+
         <div className="mt-8 rounded-[2rem] border border-fuchsia-400/25 bg-fuchsia-500/[.06] p-6">
           <div className="text-sm font-black uppercase tracking-[.28em] text-fuchsia-300">
             Monetizzazione futura
@@ -193,6 +269,53 @@ export default function GroupsPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function GroupCard({ group }: { group: RivaloGroup }) {
+  return (
+    <div className="relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-[#061126]/80 p-5 transition hover:-translate-y-1 hover:border-cyan-400/30">
+      <div className="absolute right-[-40px] top-[-40px] h-32 w-32 rounded-full bg-cyan-400/10 blur-2xl" />
+
+      <div className="relative">
+        <div className="mb-5 flex items-center justify-between">
+          <div className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1 text-xs font-black uppercase tracking-[.18em] text-cyan-200">
+            {group.sport}
+          </div>
+
+          <div className="rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300">
+            {group.privacy}
+          </div>
+        </div>
+
+        <h3 className="text-2xl font-black">{group.name}</h3>
+
+        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-slate-300">
+          <MapPin size={16} className="text-fuchsia-300" />
+          {group.city}
+        </div>
+
+        <div className="mt-5 grid grid-cols-3 gap-3 text-center">
+          <Mini value={String(group.members?.length || 1)} label="Membri" />
+          <Mini value={group.mode} label="Modalità" />
+          <Mini value={group.premiumPlan || "free"} label="Piano" />
+        </div>
+
+        <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200">
+          Apri gruppo
+          <ChevronRight size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Mini({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[.04] p-3">
+      <div className="truncate text-sm font-black">{value}</div>
+      <div className="mt-1 text-[10px] font-black uppercase tracking-[.16em] text-slate-500">{label}</div>
+    </div>
   );
 }
 
