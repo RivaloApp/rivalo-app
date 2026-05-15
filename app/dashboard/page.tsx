@@ -402,21 +402,52 @@ function WelcomePanel({ name }: { name: string }) {
 function ActionGrid() {
   return (
     <div className="grid gap-4 md:grid-cols-4">
-      <ActionButton icon={<Plus />} title="Crea partita" subtitle="Data, campo, partecipanti" tone="cyan" />
-      <ActionButton icon={<Search />} title="Trova match" subtitle="Giocatori o squadre" tone="fuchsia" />
-      <ActionButton icon={<Trophy />} title="Eventi" subtitle="Tornei e campionati" tone="lime" />
-      <ActionButton icon={<Users />} title="Gruppi" subtitle="Amici e leghe" tone="blue" />
+      <ActionButton href="/match" icon={<Plus />} title="Crea partita" subtitle="Data, campo, partecipanti" tone="cyan" />
+      <ActionButton href="/community" icon={<Search />} title="Trova match" subtitle="Giocatori o squadre" tone="fuchsia" />
+      <ActionButton href="/events" icon={<Trophy />} title="Eventi" subtitle="Tornei e campionati" tone="lime" />
+      <ActionButton href="/groups" icon={<Users />} title="Gruppi" subtitle="Amici e leghe" tone="blue" />
     </div>
   );
 }
 
-function ActionButton({ icon, title, subtitle, tone }: { icon: React.ReactNode; title: string; subtitle: string; tone: "cyan" | "fuchsia" | "lime" | "blue" }) {
+function ActionButton({
+  href,
+  icon,
+  title,
+  subtitle,
+  tone,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  tone: "cyan" | "fuchsia" | "lime" | "blue";
+}) {
   const colors = {
     cyan: "text-cyan-300 bg-cyan-400/10 border-cyan-300/20",
     fuchsia: "text-fuchsia-300 bg-fuchsia-400/10 border-fuchsia-300/20",
     lime: "text-lime-300 bg-lime-300/10 border-lime-300/20",
     blue: "text-blue-300 bg-blue-400/10 border-blue-300/20",
   };
+
+  return (
+    <Link
+      href={href}
+      className="group rounded-[1.7rem] border border-white/10 bg-white/[.04] p-5 text-left shadow-2xl backdrop-blur transition hover:-translate-y-1 hover:border-cyan-400/30"
+    >
+      <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border ${colors[tone]}`}>
+        {icon}
+      </div>
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <div className="font-black">{title}</div>
+          <div className="mt-1 text-sm leading-5 text-slate-400">{subtitle}</div>
+        </div>
+        <ChevronRight className="text-slate-500 transition group-hover:translate-x-1 group-hover:text-cyan-300" size={20} />
+      </div>
+    </Link>
+  );
+}
 
   return (
     <button className="group rounded-[1.7rem] border border-white/10 bg-white/[.04] p-5 text-left shadow-2xl backdrop-blur transition hover:-translate-y-1 hover:border-cyan-400/30">
