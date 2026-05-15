@@ -9,15 +9,12 @@ import {
   Bell,
   CalendarDays,
   Crown,
-  Flame,
   Grid2X2,
   LogOut,
-  Medal,
   MessageCircle,
   Settings,
   Shield,
   ShieldCheck,
-  Sparkles,
   Star,
   Trophy,
   UserRound,
@@ -111,24 +108,20 @@ export default function DashboardPage() {
       <section className="relative z-10 flex min-h-screen">
         <Sidebar />
 
-        <div className="min-w-0 flex-1 px-5 py-6 lg:px-9 xl:px-11">
+        <div className="min-w-0 flex-1 px-5 py-6 lg:px-8 xl:px-10 2xl:px-12">
           <TopIcons />
 
-          <section className="grid gap-8 xl:grid-cols-[1.1fr_.9fr]">
+          <section className="grid items-start gap-8 2xl:grid-cols-[1.18fr_.82fr]">
             <div>
-              <div className="mb-4 text-2xl font-medium text-white/90">
-                Bentornato,
-              </div>
-
-              <h1 className="text-5xl font-black uppercase leading-none tracking-tight md:text-6xl">
+              <div className="text-2xl font-medium text-white/90">Bentornato,</div>
+              <h1 className="mt-2 text-5xl font-black uppercase leading-none tracking-tight md:text-6xl xl:text-7xl">
                 {displayName}
               </h1>
-
               <div className="mt-2 text-3xl font-black uppercase text-cyan-300 md:text-4xl">
                 {nickname}
               </div>
 
-              <div className="mt-7 flex flex-col gap-8 lg:flex-row lg:items-end">
+              <div className="mt-7 grid items-end gap-8 xl:grid-cols-[minmax(390px,470px)_1fr]">
                 <PlayerUltimateCard
                   name={displayName}
                   nickname={nickname}
@@ -137,7 +130,7 @@ export default function DashboardPage() {
                   photo={photo}
                 />
 
-                <div className="grid flex-1 grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 xl:pb-7">
                   <ShieldStatCard tone="purple" value={String(level)} label="Livello" icon={<Star />} />
                   <ShieldStatCard tone="cyan" value={String(wins)} label="Vittorie" icon={<Trophy />} />
                   <ShieldStatCard tone="orange" value={String(mvp)} label="MVP" icon={<Crown />} />
@@ -145,16 +138,14 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <aside className="space-y-6 xl:pt-12">
+            <aside className="space-y-6 2xl:pt-12">
               <ScorePanel rivalScore={rivalScore} />
               <LevelPanel level={level} xp={xp} />
             </aside>
           </section>
 
           <section className="mt-10">
-            <h2 className="text-2xl font-black uppercase tracking-tight">
-              Azioni rapide
-            </h2>
+            <h2 className="text-2xl font-black uppercase tracking-tight">Azioni rapide</h2>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
               <QuickAction href="/groups" tone="green" icon={<Users />} title="I miei gruppi" text="Gestisci i tuoi gruppi" />
@@ -177,7 +168,7 @@ export default function DashboardPage() {
 
 function Sidebar() {
   return (
-    <aside className="hidden w-[210px] shrink-0 border-r border-white/10 bg-[#020617]/70 px-4 py-8 backdrop-blur-xl lg:flex lg:flex-col">
+    <aside className="hidden w-[215px] shrink-0 border-r border-white/10 bg-[#020617]/75 px-4 py-8 backdrop-blur-xl lg:flex lg:flex-col">
       <Link href="/" className="mb-10 flex items-center gap-3 px-2">
         <LogoMark />
         <div className="text-2xl font-black">RIVALO</div>
@@ -257,82 +248,86 @@ function PlayerUltimateCard({
   photo: string;
 }) {
   const stat = Math.max(70, Math.min(99, Math.round(rivalScore / 12)));
+  const shortSport = mainSport.toUpperCase();
 
   return (
-    <div className="relative mx-auto w-full max-w-[390px] lg:mx-0">
-      <div className="absolute -inset-8 bg-[radial-gradient(circle_at_15%_45%,rgba(249,115,22,.42),transparent_28%),radial-gradient(circle_at_90%_45%,rgba(124,58,237,.48),transparent_32%)] blur-2xl" />
+    <div className="relative mx-auto w-full max-w-[470px] xl:mx-0">
+      <div className="absolute -inset-8 bg-[radial-gradient(circle_at_15%_45%,rgba(249,115,22,.48),transparent_30%),radial-gradient(circle_at_88%_45%,rgba(37,99,235,.48),transparent_34%)] blur-2xl" />
 
       <div
-        className="relative overflow-hidden border-[3px] border-yellow-400/80 bg-[#050814] p-[3px] shadow-[0_0_45px_rgba(249,115,22,.32),0_0_65px_rgba(124,58,237,.28)]"
+        className="relative overflow-hidden border-[3px] border-yellow-400/85 bg-[#050814] p-[3px] shadow-[0_0_50px_rgba(249,115,22,.34),0_0_75px_rgba(37,99,235,.28)]"
         style={{
           clipPath:
-            "polygon(9% 0%, 91% 0%, 100% 10%, 100% 82%, 50% 100%, 0% 82%, 0% 10%)",
+            "polygon(8% 0%, 92% 0%, 100% 9%, 100% 82%, 50% 100%, 0% 82%, 0% 9%)",
         }}
       >
         <div
-          className="relative min-h-[520px] overflow-hidden bg-[#060b18]"
+          className="relative min-h-[610px] overflow-hidden bg-[#060b18]"
           style={{
             clipPath:
-              "polygon(10% 2%, 90% 2%, 98% 11%, 98% 80%, 50% 97%, 2% 80%, 2% 11%)",
+              "polygon(9% 2%, 91% 2%, 98% 10%, 98% 80%, 50% 97%, 2% 80%, 2% 10%)",
           }}
         >
           <EnergyBackground />
 
-          <div className="relative z-10 p-7">
+          <div className="relative z-10 flex min-h-[610px] flex-col p-7">
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-6xl font-black leading-none text-yellow-300">
+                <div className="text-7xl font-black leading-none text-yellow-300 drop-shadow-[0_0_16px_rgba(250,204,21,.35)]">
                   {stat}
                 </div>
-                <div className="mt-1 text-xl font-black uppercase text-yellow-200">
+                <div className="mt-1 text-2xl font-black uppercase text-yellow-200">
                   RIV
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-cyan-300/30 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase tracking-[.18em] text-cyan-200">
-                {mainSport}
+              <div className="max-w-[150px] rounded-2xl border border-cyan-300/35 bg-cyan-400/10 px-4 py-2 text-center text-xs font-black uppercase tracking-[.18em] text-cyan-100">
+                {shortSport}
               </div>
             </div>
 
-            <div className="relative mt-4 flex h-[225px] items-end justify-center">
-              <div className="absolute bottom-0 h-[185px] w-[185px] rounded-full bg-white/10 blur-2xl" />
+            <div className="relative mt-5 flex h-[255px] items-center justify-center overflow-hidden">
+              <div className="absolute inset-x-12 bottom-0 h-[220px] rounded-[2rem] bg-gradient-to-t from-black/50 via-white/5 to-white/10" />
+              <div className="absolute bottom-0 h-[210px] w-[230px] rounded-full bg-white/10 blur-2xl" />
 
               {photo ? (
                 <img
                   src={photo}
                   alt="Foto profilo"
-                  className="relative z-10 h-[230px] w-[230px] object-cover"
+                  className="relative z-10 h-[245px] w-[245px] rounded-[1.2rem] object-cover shadow-[0_0_25px_rgba(255,255,255,.08)]"
                 />
               ) : (
-                <div className="relative z-10 flex h-[220px] w-[220px] items-center justify-center rounded-full border border-cyan-300/20 bg-black/25">
-                  <UserRound size={118} className="text-cyan-200" />
+                <div className="relative z-10 flex h-[235px] w-[235px] items-center justify-center rounded-[2rem] border border-cyan-300/20 bg-black/25">
+                  <UserRound size={120} className="text-cyan-200" />
                 </div>
               )}
             </div>
 
-            <div className="mt-3 text-center">
-              <div className="truncate text-4xl font-black uppercase text-yellow-300">
+            <div className="mt-4 text-center">
+              <div className="truncate px-4 text-4xl font-black uppercase text-yellow-300 drop-shadow-[0_0_14px_rgba(250,204,21,.32)] md:text-5xl">
                 {name}
               </div>
-              <div className="mt-1 truncate text-xl font-black uppercase text-yellow-200">
+              <div className="mt-2 truncate px-4 text-2xl font-black uppercase text-yellow-200">
                 {nickname}
               </div>
-              <div className="mx-auto mt-3 h-5 w-5 text-yellow-300">★</div>
+              <div className="mx-auto mt-4 text-2xl text-yellow-300">★</div>
             </div>
 
-            <div className="mt-4 grid grid-cols-6 gap-2 text-center">
-              <CardStat label="PAC" value={stat} />
-              <CardStat label="SHO" value={Math.max(65, stat - 4)} />
-              <CardStat label="PAS" value={Math.max(65, stat - 2)} />
-              <CardStat label="DRI" value={Math.min(99, stat + 1)} />
-              <CardStat label="DEF" value={Math.max(60, stat - 6)} />
-              <CardStat label="PHY" value={Math.max(65, stat - 1)} />
-            </div>
+            <div className="mt-auto pt-5">
+              <div className="grid grid-cols-6 gap-2 px-3 text-center">
+                <CardStat label="PAC" value={stat} />
+                <CardStat label="SHO" value={Math.max(65, stat - 4)} />
+                <CardStat label="PAS" value={Math.max(65, stat - 2)} />
+                <CardStat label="DRI" value={Math.min(99, stat + 1)} />
+                <CardStat label="DEF" value={Math.max(60, stat - 6)} />
+                <CardStat label="PHY" value={Math.max(65, stat - 1)} />
+              </div>
 
-            <div className="mx-auto mt-5 flex h-5 w-8 overflow-hidden rounded-[3px] border border-white/20">
-              <div className="flex-1 bg-green-500" />
-              <div className="flex-1 bg-white" />
-              <div className="flex-1 bg-red-500" />
+              <div className="mx-auto mt-5 flex h-6 w-10 overflow-hidden rounded-[4px] border border-white/20">
+                <div className="flex-1 bg-green-500" />
+                <div className="flex-1 bg-white" />
+                <div className="flex-1 bg-red-500" />
+              </div>
             </div>
           </div>
         </div>
@@ -344,22 +339,22 @@ function PlayerUltimateCard({
 function EnergyBackground() {
   return (
     <div className="absolute inset-0">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(249,115,22,.38),transparent_28%),radial-gradient(circle_at_80%_45%,rgba(37,99,235,.38),transparent_30%),linear-gradient(135deg,#050814_0%,#070a16_45%,#12051c_100%)]" />
-      <div className="absolute -left-16 top-16 h-96 w-28 rotate-12 rounded-full bg-orange-500/40 blur-2xl" />
-      <div className="absolute -right-16 top-20 h-96 w-28 -rotate-12 rounded-full bg-blue-500/40 blur-2xl" />
-      <div className="absolute left-3 top-8 h-[520px] w-2 rotate-[18deg] bg-gradient-to-b from-transparent via-orange-400 to-transparent blur-[1px]" />
-      <div className="absolute right-5 top-6 h-[520px] w-2 -rotate-[18deg] bg-gradient-to-b from-transparent via-blue-400 to-transparent blur-[1px]" />
-      <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,transparent_0%,transparent_45%,rgba(255,255,255,.15)_46%,transparent_47%,transparent_100%)] [background-size:34px_34px]" />
-      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/60 to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_50%,rgba(249,115,22,.44),transparent_30%),radial-gradient(circle_at_82%_45%,rgba(37,99,235,.42),transparent_32%),linear-gradient(135deg,#050814_0%,#070a16_44%,#12051c_100%)]" />
+      <div className="absolute -left-14 top-10 h-[520px] w-24 rotate-12 rounded-full bg-orange-500/45 blur-2xl" />
+      <div className="absolute -right-14 top-12 h-[520px] w-24 -rotate-12 rounded-full bg-blue-500/45 blur-2xl" />
+      <div className="absolute left-4 top-0 h-[620px] w-2 rotate-[16deg] bg-gradient-to-b from-transparent via-orange-400 to-transparent blur-[1px]" />
+      <div className="absolute right-4 top-0 h-[620px] w-2 -rotate-[16deg] bg-gradient-to-b from-transparent via-cyan-400 to-transparent blur-[1px]" />
+      <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,transparent_0%,transparent_45%,rgba(255,255,255,.14)_46%,transparent_47%,transparent_100%)] [background-size:34px_34px]" />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/65 to-transparent" />
     </div>
   );
 }
 
 function CardStat({ value, label }: { value: number; label: string }) {
   return (
-    <div>
-      <div className="text-lg font-black text-yellow-300">{value}</div>
-      <div className="text-[10px] font-black uppercase text-yellow-200">{label}</div>
+    <div className="min-w-0">
+      <div className="text-xl font-black leading-none text-yellow-300">{value}</div>
+      <div className="mt-1 text-[11px] font-black uppercase text-yellow-200">{label}</div>
     </div>
   );
 }
@@ -403,26 +398,28 @@ function ShieldStatCard({
   }[tone];
 
   return (
-    <div className="relative min-w-0">
+    <div className="relative min-w-[135px]">
       <div className={`absolute inset-0 rounded-[2rem] ${colors.aura} blur-2xl`} />
 
       <div
-        className={`relative min-h-[178px] overflow-hidden border-2 ${colors.border} bg-gradient-to-br ${colors.bg} p-1 ${colors.glow}`}
+        className={`relative min-h-[195px] overflow-visible border-2 ${colors.border} bg-gradient-to-br ${colors.bg} p-1 ${colors.glow}`}
         style={{
-          clipPath: "polygon(16% 0%,84% 0%,100% 18%,100% 78%,50% 100%,0% 78%,0% 18%)",
+          clipPath: "polygon(14% 0%,86% 0%,100% 16%,100% 79%,50% 100%,0% 79%,0% 16%)",
         }}
       >
         <div
-          className="flex h-full min-h-[168px] flex-col items-center justify-center overflow-hidden bg-black/30 px-2 text-center"
+          className="relative flex min-h-[185px] flex-col items-center justify-center overflow-hidden bg-black/30 px-4 py-5 text-center"
           style={{
-            clipPath: "polygon(17% 3%,83% 3%,97% 19%,97% 76%,50% 96%,3% 76%,3% 19%)",
+            clipPath: "polygon(15% 3%,85% 3%,97% 17%,97% 77%,50% 96%,3% 77%,3% 17%)",
           }}
         >
           <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,transparent_0%,transparent_45%,rgba(255,255,255,.12)_46%,transparent_47%,transparent_100%)] [background-size:24px_24px]" />
-          <div className="relative text-5xl font-black leading-none">{value}</div>
-          <div className={`relative mt-3 max-w-full truncate px-1 text-[13px] font-black uppercase tracking-[.06em] ${colors.text}`}>
+          <div className={`relative text-6xl font-black leading-none ${colors.number}`}>{value}</div>
+
+          <div className={`relative mt-4 w-full whitespace-normal break-words text-center text-[13px] font-black uppercase leading-tight tracking-[.03em] ${colors.text}`}>
             {label}
           </div>
+
           <div className={`relative mt-4 flex h-12 w-12 items-center justify-center rounded-2xl border ${colors.border} bg-black/25 ${colors.text}`}>
             {icon}
           </div>
@@ -477,9 +474,7 @@ function LevelPanel({ level, xp }: { level: number; xp: number }) {
         {xp} / {maxXp} XP
       </div>
 
-      <div className="mt-5 text-lg text-slate-400">
-        Prossimo livello {maxXp} XP
-      </div>
+      <div className="mt-5 text-lg text-slate-400">Prossimo livello {maxXp} XP</div>
     </div>
   );
 }
@@ -560,9 +555,7 @@ function Leaderboard({
           <div
             key={`${row.name}-${row.n}`}
             className={`grid grid-cols-[44px_1fr_70px_56px] items-center gap-3 rounded-2xl border px-4 py-3 ${
-              row.active
-                ? "border-blue-500 bg-blue-600/15"
-                : "border-white/5 bg-white/[.025]"
+              row.active ? "border-blue-500 bg-blue-600/15" : "border-white/5 bg-white/[.025]"
             }`}
           >
             <div className="text-center text-2xl font-black">{row.medal}</div>
@@ -594,9 +587,7 @@ function UpgradePanel() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-xl font-black">Completa il tuo profilo</div>
-            <div className="mt-2 leading-6 text-slate-300">
-              Aggiungi foto e personalizza la tua card.
-            </div>
+            <div className="mt-2 leading-6 text-slate-300">Aggiungi foto e personalizza la tua card.</div>
           </div>
           <Star className="text-purple-300" />
         </div>
@@ -659,7 +650,7 @@ function Background() {
   return (
     <div className="pointer-events-none fixed inset-0">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_8%,rgba(59,130,246,.13),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(124,58,237,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_48%,#020617_100%)]" />
-      <div className="absolute left-[180px] top-0 h-full w-px bg-white/10" />
+      <div className="absolute left-[215px] top-0 h-full w-px bg-white/10" />
       <div className="absolute right-[-260px] top-[120px] h-[650px] w-[650px] rounded-full border border-cyan-400/10" />
       <div className="absolute left-[260px] top-[120px] h-[450px] w-[450px] rounded-full bg-orange-500/5 blur-3xl" />
     </div>
