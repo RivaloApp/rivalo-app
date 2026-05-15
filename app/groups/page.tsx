@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
+import { onAuthStateChanged, User } from "firebase/auth";
   addDoc,
   collection,
   getDocs,
