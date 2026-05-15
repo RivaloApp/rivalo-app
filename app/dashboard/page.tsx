@@ -20,6 +20,7 @@ import {
   UserRound,
   Users,
   CircleDot,
+  ArrowRight,
 } from "lucide-react";
 
 type UserProfile = {
@@ -85,7 +86,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#030712] text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
         <div className="rounded-3xl border border-cyan-300/20 bg-cyan-400/10 px-8 py-5 font-black text-cyan-200">
           Caricamento Rivalo...
         </div>
@@ -100,11 +101,11 @@ export default function DashboardPage() {
       <section className="relative z-10 flex min-h-screen">
         <Sidebar />
 
-        <div className="min-w-0 flex-1 px-5 py-6 lg:px-8 xl:px-9 2xl:px-10">
+        <div className="min-w-0 flex-1 px-5 py-6 lg:px-7 xl:px-8 2xl:px-10">
           <TopIcons />
 
-          <section className="grid gap-7 xl:grid-cols-[680px_1fr] 2xl:grid-cols-[780px_1fr]">
-            <div className="grid gap-7 md:grid-cols-[350px_1fr] 2xl:grid-cols-[390px_1fr]">
+          <section className="grid gap-7 xl:grid-cols-[minmax(770px,1fr)_360px] 2xl:grid-cols-[minmax(900px,1fr)_420px]">
+            <div className="grid items-center gap-7 xl:grid-cols-[360px_1fr] 2xl:grid-cols-[410px_1fr]">
               <PlayerCard
                 name={displayName}
                 nickname={nickname}
@@ -113,19 +114,19 @@ export default function DashboardPage() {
                 photo={photo}
               />
 
-              <div className="flex flex-col justify-center">
+              <div className="min-w-0">
                 <div className="text-2xl font-medium text-white/90">Bentornato,</div>
-                <h1 className="mt-2 text-5xl font-black uppercase leading-none tracking-tight md:text-6xl">
+                <h1 className="mt-2 text-5xl font-black uppercase leading-none tracking-tight text-white md:text-6xl 2xl:text-7xl">
                   {displayName}
                 </h1>
-                <div className="mt-3 text-3xl font-black uppercase text-cyan-300">
+                <div className="mt-3 text-3xl font-black uppercase text-cyan-300 md:text-4xl">
                   {nickname}
                 </div>
 
                 <div className="mt-10 grid grid-cols-3 gap-5">
-                  <MiniShield tone="purple" value={String(level)} label="Livello" icon={<Star />} />
-                  <MiniShield tone="cyan" value={String(wins)} label="Vittorie" icon={<Trophy />} />
-                  <MiniShield tone="orange" value={String(mvp)} label="MVP" icon={<Crown />} />
+                  <StatShield tone="purple" value={String(level)} label="Livello" icon={<Star />} />
+                  <StatShield tone="cyan" value={String(wins)} label="Vittorie" icon={<Trophy />} />
+                  <StatShield tone="orange" value={String(mvp)} label="MVP" icon={<Crown />} />
                 </div>
               </div>
             </div>
@@ -148,7 +149,7 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          <section className="mt-8 grid gap-5 xl:grid-cols-[1fr_420px]">
+          <section className="mt-8 grid gap-5 xl:grid-cols-[1fr_390px] 2xl:grid-cols-[1fr_430px]">
             <Leaderboard name={displayName} rivalScore={rivalScore} wins={wins} mvp={mvp} />
             <UpgradePanel />
           </section>
@@ -160,7 +161,7 @@ export default function DashboardPage() {
 
 function Sidebar() {
   return (
-    <aside className="hidden w-[205px] shrink-0 border-r border-white/10 bg-[#030712]/80 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
+    <aside className="hidden w-[205px] shrink-0 border-r border-white/10 bg-[#020617]/82 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
       <Link href="/" className="mb-9 flex items-center gap-3 px-2">
         <LogoMark />
         <div className="text-2xl font-black">RIVALO</div>
@@ -240,17 +241,29 @@ function PlayerCard({
   const rating = Math.max(70, Math.min(99, Math.round(rivalScore / 12)));
 
   return (
-    <div className="relative mx-auto w-full max-w-[390px]">
-      <div className="absolute -inset-5 rounded-[3rem] bg-[radial-gradient(circle_at_15%_45%,rgba(249,115,22,.55),transparent_33%),radial-gradient(circle_at_92%_40%,rgba(59,130,246,.55),transparent_35%)] blur-2xl" />
+    <div className="relative mx-auto w-full max-w-[410px]">
+      <div className="absolute -inset-5 rounded-[3rem] bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.65),transparent_35%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.65),transparent_38%)] blur-2xl" />
 
-      <div className="relative rounded-[2.4rem] border-2 border-yellow-400/80 bg-[#060815] p-[3px] shadow-[0_0_42px_rgba(249,115,22,.26),0_0_55px_rgba(59,130,246,.22)]">
-        <div className="relative overflow-hidden rounded-[2.25rem] bg-[#050814] px-6 pb-6 pt-5">
+      <div
+        className="relative bg-gradient-to-br from-yellow-300 via-orange-500 to-purple-500 p-[2px] shadow-[0_0_38px_rgba(249,115,22,.34),0_0_48px_rgba(124,58,237,.32)]"
+        style={{
+          clipPath:
+            "polygon(10% 0%, 90% 0%, 100% 10%, 100% 80%, 50% 100%, 0% 80%, 0% 10%)",
+        }}
+      >
+        <div
+          className="relative overflow-hidden bg-[#050814]"
+          style={{
+            clipPath:
+              "polygon(10.5% .8%, 89.5% .8%, 98.8% 10.8%, 98.8% 78.8%, 50% 98.5%, 1.2% 78.8%, 1.2% 10.8%)",
+          }}
+        >
           <CardEnergy />
 
-          <div className="relative z-10">
+          <div className="relative z-10 flex min-h-[520px] flex-col px-6 pb-7 pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-6xl font-black leading-none text-yellow-300 drop-shadow-[0_0_14px_rgba(250,204,21,.32)]">
+                <div className="text-6xl font-black leading-none text-yellow-300 drop-shadow-[0_0_14px_rgba(250,204,21,.35)]">
                   {rating}
                 </div>
                 <div className="mt-1 text-xl font-black uppercase text-yellow-200">RIV</div>
@@ -261,22 +274,23 @@ function PlayerCard({
               </div>
             </div>
 
-            <div className="mt-3 flex h-[165px] items-center justify-center">
+            <div className="relative mt-4 flex h-[185px] items-center justify-center">
+              <div className="absolute h-[170px] w-[170px] rounded-full bg-white/10 blur-2xl" />
               {photo ? (
                 <img
                   src={photo}
                   alt="Foto profilo"
-                  className="h-[150px] w-[150px] rounded-[1.4rem] object-cover shadow-[0_0_18px_rgba(255,255,255,.12)]"
+                  className="relative z-10 h-[170px] w-[170px] rounded-[1.4rem] object-cover shadow-[0_0_22px_rgba(255,255,255,.12)]"
                 />
               ) : (
-                <div className="flex h-[150px] w-[150px] items-center justify-center rounded-[1.4rem] border border-cyan-300/20 bg-black/25">
-                  <UserRound size={76} className="text-cyan-200" />
+                <div className="relative z-10 flex h-[170px] w-[170px] items-center justify-center rounded-[1.4rem] border border-cyan-300/20 bg-black/25">
+                  <UserRound size={84} className="text-cyan-200" />
                 </div>
               )}
             </div>
 
             <div className="mt-2 text-center">
-              <div className="truncate px-3 text-4xl font-black uppercase text-yellow-300">
+              <div className="truncate px-3 text-4xl font-black uppercase text-yellow-300 drop-shadow-[0_0_12px_rgba(250,204,21,.25)]">
                 {name}
               </div>
               <div className="mt-1 truncate px-3 text-xl font-black uppercase text-yellow-200">
@@ -285,19 +299,21 @@ function PlayerCard({
               <div className="mt-3 text-xl text-yellow-300">★</div>
             </div>
 
-            <div className="mt-4 grid grid-cols-6 gap-2 px-1 text-center">
-              <CardStat label="PAC" value={rating} />
-              <CardStat label="SHO" value={Math.max(65, rating - 4)} />
-              <CardStat label="PAS" value={Math.max(65, rating - 2)} />
-              <CardStat label="DRI" value={Math.min(99, rating + 1)} />
-              <CardStat label="DEF" value={Math.max(60, rating - 6)} />
-              <CardStat label="PHY" value={Math.max(65, rating - 1)} />
-            </div>
+            <div className="mt-auto pt-4">
+              <div className="grid grid-cols-6 gap-1.5 text-center">
+                <CardStat label="PAC" value={rating} />
+                <CardStat label="SHO" value={Math.max(65, rating - 4)} />
+                <CardStat label="PAS" value={Math.max(65, rating - 2)} />
+                <CardStat label="DRI" value={Math.min(99, rating + 1)} />
+                <CardStat label="DEF" value={Math.max(60, rating - 6)} />
+                <CardStat label="PHY" value={Math.max(65, rating - 1)} />
+              </div>
 
-            <div className="mx-auto mt-4 flex h-5 w-9 overflow-hidden rounded-[4px] border border-white/20">
-              <div className="flex-1 bg-green-500" />
-              <div className="flex-1 bg-white" />
-              <div className="flex-1 bg-red-500" />
+              <div className="mx-auto mt-4 flex h-5 w-9 overflow-hidden rounded-[4px] border border-white/20">
+                <div className="flex-1 bg-green-500" />
+                <div className="flex-1 bg-white" />
+                <div className="flex-1 bg-red-500" />
+              </div>
             </div>
           </div>
         </div>
@@ -309,12 +325,12 @@ function PlayerCard({
 function CardEnergy() {
   return (
     <div className="absolute inset-0">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_52%,rgba(249,115,22,.42),transparent_33%),radial-gradient(circle_at_82%_42%,rgba(37,99,235,.42),transparent_34%),linear-gradient(135deg,#050814_0%,#070a16_44%,#12051c_100%)]" />
-      <div className="absolute -left-10 top-8 h-[410px] w-20 rotate-12 rounded-full bg-orange-500/40 blur-2xl" />
-      <div className="absolute -right-10 top-8 h-[410px] w-20 -rotate-12 rounded-full bg-blue-500/40 blur-2xl" />
-      <div className="absolute left-3 top-0 h-[460px] w-1.5 rotate-[16deg] bg-gradient-to-b from-transparent via-orange-400 to-transparent blur-[.5px]" />
-      <div className="absolute right-3 top-0 h-[460px] w-1.5 -rotate-[16deg] bg-gradient-to-b from-transparent via-cyan-400 to-transparent blur-[.5px]" />
-      <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(135deg,transparent_0%,transparent_45%,rgba(255,255,255,.14)_46%,transparent_47%,transparent_100%)] [background-size:30px_30px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_48%,rgba(249,115,22,.48),transparent_33%),radial-gradient(circle_at_84%_42%,rgba(37,99,235,.48),transparent_34%),linear-gradient(135deg,#050814_0%,#070a16_44%,#12051c_100%)]" />
+      <div className="absolute -left-12 top-8 h-[430px] w-24 rotate-12 rounded-full bg-orange-500/50 blur-2xl" />
+      <div className="absolute -right-12 top-8 h-[430px] w-24 -rotate-12 rounded-full bg-blue-500/50 blur-2xl" />
+      <div className="absolute left-3 top-0 h-[520px] w-1.5 rotate-[16deg] bg-gradient-to-b from-transparent via-orange-400 to-transparent blur-[.5px]" />
+      <div className="absolute right-3 top-0 h-[520px] w-1.5 -rotate-[16deg] bg-gradient-to-b from-transparent via-cyan-400 to-transparent blur-[.5px]" />
+      <div className="absolute inset-0 opacity-38 [background-image:linear-gradient(135deg,transparent_0%,transparent_45%,rgba(255,255,255,.14)_46%,transparent_47%,transparent_100%)] [background-size:30px_30px]" />
       <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/65 to-transparent" />
     </div>
   );
@@ -329,7 +345,7 @@ function CardStat({ value, label }: { value: number; label: string }) {
   );
 }
 
-function MiniShield({
+function StatShield({
   tone,
   value,
   label,
@@ -341,22 +357,46 @@ function MiniShield({
   icon: React.ReactNode;
 }) {
   const styles = {
-    purple: "border-purple-400/80 from-purple-700/30 to-purple-950/80 text-purple-100 shadow-[0_0_24px_rgba(168,85,247,.28)]",
-    cyan: "border-cyan-400/80 from-cyan-700/25 to-blue-950/80 text-cyan-100 shadow-[0_0_24px_rgba(34,211,238,.22)]",
-    orange: "border-orange-400/80 from-orange-700/25 to-orange-950/80 text-orange-100 shadow-[0_0_24px_rgba(249,115,22,.25)]",
+    purple: {
+      wrap: "from-purple-500 to-purple-950 shadow-[0_0_30px_rgba(168,85,247,.35)]",
+      inner: "from-purple-800/40 to-purple-950/90",
+      text: "text-purple-100",
+    },
+    cyan: {
+      wrap: "from-cyan-400 to-blue-950 shadow-[0_0_30px_rgba(34,211,238,.28)]",
+      inner: "from-cyan-700/35 to-blue-950/90",
+      text: "text-cyan-100",
+    },
+    orange: {
+      wrap: "from-orange-400 to-orange-950 shadow-[0_0_30px_rgba(249,115,22,.32)]",
+      inner: "from-orange-700/35 to-orange-950/90",
+      text: "text-orange-100",
+    },
   }[tone];
 
   return (
-    <div className={`relative min-h-[150px] rounded-[1.7rem] border bg-gradient-to-b p-4 text-center ${styles}`}>
-      <div className="absolute inset-0 rounded-[1.7rem] opacity-35 [background-image:linear-gradient(135deg,transparent_0%,transparent_44%,rgba(255,255,255,.18)_45%,transparent_46%,transparent_100%)] [background-size:24px_24px]" />
+    <div
+      className={`relative bg-gradient-to-b p-[2px] ${styles.wrap}`}
+      style={{
+        clipPath: "polygon(14% 0%,86% 0%,100% 16%,100% 77%,50% 100%,0% 77%,0% 16%)",
+      }}
+    >
+      <div
+        className={`relative min-h-[160px] overflow-hidden bg-gradient-to-b ${styles.inner} px-3 py-5 text-center`}
+        style={{
+          clipPath: "polygon(15% 2%,85% 2%,98% 17%,98% 75%,50% 97%,2% 75%,2% 17%)",
+        }}
+      >
+        <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(135deg,transparent_0%,transparent_45%,rgba(255,255,255,.15)_46%,transparent_47%,transparent_100%)] [background-size:24px_24px]" />
 
-      <div className="relative flex h-full min-h-[118px] flex-col items-center justify-center">
-        <div className="text-5xl font-black leading-none">{value}</div>
-        <div className="mt-3 whitespace-nowrap text-sm font-black uppercase tracking-[.03em]">
-          {label}
-        </div>
-        <div className="mt-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-current/40 bg-black/25">
-          {icon}
+        <div className="relative flex min-h-[130px] flex-col items-center justify-center">
+          <div className="text-5xl font-black leading-none">{value}</div>
+          <div className={`mt-3 whitespace-nowrap text-sm font-black uppercase tracking-[.04em] ${styles.text}`}>
+            {label}
+          </div>
+          <div className={`mt-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-current/40 bg-black/25 ${styles.text}`}>
+            {icon}
+          </div>
         </div>
       </div>
     </div>
@@ -368,7 +408,6 @@ function ScorePanel({ rivalScore }: { rivalScore: number }) {
     <div className="overflow-hidden rounded-[1.7rem] border border-cyan-300/20 bg-[#071126]/80 shadow-2xl">
       <div className="relative flex items-center justify-between gap-4 p-7">
         <div className="absolute right-0 top-0 h-full w-1/2 bg-[radial-gradient(circle_at_75%_35%,rgba(37,99,235,.32),transparent_45%)]" />
-
         <div className="relative flex h-24 w-24 items-center justify-center">
           <div className="absolute inset-0 rounded-3xl bg-cyan-400/20 blur-xl" />
           <Shield className="relative text-cyan-300" size={78} />
@@ -447,7 +486,7 @@ function QuickAction({
       <div className="relative mt-3 text-sm font-medium text-white">{text}</div>
 
       <div className="relative mt-6 flex h-11 w-11 items-center justify-center rounded-2xl border border-current/35 bg-black/20 transition group-hover:translate-x-1">
-        →
+        <ArrowRight size={22} />
       </div>
     </Link>
   );
