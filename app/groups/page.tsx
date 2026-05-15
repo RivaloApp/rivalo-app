@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { onAuthStateChanged, User } from "firebase/auth";
 import {
   addDoc,
   collection,
   getDocs,
-  query,
+  query,Fb
   serverTimestamp,
   where,
 } from "firebase/firestore";
@@ -301,10 +300,13 @@ function GroupCard({ group }: { group: RivaloGroup }) {
           <Mini value={group.premiumPlan || "free"} label="Piano" />
         </div>
 
-        <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200">
-          Apri gruppo
-          <ChevronRight size={18} />
-        </button>
+        <Link
+  href={`/groups/${group.id}`}
+  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200"
+>
+  Apri gruppo
+  <ChevronRight size={18} />
+</Link>
       </div>
     </div>
   );
