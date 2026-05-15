@@ -49,7 +49,7 @@ export default function MatchPage() {
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-
+const [matches, setMatches] = useState<any[]>([]);
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
@@ -72,6 +72,19 @@ export default function MatchPage() {
       }));
 
       setGroups(loadedGroups);
+      const matchQuery = query(
+  collection(db, "matches"),
+  where("createdBy", "==", currentUser.uid)
+);
+
+const matchSnapshot = await getDocs(matchQuery);
+
+const loadedMatches = matchSnapshot.docs.map((doc) => ({
+  id: doc.id,
+  ...doc.data(),
+}));
+
+setMatches(loadedMatches);
     });
 
     return () => unsubscribe();
@@ -323,7 +336,76 @@ export default function MatchPage() {
               )}
             </form>
           </div>
+<div className="rounded-[2rem] border border-white/10 bg-[#071126]/70 p-7 backdrop-blur">
+  <div className="mb-6 flex items-center justify-between">
+    <div>
+      <div className="text-sm uppercase tracking-[0.25em] text-cyan-300">
+        Match creati
+      </div>
 
+      <h2 className="mt-2 text-3xl font-black">
+        Le tue partite
+      </h2>
+    </div>
+
+    <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-300">
+      {matches.length} match
+    </div>
+  </div>
+
+  <div className="space-y-4">
+    {matches.length === 0 ? (
+      <div className="rounded-2xl border border-dashed border-white/10 p-6 text-slate-400">
+        Nessuna partita creata.
+      </div>
+    ) : (
+      matches.map((match) => (
+        <div
+          key={match.id}
+          className="rounded-2xl border border-white/10 bg-[#0b1730] p-5"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-2xl font-black">
+                {match.name}
+              </div>
+
+              <div className="mt-2 text-slate-400">
+                {match.city}
+              </div>
+
+              <div className="mt-1 text-sm text-slate-500">
+                {match.field}
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-bold text-cyan-300">
+              {match.sport}
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-3 text-sm">
+            <div className="rounded-xl bg-white/5 px-3 py-2">
+              📅 {match.date}
+            </div>
+
+            <div className="rounded-xl bg-white/5 px-3 py-2">
+              ⏰ {match.time}
+            </div>
+
+            <div className="rounded-xl bg-white/5 px-3 py-2">
+              👥 {match.slots} slot
+            </div>
+
+            <div className="rounded-xl bg-lime-400/10 px-3 py-2 text-lime-300">
+              {match.status}
+            </div>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+</div>
           <div className="space-y-6">
             <InfoCard
               icon={<Users size={28} />}
