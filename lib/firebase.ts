@@ -13,7 +13,7 @@ import {
 } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCl8ndFoMl6oYZl_DsiTo7-6LFkvze9hGo",
+  apiKey: "AIzaSyCL8ndFoMl6oYZ1_DsiTo7-6LFkvze9hGo",
   authDomain: "rivalo-f38cf.firebaseapp.com",
   projectId: "rivalo-f38cf",
   storageBucket: "rivalo-f38cf.firebasestorage.app",
