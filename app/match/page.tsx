@@ -42,7 +42,7 @@ export default function MatchPage() {
   const [time, setTime] = useState("");
   const [mode, setMode] = useState("amichevole");
   const [slots, setSlots] = useState("10");
-  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState("");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
