@@ -328,14 +328,25 @@ function InfoCard({ icon, title, text }: { icon: React.ReactNode; title: string;
 
 function MatchCard({ match }: { match: RivaloMatch }) {
   return (
-    <div className="rounded-[1.7rem] border border-white/10 bg-[#0b1730] p-5">
+   return (
+  <Link href={`/match/${match.id}`}>
+    <div className="rounded-[1.7rem] border border-white/10 bg-[#0b1730] p-5 transition hover:scale-[1.02] hover:border-cyan-400/30 hover:bg-[#112041]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-2xl font-black">{match.name}</div>
-          <div className="mt-2 text-slate-400">{match.city}</div>
-          <div className="mt-1 text-sm text-slate-500">{match.field}</div>
+
+          <div className="mt-2 text-slate-400">
+            {match.city}
+          </div>
+
+          <div className="mt-1 text-sm text-slate-500">
+            {match.field}
+          </div>
         </div>
-        <div className="rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-black text-cyan-300">{match.sport}</div>
+
+        <div className="rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-black text-cyan-300">
+          {match.sport}
+        </div>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3 text-sm">
@@ -343,11 +354,14 @@ function MatchCard({ match }: { match: RivaloMatch }) {
         <Badge>{match.time || "Ora"}</Badge>
         <Badge>{match.slots || 0} slot</Badge>
         <Badge>{match.mode}</Badge>
-        <div className="rounded-xl bg-lime-400/10 px-3 py-2 font-black text-lime-300">{match.status || "programmata"}</div>
+
+        <div className="rounded-xl bg-lime-400/10 px-3 py-2 font-black text-lime-300">
+          {match.status || "programmata"}
+        </div>
       </div>
     </div>
-  );
-}
+  </Link>
+);
 
 function Badge({ children }: { children: React.ReactNode }) {
   return <div className="rounded-xl bg-white/5 px-3 py-2 text-slate-300">{children}</div>;
