@@ -9,13 +9,14 @@ import {
   Bell,
   CalendarDays,
   ChevronRight,
-  Flame,
+  Crown,
   Home,
   LogOut,
   Medal,
   Plus,
   Search,
   ShieldCheck,
+  Sparkles,
   Star,
   Trophy,
   Users,
@@ -68,7 +69,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-        <div className="rounded-3xl border border-cyan-400/20 bg-cyan-400/10 px-8 py-6 text-xl font-black text-cyan-300 shadow-[0_0_40px_rgba(34,211,238,.18)]">
+        <div className="rounded-3xl border border-cyan-400/20 bg-cyan-400/10 px-8 py-6 text-xl font-black text-cyan-300">
           Caricamento Rivalo...
         </div>
       </main>
@@ -113,8 +114,8 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <section className="mt-8 grid gap-6 xl:grid-cols-[430px_1fr]">
-          <PlayerEliteCard
+        <section className="mt-8 grid gap-7 xl:grid-cols-[430px_1fr]">
+          <RivaloCollectorCard
             name={displayName}
             sport={sport}
             rivalScore={rivalScore}
@@ -126,7 +127,7 @@ export default function DashboardPage() {
 
           <div className="grid gap-5">
             <WelcomePanel name={displayName} />
-            <div className="grid gap-5 lg:grid-cols-4">
+            <div className="grid gap-5 md:grid-cols-4">
               <MetricCard icon={<Zap />} label="RivalScore" value={String(rivalScore)} tone="cyan" />
               <MetricCard icon={<Trophy />} label="Vittorie" value={String(wins)} tone="lime" />
               <MetricCard icon={<Medal />} label="MVP" value={String(mvp)} tone="fuchsia" />
@@ -136,15 +137,61 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-5 lg:grid-cols-[1fr_.85fr_.85fr]">
-          <NextMatch />
-          <EventSeason />
-          <LiveNotifications />
+        <section className="mt-7 grid gap-5 lg:grid-cols-[1fr_.9fr_.9fr]">
+          <Panel title="Prossima partita" icon={<CalendarDays />}>
+            <div className="rounded-3xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/[.10] to-blue-500/[.06] p-5">
+              <div className="text-sm font-bold text-slate-300">Calcetto • Milano</div>
+              <div className="mt-2 text-2xl font-black">Rival Team vs Black Sharks</div>
+              <button className="mt-5 w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-5 py-3 font-black">
+                Apri match
+              </button>
+            </div>
+          </Panel>
+
+          <Panel title="Evento attivo" icon={<Trophy />}>
+            <div className="rounded-3xl border border-fuchsia-400/25 bg-gradient-to-br from-fuchsia-500/[.12] to-cyan-400/[.06] p-5">
+              <div className="text-sm font-black uppercase tracking-[.22em] text-fuchsia-300">Winter League</div>
+              <div className="mt-3 text-2xl font-black">Campionato 3 mesi</div>
+              <p className="mt-3 text-sm leading-6 text-slate-300">Classifica evento, premio finale, badge season.</p>
+            </div>
+          </Panel>
+
+          <Panel title="Notifiche" icon={<Bell />}>
+            <div className="space-y-3">
+              <Note color="cyan" title="Richiesta presenza" text="Manca 1 giocatore per stasera." />
+              <Note color="fuchsia" title="Match da confermare" text="Risultato in attesa di validazione." />
+              <Note color="lime" title="Evento in scadenza" text="Ultimi 3 giorni per salire." />
+            </div>
+          </Panel>
         </section>
 
-        <section className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr]">
-          <CommunityHub />
-          <RankingCard />
+        <section className="mt-7 grid gap-5 lg:grid-cols-[1fr_1fr]">
+          <Panel title="Community Hub" icon={<Users />}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <CommunityTile title="Trova giocatore" text="Slot liberi vicino a te" />
+              <CommunityTile title="Trova squadra" text="Siamo in 5? Cerca avversari" />
+              <CommunityTile title="Avversario tennis" text="Sfide singolo o doppio" />
+              <CommunityTile title="Compagno padel" text="Singolo / doppio e match aperti" />
+            </div>
+          </Panel>
+
+          <Panel title="Classifica rapida" icon={<Trophy />}>
+            <div className="space-y-3">
+              {[
+                ["1", "Antonio", "91"],
+                ["2", "Marco", "86"],
+                ["3", "Luca", "82"],
+              ].map(([pos, name, score]) => (
+                <div key={name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#061126]/70 p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-400/10 text-sm font-black text-cyan-300">{pos}</div>
+                    <div className="font-black">{name}</div>
+                  </div>
+                  <div className="font-black text-lime-300">{score}</div>
+                </div>
+              ))}
+            </div>
+          </Panel>
         </section>
       </section>
 
@@ -158,8 +205,8 @@ function Background() {
     <div className="pointer-events-none fixed inset-0">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_8%,rgba(34,211,238,.17),transparent_26%),radial-gradient(circle_at_82%_2%,rgba(217,70,239,.16),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(59,130,246,.14),transparent_38%),linear-gradient(180deg,#020617_0%,#030712_48%,#020617_100%)]" />
       <div className="absolute left-[-140px] top-[130px] h-[360px] w-[360px] rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="absolute right-[-180px] top-[170px] h-[560px] w-[560px] rounded-full border border-fuchsia-500/10" />
       <div className="absolute right-[-230px] top-[90px] h-[720px] w-[720px] rounded-full border border-cyan-400/10" />
+      <div className="absolute right-[-180px] top-[170px] h-[560px] w-[560px] rounded-full border border-fuchsia-500/10" />
     </div>
   );
 }
@@ -170,12 +217,12 @@ function LogoMark() {
       <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
       <svg viewBox="0 0 120 120" className="relative h-full w-full" aria-label="Rivalo logo">
         <defs>
-          <linearGradient id="dash2LogoEdge" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id="dash3LogoEdge" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#22d3ee" />
             <stop offset="52%" stopColor="#3b82f6" />
             <stop offset="100%" stopColor="#d946ef" />
           </linearGradient>
-          <filter id="dash2SoftGlow" x="-40%" y="-40%" width="180%" height="180%">
+          <filter id="dash3SoftGlow" x="-40%" y="-40%" width="180%" height="180%">
             <feDropShadow dx="-3" dy="2" stdDeviation="4" floodColor="#22d3ee" floodOpacity=".65" />
             <feDropShadow dx="4" dy="4" stdDeviation="5" floodColor="#d946ef" floodOpacity=".5" />
           </filter>
@@ -183,17 +230,17 @@ function LogoMark() {
         <path
           d="M20 100 L20 13 H71 C93 13 106 27 106 46 C106 61 97 72 83 77 L105 100 H74 L56 76 H49 L49 100 Z"
           fill="white"
-          filter="url(#dash2SoftGlow)"
+          filter="url(#dash3SoftGlow)"
         />
         <path d="M49 36 H67 C75 36 80 40 80 47 C80 54 75 58 67 58 H49 Z" fill="#020617" />
-        <path d="M21 100 L49 76 H61 L29 114 Z" fill="url(#dash2LogoEdge)" />
+        <path d="M21 100 L49 76 H61 L29 114 Z" fill="url(#dash3LogoEdge)" />
         <path d="M73 78 L105 100 H76 L58 78 Z" fill="#d946ef" opacity=".55" />
       </svg>
     </div>
   );
 }
 
-function PlayerEliteCard({
+function RivaloCollectorCard({
   name,
   sport,
   rivalScore,
@@ -213,66 +260,83 @@ function PlayerEliteCard({
   const xpProgress = Math.min(100, Math.round((xp / 3000) * 100));
 
   return (
-    <div className="relative min-h-[640px] overflow-hidden rounded-[2.5rem] border border-cyan-300/25 bg-gradient-to-br from-[#0b1b38] via-[#061126] to-[#020617] p-[2px] shadow-[0_0_60px_rgba(34,211,238,.12)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(34,211,238,.25),transparent_32%),radial-gradient(circle_at_30%_95%,rgba(217,70,239,.20),transparent_34%)]" />
+    <div className="relative mx-auto w-full max-w-[430px]">
+      <div className="absolute inset-0 rounded-[3rem] bg-cyan-400/20 blur-3xl" />
+      <div className="absolute inset-0 translate-x-4 translate-y-8 rounded-[3rem] bg-fuchsia-500/20 blur-3xl" />
 
-      <div className="relative h-full rounded-[2.4rem] bg-[#030817]/80 p-6">
-        <div className="absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute bottom-[-60px] right-[-80px] h-56 w-56 rounded-full bg-fuchsia-500/15 blur-3xl" />
+      <div className="relative rounded-[2.8rem] bg-gradient-to-br from-cyan-300 via-blue-500 to-fuchsia-500 p-[3px] shadow-[0_0_70px_rgba(34,211,238,.22)]">
+        <div className="relative overflow-hidden rounded-[2.65rem] bg-[#071126] p-5">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,rgba(255,255,255,.22),transparent_18%),radial-gradient(circle_at_50%_45%,rgba(34,211,238,.20),transparent_38%),linear-gradient(160deg,rgba(255,255,255,.08),transparent_35%,rgba(217,70,239,.12))]" />
+          <div className="absolute left-[-70px] top-[180px] h-[220px] w-[220px] rounded-full border border-cyan-300/15" />
+          <div className="absolute right-[-90px] top-[120px] h-[270px] w-[270px] rounded-full border border-fuchsia-300/15" />
 
-        <div className="relative flex items-center justify-between">
-          <div className="rounded-full border border-cyan-300/35 bg-cyan-400/10 px-4 py-2 text-xs font-black tracking-[.22em] text-cyan-200">
-            ELITE CARD
-          </div>
-          <div className="rounded-2xl border border-lime-300/45 bg-lime-300/10 px-4 py-2 text-sm font-black text-lime-300">
-            LVL {level}
-          </div>
-        </div>
+          <div className="relative rounded-[2.25rem] border border-white/15 bg-black/25 p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-[76px] font-black leading-none tracking-tight text-white drop-shadow-[0_0_25px_rgba(34,211,238,.35)]">
+                  {rivalScore}
+                </div>
+                <div className="mt-1 text-sm font-black uppercase tracking-[.24em] text-cyan-200">
+                  OVR
+                </div>
+              </div>
 
-        <div className="relative mt-10 flex items-start justify-between">
-          <div>
-            <div className="text-sm font-black uppercase tracking-[.28em] text-slate-400">Overall</div>
-            <div className="mt-1 text-[92px] font-black leading-none text-cyan-300 drop-shadow-[0_0_30px_rgba(34,211,238,.35)]">
-              {rivalScore}
+              <div className="text-right">
+                <div className="rounded-2xl border border-lime-300/35 bg-lime-300/10 px-3 py-2 text-sm font-black text-lime-300">
+                  LVL {level}
+                </div>
+                <div className="mt-3 text-xs font-black uppercase tracking-[.22em] text-slate-300">
+                  {sport}
+                </div>
+              </div>
+            </div>
+
+            <div className="relative mt-3 flex justify-center">
+              <div className="absolute top-5 h-44 w-44 rounded-full bg-cyan-400/20 blur-3xl" />
+              <div className="relative flex h-56 w-56 items-center justify-center">
+                <ElitePlayerFigure />
+              </div>
+            </div>
+
+            <div className="relative mt-2 text-center">
+              <div className="text-[32px] font-black uppercase tracking-tight text-white">
+                {name}
+              </div>
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <span className="h-[1px] w-12 bg-gradient-to-r from-transparent to-cyan-300" />
+                <span className="text-xs font-black uppercase tracking-[.25em] text-cyan-200">
+                  Rival Icon
+                </span>
+                <span className="h-[1px] w-12 bg-gradient-to-l from-transparent to-fuchsia-300" />
+              </div>
+            </div>
+
+            <div className="relative mt-6 grid grid-cols-3 gap-3 text-center">
+              <Attribute value={String(wins)} label="WIN" />
+              <Attribute value={String(mvp)} label="MVP" />
+              <Attribute value="100" label="FAIR" />
+              <Attribute value="84" label="ATK" />
+              <Attribute value="91" label="IQ" />
+              <Attribute value="88" label="CHE" />
+            </div>
+
+            <div className="relative mt-6 rounded-3xl border border-white/10 bg-white/[.06] p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-[.18em] text-slate-300">XP Evolution</span>
+                <span className="text-xs font-black text-cyan-300">{xp}/3000</span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-500" style={{ width: `${xpProgress}%` }} />
+              </div>
             </div>
           </div>
-          <div className="text-right">
-            <div className="rounded-2xl border border-fuchsia-300/30 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-200">
-              ON FIRE
+
+          <div className="relative mt-4 flex items-center justify-between px-4">
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-slate-400">
+              <Crown size={16} className="text-yellow-300" />
+              Elite Series
             </div>
-            <div className="mt-3 text-xs font-black uppercase tracking-[.22em] text-slate-500">
-              {sport}
-            </div>
-          </div>
-        </div>
-
-        <div className="relative mt-8 flex justify-center">
-          <div className="relative flex h-48 w-48 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-cyan-400/15 to-fuchsia-500/15">
-            <div className="absolute inset-5 rounded-full border border-cyan-300/20" />
-            <PlayerSilhouette />
-          </div>
-        </div>
-
-        <div className="relative mt-8 text-center">
-          <div className="text-4xl font-black tracking-tight">{name}</div>
-          <div className="mt-2 text-sm font-black uppercase tracking-[.24em] text-slate-400">
-            Founder Player
-          </div>
-        </div>
-
-        <div className="relative mt-8 grid grid-cols-3 gap-3 text-center">
-          <CardStat value={String(wins)} label="Win" />
-          <CardStat value={String(mvp)} label="MVP" />
-          <CardStat value="100" label="Fair" />
-        </div>
-
-        <div className="relative mt-7 rounded-3xl border border-white/10 bg-white/[.04] p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-bold text-slate-300">XP Progress</span>
-            <span className="text-sm font-black text-cyan-300">{xp} / 3000</span>
-          </div>
-          <div className="h-3 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-500" style={{ width: `${xpProgress}%` }} />
+            <div className="text-xs font-black uppercase tracking-[.18em] text-fuchsia-300">Season 01</div>
           </div>
         </div>
       </div>
@@ -280,31 +344,38 @@ function PlayerEliteCard({
   );
 }
 
-function PlayerSilhouette() {
+function ElitePlayerFigure() {
   return (
-    <svg viewBox="0 0 180 180" className="h-40 w-40 drop-shadow-[0_0_30px_rgba(34,211,238,.35)]">
+    <svg viewBox="0 0 220 250" className="h-60 w-60 drop-shadow-[0_0_35px_rgba(34,211,238,.35)]">
       <defs>
-        <linearGradient id="playerGrad" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="figureBody" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#22d3ee" />
-          <stop offset="60%" stopColor="#3b82f6" />
+          <stop offset="48%" stopColor="#2563eb" />
           <stop offset="100%" stopColor="#d946ef" />
         </linearGradient>
+        <linearGradient id="figureLight" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#67e8f9" />
+        </linearGradient>
       </defs>
-      <circle cx="90" cy="46" r="27" fill="url(#playerGrad)" />
-      <path d="M50 150 C55 105 66 83 90 83 C114 83 125 105 130 150 Z" fill="url(#playerGrad)" />
-      <path d="M58 116 L36 139" stroke="#d946ef" strokeWidth="10" strokeLinecap="round" />
-      <path d="M122 116 L145 139" stroke="#22d3ee" strokeWidth="10" strokeLinecap="round" />
-      <path d="M75 150 L63 173" stroke="#60a5fa" strokeWidth="11" strokeLinecap="round" />
-      <path d="M105 150 L118 173" stroke="#c084fc" strokeWidth="11" strokeLinecap="round" />
+
+      <path d="M110 29 C137 29 156 49 156 77 C156 104 137 124 110 124 C83 124 64 104 64 77 C64 49 83 29 110 29Z" fill="url(#figureLight)" opacity=".95" />
+      <path d="M53 230 C58 165 75 130 110 130 C145 130 162 165 167 230 Z" fill="url(#figureBody)" />
+      <path d="M75 150 L32 190" stroke="#22d3ee" strokeWidth="16" strokeLinecap="round" />
+      <path d="M145 150 L188 190" stroke="#d946ef" strokeWidth="16" strokeLinecap="round" />
+      <path d="M92 226 L76 247" stroke="#60a5fa" strokeWidth="16" strokeLinecap="round" />
+      <path d="M128 226 L145 247" stroke="#c084fc" strokeWidth="16" strokeLinecap="round" />
+      <path d="M84 168 C103 182 122 182 142 168" stroke="white" strokeOpacity=".55" strokeWidth="5" strokeLinecap="round" />
+      <circle cx="160" cy="50" r="9" fill="#d9f99d" />
     </svg>
   );
 }
 
-function CardStat({ value, label }: { value: string; label: string }) {
+function Attribute({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-      <div className="text-3xl font-black">{value}</div>
-      <div className="mt-1 text-[11px] font-black uppercase tracking-[.16em] text-slate-400">{label}</div>
+    <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
+      <div className="text-[26px] font-black leading-none">{value}</div>
+      <div className="mt-1 text-[11px] font-black uppercase tracking-[.14em] text-slate-300">{label}</div>
     </div>
   );
 }
@@ -319,8 +390,7 @@ function WelcomePanel({ name }: { name: string }) {
           Benvenuto nella tua arena, {name}.
         </h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 md:text-lg">
-          La home resta pulita. Le funzioni pesanti si aprono in sezioni dedicate:
-          match, community, eventi, ranking e profilo.
+          La tua card evolve con partite confermate, FairPlay, XP, tornei e RivalScore.
         </p>
       </div>
     </div>
@@ -376,86 +446,6 @@ function MetricCard({ icon, label, value, tone }: { icon: React.ReactNode; label
       <div className="text-xs font-black uppercase tracking-[.22em] text-slate-400">{label}</div>
       <div className={`mt-3 text-4xl font-black ${colors[tone]}`}>{value}</div>
     </div>
-  );
-}
-
-function NextMatch() {
-  return (
-    <Panel title="Prossima partita" icon={<CalendarDays />}>
-      <div className="rounded-3xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/[.10] to-blue-500/[.06] p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm font-bold text-slate-300">Calcetto • Milano</div>
-            <div className="mt-2 text-2xl font-black">Rival Team vs Black Sharks</div>
-          </div>
-          <div className="rounded-2xl bg-lime-300/10 px-3 py-2 text-sm font-black text-lime-300">21:00</div>
-        </div>
-        <button className="mt-5 w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-5 py-3 font-black">
-          Apri match
-        </button>
-      </div>
-    </Panel>
-  );
-}
-
-function EventSeason() {
-  return (
-    <Panel title="Evento attivo" icon={<Trophy />}>
-      <div className="rounded-3xl border border-fuchsia-400/25 bg-gradient-to-br from-fuchsia-500/[.12] to-cyan-400/[.06] p-5">
-        <div className="text-sm font-black uppercase tracking-[.22em] text-fuchsia-300">Winter League</div>
-        <div className="mt-3 text-2xl font-black">Campionato 3 mesi</div>
-        <p className="mt-3 text-sm leading-6 text-slate-300">Classifica evento, premio finale, badge season e ranking dedicato.</p>
-      </div>
-    </Panel>
-  );
-}
-
-function LiveNotifications() {
-  return (
-    <Panel title="Notifiche" icon={<Bell />}>
-      <div className="space-y-3">
-        <Note color="cyan" title="Richiesta presenza" text="Manca 1 giocatore per stasera." />
-        <Note color="fuchsia" title="Match da confermare" text="Risultato in attesa di validazione." />
-        <Note color="lime" title="Evento in scadenza" text="Ultimi 3 giorni per salire in classifica." />
-      </div>
-    </Panel>
-  );
-}
-
-function CommunityHub() {
-  return (
-    <Panel title="Community Hub" icon={<Users />}>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <CommunityTile title="Trova giocatore" text="Slot liberi vicino a te" />
-        <CommunityTile title="Trova squadra" text="Siamo in 5? Cerca avversari" />
-        <CommunityTile title="Avversario tennis" text="Sfide singolo o doppio" />
-        <CommunityTile title="Compagno padel" text="Singolo / doppio e match aperti" />
-      </div>
-    </Panel>
-  );
-}
-
-function RankingCard() {
-  const players = [
-    ["1", "Antonio", "91"],
-    ["2", "Marco", "86"],
-    ["3", "Luca", "82"],
-  ];
-
-  return (
-    <Panel title="Classifica rapida" icon={<Trophy />}>
-      <div className="space-y-3">
-        {players.map(([pos, name, score]) => (
-          <div key={name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#061126]/70 p-4">
-            <div className="flex items-center gap-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-400/10 text-sm font-black text-cyan-300">{pos}</div>
-              <div className="font-black">{name}</div>
-            </div>
-            <div className="font-black text-lime-300">{score}</div>
-          </div>
-        ))}
-      </div>
-    </Panel>
   );
 }
 
