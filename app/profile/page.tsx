@@ -1,26 +1,36 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import {
+  doc,
+  getDoc,
+  setDoc,
+} from "firebase/firestore";
+import {
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { auth, db } from "../../lib/firebase";
-import { ChevronRight, Image, UserRound } from "lucide-react";
-
-type RivaloProfile = {
-  name?: string;
-  nickname?: string;
-  email?: string;
-  mainSport?: string;
-  photoUrl?: string;
-};
+import { auth, db, storage } from "../../lib/firebase";
+import {
+  Camera,
+  Save,
+  Shield,
+  Star,
+  Trophy,
+  UserRound,
+} from "lucide-react";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<RivaloProfile | null>(null);
-  const [photoUrl, setPhotoUrl] = useState("");
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
+
+  const [name, setName] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [sport, setSport] = useState("calcetto");
+  const [photoURL, setPhotoURL] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -31,123 +41,272 @@ export default function ProfilePage() {
 
       setUser(currentUser);
 
-      const snap = await getDoc(doc(db, "users", currentUser.uid));
-      if (snap.exists()) {
-        const data = snap.data() as RivaloProfile;
-        setProfile(data);
-        setPhotoUrl(data.photoUrl || "");
+      try {
+        const userRef = doc(db, "users", currentUser.uid);
+        const snap = await getDoc(userRef);
+
+        if (snap.exists()) {
+          const data = snap.data();
+
+          setName(data.name || currentUser.displayName || "");
+          setNickname(data.nickname || "Rival Player");
+          setSport(data.mainSport || "calcetto");
+          setPhotoURL(data.photoURL || "");
+        } else {
+          setName(currentUser.displayName || "");
+        }
+      } finally {
+        setLoading(false);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  async function savePhotoUrl() {
+  async function uploadPhoto(file: File) {
     if (!user) return;
 
     setSaving(true);
-    setMessage("");
 
     try {
-      await updateDoc(doc(db, "users", user.uid), {
-        photoUrl: photoUrl.trim(),
-      });
+      const storageRef = ref(storage, `profiles/${user.uid}`);
 
-      setProfile((prev) => ({
-        ...prev,
-        photoUrl: photoUrl.trim(),
-      }));
+      await uploadBytes(storageRef, file);
 
-      setMessage("Foto salvata nella tua Rivalo Card.");
-    } catch {
-      setMessage("Errore nel salvataggio della foto.");
+      const url = await getDownloadURL(storageRef);
+
+      setPhotoURL(url);
+
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          photoURL: url,
+        },
+        { merge: true }
+      );
     } finally {
       setSaving(false);
     }
   }
 
+  async function saveProfile() {
+    if (!user) return;
+
+    setSaving(true);
+
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          name,
+          nickname,
+          mainSport: sport,
+          photoURL,
+          rivalScore: 1000,
+          level: 1,
+          xp: 100,
+          wins: 0,
+          mvp: 0,
+        },
+        { merge: true }
+      );
+
+      alert("Profilo aggiornato");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
+        Caricamento...
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.18),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(217,70,239,.18),transparent_35%)]" />
+    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-10">
+          <h1 className="text-5xl font-black uppercase tracking-tight">
+            Profilo Rivalo
+          </h1>
 
-      <section className="relative z-10 mx-auto max-w-5xl px-5 py-8">
-        <Link href="/dashboard" className="text-sm font-black text-cyan-300">
-          ← Torna alla dashboard
-        </Link>
+          <p className="mt-3 text-slate-400">
+            Personalizza la tua card premium.
+          </p>
+        </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[360px_1fr]">
-          <div className="rounded-[2rem] border border-white/10 bg-white/[.04] p-6 shadow-2xl backdrop-blur">
-            <div className="relative mx-auto flex h-72 w-72 items-center justify-center overflow-hidden rounded-[2rem] border border-cyan-300/25 bg-gradient-to-br from-cyan-400/15 to-fuchsia-500/15">
-              {photoUrl ? (
-                <img src={photoUrl} alt="Foto card Rivalo" className="h-full w-full object-cover" />
-              ) : (
-                <UserRound size={110} className="text-cyan-300" />
-              )}
+        <div className="grid gap-8 xl:grid-cols-[360px_1fr]">
+          <div className="relative overflow-hidden rounded-[2rem] border border-cyan-400/20 bg-[#071120] p-6">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,.22),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(249,115,22,.18),transparent_30%)]" />
 
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-5">
-                <div className="text-2xl font-black">{profile?.nickname || profile?.name || "Player"}</div>
-                <div className="text-xs font-black uppercase tracking-[.22em] text-cyan-300">
-                  Rivalo Card Photo
+            <div className="relative z-10">
+              <div className="relative mx-auto h-[320px] w-[260px] overflow-hidden rounded-[2rem] border border-yellow-400/50 bg-black shadow-[0_0_40px_rgba(249,115,22,.35)]">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_30%,rgba(249,115,22,.45),transparent_30%),radial-gradient(circle_at_80%_30%,rgba(59,130,246,.45),transparent_35%),linear-gradient(180deg,#050816_0%,#020617_100%)]" />
+
+                <div className="absolute left-0 top-0 h-full w-2 bg-gradient-to-b from-orange-400 to-yellow-300" />
+                <div className="absolute right-0 top-0 h-full w-2 bg-gradient-to-b from-cyan-400 to-blue-500" />
+
+                <div className="relative z-10 flex h-full flex-col items-center px-5 py-5">
+                  <div className="self-start text-5xl font-black text-yellow-300">
+                    87
+                  </div>
+
+                  <div className="mt-2 flex h-[130px] w-[130px] items-center justify-center overflow-hidden rounded-[1.4rem] border border-white/20 bg-black/40">
+                    {photoURL ? (
+                      <img
+                        src={photoURL}
+                        alt="profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <UserRound size={70} className="text-cyan-200" />
+                    )}
+                  </div>
+
+                  <div className="mt-6 text-center">
+                    <div className="text-3xl font-black uppercase text-yellow-300">
+                      {name || "PLAYER"}
+                    </div>
+
+                    <div className="text-xl font-black uppercase text-yellow-100">
+                      {nickname || "RIVAL PLAYER"}
+                    </div>
+                  </div>
+
+                  <div className="mt-auto grid w-full grid-cols-3 gap-3 text-center">
+                    <div>
+                      <div className="text-2xl font-black text-yellow-300">87</div>
+                      <div className="text-xs font-bold text-white/70">PAC</div>
+                    </div>
+
+                    <div>
+                      <div className="text-2xl font-black text-yellow-300">85</div>
+                      <div className="text-xs font-bold text-white/70">DRI</div>
+                    </div>
+
+                    <div>
+                      <div className="text-2xl font-black text-yellow-300">84</div>
+                      <div className="text-xs font-bold text-white/70">PHY</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/[.04] p-7 shadow-2xl backdrop-blur">
-            <div className="text-sm font-black uppercase tracking-[.3em] text-cyan-300">Profilo</div>
-            <h1 className="mt-3 text-5xl font-black">Personalizza la tua card.</h1>
+          <div className="rounded-[2rem] border border-white/10 bg-[#071120] p-8">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-bold uppercase text-slate-400">
+                  Nome
+                </label>
 
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-              Per ora inseriamo un link immagine. Più avanti attiveremo caricamento diretto foto.
-              La foto apparirà nella tua Rivalo Card in dashboard.
-            </p>
-
-            <label className="mt-8 block">
-              <span className="mb-2 block text-sm font-black text-slate-300">Link foto</span>
-              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#020617]/70 px-4 py-4">
-                <Image className="text-cyan-300" size={20} />
                 <input
-                  value={photoUrl}
-                  onChange={(e) => setPhotoUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
+                  placeholder="Samuele"
                 />
               </div>
-            </label>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold uppercase text-slate-400">
+                  Nickname
+                </label>
+
+                <input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
+                  placeholder="Ponzetta"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="mb-2 block text-sm font-bold uppercase text-slate-400">
+                Sport principale
+              </label>
+
+              <select
+                value={sport}
+                onChange={(e) => setSport(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
+              >
+                <option value="calcetto">Calcetto</option>
+                <option value="padel">Padel</option>
+                <option value="tennis">Tennis</option>
+              </select>
+            </div>
+
+            <div className="mt-8 rounded-[1.5rem] border border-cyan-400/20 bg-cyan-400/5 p-6">
+              <div className="flex items-center gap-3">
+                <Camera className="text-cyan-300" />
+
+                <div>
+                  <div className="font-black uppercase">
+                    Carica foto card
+                  </div>
+
+                  <div className="text-sm text-slate-400">
+                    La dashboard si aggiorna automaticamente.
+                  </div>
+                </div>
+              </div>
+
+              <input
+                type="file"
+                accept="image/*"
+                className="mt-5 block w-full rounded-2xl border border-white/10 bg-black/20 p-4"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadPhoto(file);
+                }}
+              />
+            </div>
+
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              <MiniCard icon={<Shield />} label="Rival Score" value="1000" />
+              <MiniCard icon={<Trophy />} label="Vittorie" value="0" />
+              <MiniCard icon={<Star />} label="MVP" value="0" />
+            </div>
 
             <button
-              onClick={savePhotoUrl}
+              onClick={saveProfile}
               disabled={saving}
-              className="mt-5 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
+              className="mt-8 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-4 text-lg font-black uppercase transition hover:scale-[1.02]"
             >
-              {saving ? "Salvataggio..." : "Salva foto card"}
-              <ChevronRight size={20} />
+              <Save size={20} />
+              {saving ? "Salvataggio..." : "Salva profilo"}
             </button>
-
-            {message && (
-              <div className="mt-5 rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3 text-sm font-bold text-slate-200">
-                {message}
-              </div>
-            )}
-
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <InfoBox label="Nome" value={profile?.name || "-"} />
-              <InfoBox label="Nickname" value={profile?.nickname || "-"} />
-              <InfoBox label="Sport" value={profile?.mainSport || "-"} />
-              <InfoBox label="Email" value={profile?.email || user?.email || "-"} />
-            </div>
           </div>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
 
-function InfoBox({ label, value }: { label: string; value: string }) {
+function MiniCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#061126]/70 p-5">
-      <div className="text-xs font-black uppercase tracking-[.22em] text-slate-400">{label}</div>
-      <div className="mt-2 text-xl font-black">{value}</div>
+    <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 text-center">
+      <div className="mb-3 flex justify-center text-cyan-300">{icon}</div>
+
+      <div className="text-3xl font-black text-white">{value}</div>
+
+      <div className="mt-1 text-sm font-bold uppercase text-slate-400">
+        {label}
+      </div>
     </div>
   );
 }
