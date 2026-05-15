@@ -16,7 +16,6 @@ import {
   Plus,
   Search,
   ShieldCheck,
-  Sparkles,
   Star,
   Trophy,
   Users,
@@ -28,6 +27,7 @@ type RivaloProfile = {
   nickname?: string;
   email?: string;
   mainSport?: string;
+  photoUrl?: string;
   rivalScore?: number;
   level?: number;
   xp?: number;
@@ -83,6 +83,7 @@ export default function DashboardPage() {
   const wins = profile?.wins ?? 0;
   const mvp = profile?.mvp ?? 0;
   const xp = profile?.xp ?? 0;
+  const photoUrl = profile?.photoUrl || "";
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#020617] pb-28 text-white">
@@ -99,6 +100,13 @@ export default function DashboardPage() {
           </Link>
 
           <div className="flex items-center gap-3">
+            <Link
+              href="/profile"
+              className="hidden rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-200 md:block"
+            >
+              Modifica card
+            </Link>
+
             <button className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[.045] backdrop-blur">
               <Bell size={20} className="text-cyan-300" />
               <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-fuchsia-400 shadow-[0_0_12px_rgba(217,70,239,.9)]" />
@@ -114,7 +122,7 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <section className="mt-8 grid gap-7 xl:grid-cols-[430px_1fr]">
+        <section className="mt-8 grid gap-7 xl:grid-cols-[440px_1fr]">
           <RivaloCollectorCard
             name={displayName}
             sport={sport}
@@ -123,6 +131,7 @@ export default function DashboardPage() {
             xp={xp}
             wins={wins}
             mvp={mvp}
+            photoUrl={photoUrl}
           />
 
           <div className="grid gap-5">
@@ -178,7 +187,7 @@ export default function DashboardPage() {
           <Panel title="Classifica rapida" icon={<Trophy />}>
             <div className="space-y-3">
               {[
-                ["1", "Antonio", "91"],
+                ["1", displayName, String(rivalScore)],
                 ["2", "Marco", "86"],
                 ["3", "Luca", "82"],
               ].map(([pos, name, score]) => (
@@ -217,23 +226,19 @@ function LogoMark() {
       <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
       <svg viewBox="0 0 120 120" className="relative h-full w-full" aria-label="Rivalo logo">
         <defs>
-          <linearGradient id="dash3LogoEdge" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id="dashPhotoLogoEdge" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#22d3ee" />
             <stop offset="52%" stopColor="#3b82f6" />
             <stop offset="100%" stopColor="#d946ef" />
           </linearGradient>
-          <filter id="dash3SoftGlow" x="-40%" y="-40%" width="180%" height="180%">
+          <filter id="dashPhotoSoftGlow" x="-40%" y="-40%" width="180%" height="180%">
             <feDropShadow dx="-3" dy="2" stdDeviation="4" floodColor="#22d3ee" floodOpacity=".65" />
             <feDropShadow dx="4" dy="4" stdDeviation="5" floodColor="#d946ef" floodOpacity=".5" />
           </filter>
         </defs>
-        <path
-          d="M20 100 L20 13 H71 C93 13 106 27 106 46 C106 61 97 72 83 77 L105 100 H74 L56 76 H49 L49 100 Z"
-          fill="white"
-          filter="url(#dash3SoftGlow)"
-        />
+        <path d="M20 100 L20 13 H71 C93 13 106 27 106 46 C106 61 97 72 83 77 L105 100 H74 L56 76 H49 L49 100 Z" fill="white" filter="url(#dashPhotoSoftGlow)" />
         <path d="M49 36 H67 C75 36 80 40 80 47 C80 54 75 58 67 58 H49 Z" fill="#020617" />
-        <path d="M21 100 L49 76 H61 L29 114 Z" fill="url(#dash3LogoEdge)" />
+        <path d="M21 100 L49 76 H61 L29 114 Z" fill="url(#dashPhotoLogoEdge)" />
         <path d="M73 78 L105 100 H76 L58 78 Z" fill="#d946ef" opacity=".55" />
       </svg>
     </div>
@@ -248,6 +253,7 @@ function RivaloCollectorCard({
   xp,
   wins,
   mvp,
+  photoUrl,
 }: {
   name: string;
   sport: string;
@@ -256,19 +262,18 @@ function RivaloCollectorCard({
   xp: number;
   wins: number;
   mvp: number;
+  photoUrl: string;
 }) {
   const xpProgress = Math.min(100, Math.round((xp / 3000) * 100));
 
   return (
-    <div className="relative mx-auto w-full max-w-[430px]">
+    <div className="relative mx-auto w-full max-w-[440px]">
       <div className="absolute inset-0 rounded-[3rem] bg-cyan-400/20 blur-3xl" />
       <div className="absolute inset-0 translate-x-4 translate-y-8 rounded-[3rem] bg-fuchsia-500/20 blur-3xl" />
 
       <div className="relative rounded-[2.8rem] bg-gradient-to-br from-cyan-300 via-blue-500 to-fuchsia-500 p-[3px] shadow-[0_0_70px_rgba(34,211,238,.22)]">
         <div className="relative overflow-hidden rounded-[2.65rem] bg-[#071126] p-5">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,rgba(255,255,255,.22),transparent_18%),radial-gradient(circle_at_50%_45%,rgba(34,211,238,.20),transparent_38%),linear-gradient(160deg,rgba(255,255,255,.08),transparent_35%,rgba(217,70,239,.12))]" />
-          <div className="absolute left-[-70px] top-[180px] h-[220px] w-[220px] rounded-full border border-cyan-300/15" />
-          <div className="absolute right-[-90px] top-[120px] h-[270px] w-[270px] rounded-full border border-fuchsia-300/15" />
 
           <div className="relative rounded-[2.25rem] border border-white/15 bg-black/25 p-5">
             <div className="flex items-start justify-between">
@@ -276,9 +281,7 @@ function RivaloCollectorCard({
                 <div className="text-[76px] font-black leading-none tracking-tight text-white drop-shadow-[0_0_25px_rgba(34,211,238,.35)]">
                   {rivalScore}
                 </div>
-                <div className="mt-1 text-sm font-black uppercase tracking-[.24em] text-cyan-200">
-                  OVR
-                </div>
+                <div className="mt-1 text-sm font-black uppercase tracking-[.24em] text-cyan-200">OVR</div>
               </div>
 
               <div className="text-right">
@@ -292,21 +295,27 @@ function RivaloCollectorCard({
             </div>
 
             <div className="relative mt-3 flex justify-center">
-              <div className="absolute top-5 h-44 w-44 rounded-full bg-cyan-400/20 blur-3xl" />
-              <div className="relative flex h-56 w-56 items-center justify-center">
-                <ElitePlayerFigure />
+              <div className="absolute top-5 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl" />
+              <div className="relative h-60 w-60 overflow-hidden rounded-[2rem] border border-cyan-300/25 bg-gradient-to-br from-cyan-400/15 to-fuchsia-500/15">
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt="Foto profilo Rivalo"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <ElitePlayerFigure />
+                )}
+
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#071126] via-[#071126]/70 to-transparent" />
               </div>
             </div>
 
             <div className="relative mt-2 text-center">
-              <div className="text-[32px] font-black uppercase tracking-tight text-white">
-                {name}
-              </div>
+              <div className="text-[32px] font-black uppercase tracking-tight text-white">{name}</div>
               <div className="mt-2 flex items-center justify-center gap-2">
                 <span className="h-[1px] w-12 bg-gradient-to-r from-transparent to-cyan-300" />
-                <span className="text-xs font-black uppercase tracking-[.25em] text-cyan-200">
-                  Rival Icon
-                </span>
+                <span className="text-xs font-black uppercase tracking-[.25em] text-cyan-200">Rival Icon</span>
                 <span className="h-[1px] w-12 bg-gradient-to-l from-transparent to-fuchsia-300" />
               </div>
             </div>
@@ -346,27 +355,20 @@ function RivaloCollectorCard({
 
 function ElitePlayerFigure() {
   return (
-    <svg viewBox="0 0 220 250" className="h-60 w-60 drop-shadow-[0_0_35px_rgba(34,211,238,.35)]">
+    <svg viewBox="0 0 220 250" className="h-full w-full p-5 drop-shadow-[0_0_35px_rgba(34,211,238,.35)]">
       <defs>
-        <linearGradient id="figureBody" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="photoFigureBody" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#22d3ee" />
           <stop offset="48%" stopColor="#2563eb" />
           <stop offset="100%" stopColor="#d946ef" />
         </linearGradient>
-        <linearGradient id="figureLight" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="100%" stopColor="#67e8f9" />
-        </linearGradient>
       </defs>
-
-      <path d="M110 29 C137 29 156 49 156 77 C156 104 137 124 110 124 C83 124 64 104 64 77 C64 49 83 29 110 29Z" fill="url(#figureLight)" opacity=".95" />
-      <path d="M53 230 C58 165 75 130 110 130 C145 130 162 165 167 230 Z" fill="url(#figureBody)" />
+      <circle cx="110" cy="54" r="30" fill="#e0f2fe" opacity=".95" />
+      <path d="M53 230 C58 165 75 130 110 130 C145 130 162 165 167 230 Z" fill="url(#photoFigureBody)" />
       <path d="M75 150 L32 190" stroke="#22d3ee" strokeWidth="16" strokeLinecap="round" />
       <path d="M145 150 L188 190" stroke="#d946ef" strokeWidth="16" strokeLinecap="round" />
       <path d="M92 226 L76 247" stroke="#60a5fa" strokeWidth="16" strokeLinecap="round" />
       <path d="M128 226 L145 247" stroke="#c084fc" strokeWidth="16" strokeLinecap="round" />
-      <path d="M84 168 C103 182 122 182 142 168" stroke="white" strokeOpacity=".55" strokeWidth="5" strokeLinecap="round" />
-      <circle cx="160" cy="50" r="9" fill="#d9f99d" />
     </svg>
   );
 }
@@ -390,7 +392,7 @@ function WelcomePanel({ name }: { name: string }) {
           Benvenuto nella tua arena, {name}.
         </h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 md:text-lg">
-          La tua card evolve con partite confermate, FairPlay, XP, tornei e RivalScore.
+          La tua card evolve con foto, partite confermate, FairPlay, XP, tornei e RivalScore.
         </p>
       </div>
     </div>
