@@ -327,7 +327,6 @@ function InfoCard({ icon, title, text }: { icon: React.ReactNode; title: string;
 }
 
 function MatchCard({ match }: { match: RivaloMatch }) {
-  return (
    return (
   <Link href={`/match/${match.id}`}>
     <div className="rounded-[1.7rem] border border-white/10 bg-[#0b1730] p-5 transition hover:scale-[1.02] hover:border-cyan-400/30 hover:bg-[#112041]">
