@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   BarChart3,
   CalendarDays,
@@ -52,12 +53,13 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="hidden rounded-2xl border border-white/20 bg-white/[.03] px-8 py-4 text-[15px] font-bold backdrop-blur transition hover:bg-white/[.08] sm:block">
-              Accedi
-            </button>
-            <button className="rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-7 py-4 text-[15px] font-black shadow-[0_0_35px_rgba(168,85,247,.25)] transition hover:scale-105">
-              Prova la Beta
-            </button>
+            <Link href="/login" className="hidden rounded-2xl border border-white/20 bg-white/[.03] px-8 py-4 text-[15px] font-bold backdrop-blur transition hover:bg-white/[.08] sm:block">
+  Accedi
+</Link>
+
+<Link href="/signup" className="rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-7 py-4 text-[15px] font-black shadow-[0_0_35px_rgba(168,85,247,.25)] transition hover:scale-105">
+  Prova la Beta
+</Link>
           </div>
         </nav>
 
@@ -89,12 +91,12 @@ export default function Home() {
             </p>
 
             <div className="mt-10 flex flex-wrap gap-5">
-              <button className="group flex items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-10 py-5 text-lg font-black shadow-[0_0_34px_rgba(168,85,247,.25)] transition hover:scale-105">
-                Inizia ora
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
-                  <ChevronRight className="transition group-hover:translate-x-1" size={22} />
-                </span>
-              </button>
+             <Link href="/signup" className="group flex items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-10 py-5 text-lg font-black shadow-[0_0_34px_rgba(168,85,247,.25)] transition hover:scale-105">
+  Inizia ora
+  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
+    <ChevronRight className="transition group-hover:translate-x-1" size={22} />
+  </span>
+</Link>
 
               <button className="flex items-center gap-4 rounded-2xl border border-white/16 bg-white/[.025] px-8 py-5 text-lg font-black backdrop-blur transition hover:bg-white/[.075]">
                 Scopri come funziona
@@ -149,7 +151,7 @@ export default function Home() {
             <h2 className="mb-6 text-2xl font-black">Sport disponibili</h2>
             <div className="grid grid-cols-3 gap-3">
               <SportCard title="Calcetto" sub="5v5" variant="football" />
-              <SportCard title="Padel" sub="Doppio" variant="padel" />
+              <SportCard title="Padel" sub="Singolo / Doppio" variant="padel" />
               <SportCard title="Tennis" sub="Singolare / Doppio" variant="tennis" />
             </div>
           </div>
@@ -166,9 +168,9 @@ export default function Home() {
             <p className="relative mt-8 max-w-[230px] text-lg leading-8 text-slate-300">
               Ogni partita è un passo verso la leggenda.
             </p>
-            <button className="relative mt-9 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-8 py-4 font-black shadow-[0_0_26px_rgba(34,211,238,.18)]">
-              Unisciti alla Beta
-            </button>
+            <Link href="/signup" className="relative mt-9 inline-block rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-8 py-4 font-black shadow-[0_0_26px_rgba(34,211,238,.18)]">
+  Unisciti alla Beta
+</Link>
           </div>
         </section>
 
