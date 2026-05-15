@@ -19,21 +19,17 @@ import {
   Trophy,
   UserRound,
   Users,
-  Zap,
   CircleDot,
 } from "lucide-react";
 
 type UserProfile = {
   name?: string;
   nickname?: string;
-  email?: string;
   mainSport?: string;
-  role?: string;
   rivalScore?: number;
   level?: number;
   xp?: number;
   wins?: number;
-  losses?: number;
   mvp?: number;
   photoURL?: string;
   photoUrl?: string;
@@ -55,21 +51,17 @@ export default function DashboardPage() {
 
       try {
         const snap = await getDoc(doc(db, "users", currentUser.uid));
-
         if (snap.exists()) {
           setProfile(snap.data() as UserProfile);
         } else {
           setProfile({
             name: currentUser.displayName || "Player",
             nickname: "Rivalo Player",
-            email: currentUser.email || "",
             mainSport: "calcetto",
-            role: "Player",
             rivalScore: 1000,
             level: 1,
             xp: 100,
             wins: 0,
-            losses: 0,
             mvp: 0,
           });
         }
@@ -93,7 +85,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[#030712] text-white">
         <div className="rounded-3xl border border-cyan-300/20 bg-cyan-400/10 px-8 py-5 font-black text-cyan-200">
           Caricamento Rivalo...
         </div>
@@ -108,43 +100,43 @@ export default function DashboardPage() {
       <section className="relative z-10 flex min-h-screen">
         <Sidebar />
 
-        <div className="min-w-0 flex-1 px-5 py-6 lg:px-8 xl:px-10 2xl:px-12">
+        <div className="min-w-0 flex-1 px-5 py-6 lg:px-8 xl:px-9 2xl:px-10">
           <TopIcons />
 
-          <section className="grid items-start gap-8 2xl:grid-cols-[1.18fr_.82fr]">
-            <div>
-              <div className="text-2xl font-medium text-white/90">Bentornato,</div>
-              <h1 className="mt-2 text-5xl font-black uppercase leading-none tracking-tight md:text-6xl xl:text-7xl">
-                {displayName}
-              </h1>
-              <div className="mt-2 text-3xl font-black uppercase text-cyan-300 md:text-4xl">
-                {nickname}
-              </div>
+          <section className="grid gap-7 xl:grid-cols-[680px_1fr] 2xl:grid-cols-[780px_1fr]">
+            <div className="grid gap-7 md:grid-cols-[350px_1fr] 2xl:grid-cols-[390px_1fr]">
+              <PlayerCard
+                name={displayName}
+                nickname={nickname}
+                rivalScore={rivalScore}
+                mainSport={mainSport}
+                photo={photo}
+              />
 
-              <div className="mt-7 grid items-end gap-8 xl:grid-cols-[minmax(390px,470px)_1fr]">
-                <PlayerUltimateCard
-                  name={displayName}
-                  nickname={nickname}
-                  rivalScore={rivalScore}
-                  mainSport={mainSport}
-                  photo={photo}
-                />
+              <div className="flex flex-col justify-center">
+                <div className="text-2xl font-medium text-white/90">Bentornato,</div>
+                <h1 className="mt-2 text-5xl font-black uppercase leading-none tracking-tight md:text-6xl">
+                  {displayName}
+                </h1>
+                <div className="mt-3 text-3xl font-black uppercase text-cyan-300">
+                  {nickname}
+                </div>
 
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 xl:pb-7">
-                  <ShieldStatCard tone="purple" value={String(level)} label="Livello" icon={<Star />} />
-                  <ShieldStatCard tone="cyan" value={String(wins)} label="Vittorie" icon={<Trophy />} />
-                  <ShieldStatCard tone="orange" value={String(mvp)} label="MVP" icon={<Crown />} />
+                <div className="mt-10 grid grid-cols-3 gap-5">
+                  <MiniShield tone="purple" value={String(level)} label="Livello" icon={<Star />} />
+                  <MiniShield tone="cyan" value={String(wins)} label="Vittorie" icon={<Trophy />} />
+                  <MiniShield tone="orange" value={String(mvp)} label="MVP" icon={<Crown />} />
                 </div>
               </div>
             </div>
 
-            <aside className="space-y-6 2xl:pt-12">
+            <aside className="space-y-5">
               <ScorePanel rivalScore={rivalScore} />
               <LevelPanel level={level} xp={xp} />
             </aside>
           </section>
 
-          <section className="mt-10">
+          <section className="mt-8 border-t border-white/10 pt-6">
             <h2 className="text-2xl font-black uppercase tracking-tight">Azioni rapide</h2>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
@@ -156,7 +148,7 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          <section className="mt-8 grid gap-6 xl:grid-cols-[1fr_.78fr]">
+          <section className="mt-8 grid gap-5 xl:grid-cols-[1fr_420px]">
             <Leaderboard name={displayName} rivalScore={rivalScore} wins={wins} mvp={mvp} />
             <UpgradePanel />
           </section>
@@ -168,8 +160,8 @@ export default function DashboardPage() {
 
 function Sidebar() {
   return (
-    <aside className="hidden w-[215px] shrink-0 border-r border-white/10 bg-[#020617]/75 px-4 py-8 backdrop-blur-xl lg:flex lg:flex-col">
-      <Link href="/" className="mb-10 flex items-center gap-3 px-2">
+    <aside className="hidden w-[205px] shrink-0 border-r border-white/10 bg-[#030712]/80 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
+      <Link href="/" className="mb-9 flex items-center gap-3 px-2">
         <LogoMark />
         <div className="text-2xl font-black">RIVALO</div>
       </Link>
@@ -183,12 +175,10 @@ function Sidebar() {
         <SideLink href="/profile" icon={<UserRound />} text="Profilo" />
       </div>
 
-      <div className="mt-auto">
-        <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-semibold text-slate-300 transition hover:bg-white/[.05] hover:text-white">
-          <LogOut size={20} />
-          Esci
-        </button>
-      </div>
+      <button className="mt-auto flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-semibold text-slate-300 transition hover:bg-white/[.05] hover:text-white">
+        <LogOut size={20} />
+        Esci
+      </button>
     </aside>
   );
 }
@@ -213,7 +203,7 @@ function SideLink({
           : "text-slate-300 hover:bg-white/[.05] hover:text-white"
       }`}
     >
-      <span className="text-current">{icon}</span>
+      {icon}
       {text}
     </Link>
   );
@@ -221,7 +211,7 @@ function SideLink({
 
 function TopIcons() {
   return (
-    <div className="mb-4 flex items-center justify-end gap-4">
+    <div className="mb-3 flex items-center justify-end gap-4">
       <button className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200">
         <Bell size={22} />
         <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-fuchsia-400" />
@@ -234,7 +224,7 @@ function TopIcons() {
   );
 }
 
-function PlayerUltimateCard({
+function PlayerCard({
   name,
   nickname,
   rivalScore,
@@ -247,87 +237,67 @@ function PlayerUltimateCard({
   mainSport: string;
   photo: string;
 }) {
-  const stat = Math.max(70, Math.min(99, Math.round(rivalScore / 12)));
-  const shortSport = mainSport.toUpperCase();
+  const rating = Math.max(70, Math.min(99, Math.round(rivalScore / 12)));
 
   return (
-    <div className="relative mx-auto w-full max-w-[470px] xl:mx-0">
-      <div className="absolute -inset-8 bg-[radial-gradient(circle_at_15%_45%,rgba(249,115,22,.48),transparent_30%),radial-gradient(circle_at_88%_45%,rgba(37,99,235,.48),transparent_34%)] blur-2xl" />
+    <div className="relative mx-auto w-full max-w-[390px]">
+      <div className="absolute -inset-5 rounded-[3rem] bg-[radial-gradient(circle_at_15%_45%,rgba(249,115,22,.55),transparent_33%),radial-gradient(circle_at_92%_40%,rgba(59,130,246,.55),transparent_35%)] blur-2xl" />
 
-      <div
-        className="relative overflow-hidden border-[3px] border-yellow-400/85 bg-[#050814] p-[3px] shadow-[0_0_50px_rgba(249,115,22,.34),0_0_75px_rgba(37,99,235,.28)]"
-        style={{
-          clipPath:
-            "polygon(8% 0%, 92% 0%, 100% 9%, 100% 82%, 50% 100%, 0% 82%, 0% 9%)",
-        }}
-      >
-        <div
-          className="relative min-h-[610px] overflow-hidden bg-[#060b18]"
-          style={{
-            clipPath:
-              "polygon(9% 2%, 91% 2%, 98% 10%, 98% 80%, 50% 97%, 2% 80%, 2% 10%)",
-          }}
-        >
-          <EnergyBackground />
+      <div className="relative rounded-[2.4rem] border-2 border-yellow-400/80 bg-[#060815] p-[3px] shadow-[0_0_42px_rgba(249,115,22,.26),0_0_55px_rgba(59,130,246,.22)]">
+        <div className="relative overflow-hidden rounded-[2.25rem] bg-[#050814] px-6 pb-6 pt-5">
+          <CardEnergy />
 
-          <div className="relative z-10 flex min-h-[610px] flex-col p-7">
+          <div className="relative z-10">
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-7xl font-black leading-none text-yellow-300 drop-shadow-[0_0_16px_rgba(250,204,21,.35)]">
-                  {stat}
+                <div className="text-6xl font-black leading-none text-yellow-300 drop-shadow-[0_0_14px_rgba(250,204,21,.32)]">
+                  {rating}
                 </div>
-                <div className="mt-1 text-2xl font-black uppercase text-yellow-200">
-                  RIV
-                </div>
+                <div className="mt-1 text-xl font-black uppercase text-yellow-200">RIV</div>
               </div>
 
-              <div className="max-w-[150px] rounded-2xl border border-cyan-300/35 bg-cyan-400/10 px-4 py-2 text-center text-xs font-black uppercase tracking-[.18em] text-cyan-100">
-                {shortSport}
+              <div className="rounded-2xl border border-cyan-300/35 bg-cyan-400/10 px-4 py-2 text-center text-xs font-black uppercase tracking-[.16em] text-cyan-100">
+                {mainSport}
               </div>
             </div>
 
-            <div className="relative mt-5 flex h-[255px] items-center justify-center overflow-hidden">
-              <div className="absolute inset-x-12 bottom-0 h-[220px] rounded-[2rem] bg-gradient-to-t from-black/50 via-white/5 to-white/10" />
-              <div className="absolute bottom-0 h-[210px] w-[230px] rounded-full bg-white/10 blur-2xl" />
-
+            <div className="mt-3 flex h-[165px] items-center justify-center">
               {photo ? (
                 <img
                   src={photo}
                   alt="Foto profilo"
-                  className="relative z-10 h-[245px] w-[245px] rounded-[1.2rem] object-cover shadow-[0_0_25px_rgba(255,255,255,.08)]"
+                  className="h-[150px] w-[150px] rounded-[1.4rem] object-cover shadow-[0_0_18px_rgba(255,255,255,.12)]"
                 />
               ) : (
-                <div className="relative z-10 flex h-[235px] w-[235px] items-center justify-center rounded-[2rem] border border-cyan-300/20 bg-black/25">
-                  <UserRound size={120} className="text-cyan-200" />
+                <div className="flex h-[150px] w-[150px] items-center justify-center rounded-[1.4rem] border border-cyan-300/20 bg-black/25">
+                  <UserRound size={76} className="text-cyan-200" />
                 </div>
               )}
             </div>
 
-            <div className="mt-4 text-center">
-              <div className="truncate px-4 text-4xl font-black uppercase text-yellow-300 drop-shadow-[0_0_14px_rgba(250,204,21,.32)] md:text-5xl">
+            <div className="mt-2 text-center">
+              <div className="truncate px-3 text-4xl font-black uppercase text-yellow-300">
                 {name}
               </div>
-              <div className="mt-2 truncate px-4 text-2xl font-black uppercase text-yellow-200">
+              <div className="mt-1 truncate px-3 text-xl font-black uppercase text-yellow-200">
                 {nickname}
               </div>
-              <div className="mx-auto mt-4 text-2xl text-yellow-300">★</div>
+              <div className="mt-3 text-xl text-yellow-300">★</div>
             </div>
 
-            <div className="mt-auto pt-5">
-              <div className="grid grid-cols-6 gap-2 px-3 text-center">
-                <CardStat label="PAC" value={stat} />
-                <CardStat label="SHO" value={Math.max(65, stat - 4)} />
-                <CardStat label="PAS" value={Math.max(65, stat - 2)} />
-                <CardStat label="DRI" value={Math.min(99, stat + 1)} />
-                <CardStat label="DEF" value={Math.max(60, stat - 6)} />
-                <CardStat label="PHY" value={Math.max(65, stat - 1)} />
-              </div>
+            <div className="mt-4 grid grid-cols-6 gap-2 px-1 text-center">
+              <CardStat label="PAC" value={rating} />
+              <CardStat label="SHO" value={Math.max(65, rating - 4)} />
+              <CardStat label="PAS" value={Math.max(65, rating - 2)} />
+              <CardStat label="DRI" value={Math.min(99, rating + 1)} />
+              <CardStat label="DEF" value={Math.max(60, rating - 6)} />
+              <CardStat label="PHY" value={Math.max(65, rating - 1)} />
+            </div>
 
-              <div className="mx-auto mt-5 flex h-6 w-10 overflow-hidden rounded-[4px] border border-white/20">
-                <div className="flex-1 bg-green-500" />
-                <div className="flex-1 bg-white" />
-                <div className="flex-1 bg-red-500" />
-              </div>
+            <div className="mx-auto mt-4 flex h-5 w-9 overflow-hidden rounded-[4px] border border-white/20">
+              <div className="flex-1 bg-green-500" />
+              <div className="flex-1 bg-white" />
+              <div className="flex-1 bg-red-500" />
             </div>
           </div>
         </div>
@@ -336,30 +306,30 @@ function PlayerUltimateCard({
   );
 }
 
-function EnergyBackground() {
+function CardEnergy() {
   return (
     <div className="absolute inset-0">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_50%,rgba(249,115,22,.44),transparent_30%),radial-gradient(circle_at_82%_45%,rgba(37,99,235,.42),transparent_32%),linear-gradient(135deg,#050814_0%,#070a16_44%,#12051c_100%)]" />
-      <div className="absolute -left-14 top-10 h-[520px] w-24 rotate-12 rounded-full bg-orange-500/45 blur-2xl" />
-      <div className="absolute -right-14 top-12 h-[520px] w-24 -rotate-12 rounded-full bg-blue-500/45 blur-2xl" />
-      <div className="absolute left-4 top-0 h-[620px] w-2 rotate-[16deg] bg-gradient-to-b from-transparent via-orange-400 to-transparent blur-[1px]" />
-      <div className="absolute right-4 top-0 h-[620px] w-2 -rotate-[16deg] bg-gradient-to-b from-transparent via-cyan-400 to-transparent blur-[1px]" />
-      <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,transparent_0%,transparent_45%,rgba(255,255,255,.14)_46%,transparent_47%,transparent_100%)] [background-size:34px_34px]" />
-      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/65 to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_52%,rgba(249,115,22,.42),transparent_33%),radial-gradient(circle_at_82%_42%,rgba(37,99,235,.42),transparent_34%),linear-gradient(135deg,#050814_0%,#070a16_44%,#12051c_100%)]" />
+      <div className="absolute -left-10 top-8 h-[410px] w-20 rotate-12 rounded-full bg-orange-500/40 blur-2xl" />
+      <div className="absolute -right-10 top-8 h-[410px] w-20 -rotate-12 rounded-full bg-blue-500/40 blur-2xl" />
+      <div className="absolute left-3 top-0 h-[460px] w-1.5 rotate-[16deg] bg-gradient-to-b from-transparent via-orange-400 to-transparent blur-[.5px]" />
+      <div className="absolute right-3 top-0 h-[460px] w-1.5 -rotate-[16deg] bg-gradient-to-b from-transparent via-cyan-400 to-transparent blur-[.5px]" />
+      <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(135deg,transparent_0%,transparent_45%,rgba(255,255,255,.14)_46%,transparent_47%,transparent_100%)] [background-size:30px_30px]" />
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/65 to-transparent" />
     </div>
   );
 }
 
 function CardStat({ value, label }: { value: number; label: string }) {
   return (
-    <div className="min-w-0">
-      <div className="text-xl font-black leading-none text-yellow-300">{value}</div>
-      <div className="mt-1 text-[11px] font-black uppercase text-yellow-200">{label}</div>
+    <div className="min-w-0 rounded-lg bg-black/10 px-1 py-1">
+      <div className="text-lg font-black leading-none text-yellow-300">{value}</div>
+      <div className="mt-1 text-[10px] font-black uppercase text-yellow-200">{label}</div>
     </div>
   );
 }
 
-function ShieldStatCard({
+function MiniShield({
   tone,
   value,
   label,
@@ -370,59 +340,23 @@ function ShieldStatCard({
   label: string;
   icon: React.ReactNode;
 }) {
-  const colors = {
-    purple: {
-      border: "border-purple-400/90",
-      glow: "shadow-[0_0_28px_rgba(168,85,247,.35)]",
-      text: "text-purple-100",
-      number: "text-white",
-      bg: "from-purple-950 via-[#0c1230] to-purple-950",
-      aura: "bg-purple-500/30",
-    },
-    cyan: {
-      border: "border-cyan-400/90",
-      glow: "shadow-[0_0_28px_rgba(34,211,238,.30)]",
-      text: "text-cyan-100",
-      number: "text-cyan-200",
-      bg: "from-cyan-950 via-[#0c1230] to-blue-950",
-      aura: "bg-cyan-500/30",
-    },
-    orange: {
-      border: "border-orange-400/90",
-      glow: "shadow-[0_0_28px_rgba(249,115,22,.35)]",
-      text: "text-orange-100",
-      number: "text-yellow-200",
-      bg: "from-orange-950 via-[#0c1230] to-yellow-950",
-      aura: "bg-orange-500/30",
-    },
+  const styles = {
+    purple: "border-purple-400/80 from-purple-700/30 to-purple-950/80 text-purple-100 shadow-[0_0_24px_rgba(168,85,247,.28)]",
+    cyan: "border-cyan-400/80 from-cyan-700/25 to-blue-950/80 text-cyan-100 shadow-[0_0_24px_rgba(34,211,238,.22)]",
+    orange: "border-orange-400/80 from-orange-700/25 to-orange-950/80 text-orange-100 shadow-[0_0_24px_rgba(249,115,22,.25)]",
   }[tone];
 
   return (
-    <div className="relative min-w-[135px]">
-      <div className={`absolute inset-0 rounded-[2rem] ${colors.aura} blur-2xl`} />
+    <div className={`relative min-h-[150px] rounded-[1.7rem] border bg-gradient-to-b p-4 text-center ${styles}`}>
+      <div className="absolute inset-0 rounded-[1.7rem] opacity-35 [background-image:linear-gradient(135deg,transparent_0%,transparent_44%,rgba(255,255,255,.18)_45%,transparent_46%,transparent_100%)] [background-size:24px_24px]" />
 
-      <div
-        className={`relative min-h-[195px] overflow-visible border-2 ${colors.border} bg-gradient-to-br ${colors.bg} p-1 ${colors.glow}`}
-        style={{
-          clipPath: "polygon(14% 0%,86% 0%,100% 16%,100% 79%,50% 100%,0% 79%,0% 16%)",
-        }}
-      >
-        <div
-          className="relative flex min-h-[185px] flex-col items-center justify-center overflow-hidden bg-black/30 px-4 py-5 text-center"
-          style={{
-            clipPath: "polygon(15% 3%,85% 3%,97% 17%,97% 77%,50% 96%,3% 77%,3% 17%)",
-          }}
-        >
-          <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(135deg,transparent_0%,transparent_45%,rgba(255,255,255,.12)_46%,transparent_47%,transparent_100%)] [background-size:24px_24px]" />
-          <div className={`relative text-6xl font-black leading-none ${colors.number}`}>{value}</div>
-
-          <div className={`relative mt-4 w-full whitespace-normal break-words text-center text-[13px] font-black uppercase leading-tight tracking-[.03em] ${colors.text}`}>
-            {label}
-          </div>
-
-          <div className={`relative mt-4 flex h-12 w-12 items-center justify-center rounded-2xl border ${colors.border} bg-black/25 ${colors.text}`}>
-            {icon}
-          </div>
+      <div className="relative flex h-full min-h-[118px] flex-col items-center justify-center">
+        <div className="text-5xl font-black leading-none">{value}</div>
+        <div className="mt-3 whitespace-nowrap text-sm font-black uppercase tracking-[.03em]">
+          {label}
+        </div>
+        <div className="mt-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-current/40 bg-black/25">
+          {icon}
         </div>
       </div>
     </div>
@@ -431,7 +365,7 @@ function ShieldStatCard({
 
 function ScorePanel({ rivalScore }: { rivalScore: number }) {
   return (
-    <div className="overflow-hidden rounded-[1.8rem] border border-cyan-300/20 bg-[#071126]/80 shadow-2xl">
+    <div className="overflow-hidden rounded-[1.7rem] border border-cyan-300/20 bg-[#071126]/80 shadow-2xl">
       <div className="relative flex items-center justify-between gap-4 p-7">
         <div className="absolute right-0 top-0 h-full w-1/2 bg-[radial-gradient(circle_at_75%_35%,rgba(37,99,235,.32),transparent_45%)]" />
 
@@ -460,7 +394,7 @@ function LevelPanel({ level, xp }: { level: number; xp: number }) {
   const pct = Math.min(100, Math.round((xp / maxXp) * 100));
 
   return (
-    <div className="rounded-[1.8rem] border border-white/10 bg-[#071126]/80 p-7 shadow-2xl">
+    <div className="rounded-[1.7rem] border border-white/10 bg-[#071126]/80 p-7 shadow-2xl">
       <div className="text-2xl font-black uppercase">Livello {level}</div>
 
       <div className="mt-6 h-5 overflow-hidden rounded-full bg-blue-950">
@@ -470,10 +404,7 @@ function LevelPanel({ level, xp }: { level: number; xp: number }) {
         />
       </div>
 
-      <div className="mt-5 text-xl font-medium text-white">
-        {xp} / {maxXp} XP
-      </div>
-
+      <div className="mt-5 text-xl font-medium text-white">{xp} / {maxXp} XP</div>
       <div className="mt-5 text-lg text-slate-400">Prossimo livello {maxXp} XP</div>
     </div>
   );
@@ -503,7 +434,7 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className={`group relative min-h-[210px] overflow-hidden rounded-[1.6rem] border bg-gradient-to-br ${colors} to-transparent p-5 transition hover:-translate-y-1`}
+      className={`group relative min-h-[200px] overflow-hidden rounded-[1.6rem] border bg-gradient-to-br ${colors} to-transparent p-5 transition hover:-translate-y-1`}
     >
       <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(135deg,transparent_0%,transparent_45%,rgba(255,255,255,.22)_46%,transparent_47%,transparent_100%)] [background-size:28px_28px]" />
       <div className="absolute right-[-40px] top-[-40px] h-32 w-32 rounded-full bg-current opacity-20 blur-3xl" />
@@ -512,10 +443,10 @@ function QuickAction({
         {icon}
       </div>
 
-      <div className="relative mt-9 text-2xl font-black uppercase">{title}</div>
+      <div className="relative mt-8 text-2xl font-black uppercase">{title}</div>
       <div className="relative mt-3 text-sm font-medium text-white">{text}</div>
 
-      <div className="relative mt-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-current/35 bg-black/20 transition group-hover:translate-x-1">
+      <div className="relative mt-6 flex h-11 w-11 items-center justify-center rounded-2xl border border-current/35 bg-black/20 transition group-hover:translate-x-1">
         →
       </div>
     </Link>
@@ -534,9 +465,9 @@ function Leaderboard({
   mvp: number;
 }) {
   const rows = [
-    { n: "1", name: "Luca Marini", score: 1520, wins: 23, mvp: 8, medal: "🥇" },
-    { n: "2", name: "Alessandro G.", score: 1380, wins: 19, mvp: 6, medal: "🥈" },
-    { n: "3", name: "Francesco T.", score: 1250, wins: 17, mvp: 5, medal: "🥉" },
+    { n: "1", name: "Luca Marini", score: 1520, wins: 23, mvp: 8, medal: "1" },
+    { n: "2", name: "Alessandro G.", score: 1380, wins: 19, mvp: 6, medal: "2" },
+    { n: "3", name: "Francesco T.", score: 1250, wins: 17, mvp: 5, medal: "3" },
     { n: "4", name: "Andrea Russo", score: 1100, wins: 14, mvp: 4, medal: "4" },
     { n: "-", name, score: rivalScore, wins, mvp, active: true, medal: "-" },
   ];
@@ -558,15 +489,20 @@ function Leaderboard({
               row.active ? "border-blue-500 bg-blue-600/15" : "border-white/5 bg-white/[.025]"
             }`}
           >
-            <div className="text-center text-2xl font-black">{row.medal}</div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400/10 text-center text-lg font-black text-yellow-300">
+              {row.medal}
+            </div>
+
             <div className="min-w-0">
               <div className="truncate text-lg font-bold">{row.name}</div>
               <div className="text-sm text-slate-400">Rival Score: {row.score}</div>
             </div>
+
             <div className="text-center">
               <div className="text-xs text-slate-400">Vittorie</div>
               <div className="font-black">{row.wins}</div>
             </div>
+
             <div className="text-center">
               <div className="text-xs text-slate-400">MVP</div>
               <div className="font-black">{row.mvp}</div>
@@ -650,7 +586,7 @@ function Background() {
   return (
     <div className="pointer-events-none fixed inset-0">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_8%,rgba(59,130,246,.13),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(124,58,237,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_48%,#020617_100%)]" />
-      <div className="absolute left-[215px] top-0 h-full w-px bg-white/10" />
+      <div className="absolute left-[205px] top-0 h-full w-px bg-white/10" />
       <div className="absolute right-[-260px] top-[120px] h-[650px] w-[650px] rounded-full border border-cyan-400/10" />
       <div className="absolute left-[260px] top-[120px] h-[450px] w-[450px] rounded-full bg-orange-500/5 blur-3xl" />
     </div>
