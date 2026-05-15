@@ -449,22 +449,6 @@ function ActionButton({
   );
 }
 
-  return (
-    <button className="group rounded-[1.7rem] border border-white/10 bg-white/[.04] p-5 text-left shadow-2xl backdrop-blur transition hover:-translate-y-1 hover:border-cyan-400/30">
-      <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border ${colors[tone]}`}>
-        {icon}
-      </div>
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div className="font-black">{title}</div>
-          <div className="mt-1 text-sm leading-5 text-slate-400">{subtitle}</div>
-        </div>
-        <ChevronRight className="text-slate-500 transition group-hover:translate-x-1 group-hover:text-cyan-300" size={20} />
-      </div>
-    </button>
-  );
-}
-
 function MetricCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone: "cyan" | "lime" | "fuchsia" | "blue" }) {
   const colors = {
     cyan: "text-cyan-300",
