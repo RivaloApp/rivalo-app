@@ -2,43 +2,47 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import {
+  BarChart3,
   Bell,
   CalendarDays,
   ChevronRight,
   Crown,
-  Home,
-  LogOut,
+  Flame,
   Medal,
   Plus,
   Search,
   ShieldCheck,
+  Sparkles,
   Star,
   Trophy,
+  UserRound,
   Users,
   Zap,
 } from "lucide-react";
 
-type RivaloProfile = {
+type UserProfile = {
   name?: string;
   nickname?: string;
   email?: string;
   mainSport?: string;
-  photoUrl?: string;
+  role?: string;
   rivalScore?: number;
   level?: number;
   xp?: number;
   wins?: number;
   losses?: number;
   mvp?: number;
+  photoURL?: string;
+  photoUrl?: string;
 };
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<RivaloProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,485 +54,418 @@ export default function DashboardPage() {
 
       setUser(currentUser);
 
-      const snap = await getDoc(doc(db, "users", currentUser.uid));
-      if (snap.exists()) {
-        setProfile(snap.data() as RivaloProfile);
-      }
+      try {
+        const snap = await getDoc(doc(db, "users", currentUser.uid));
 
-      setLoading(false);
+        if (snap.exists()) {
+          setProfile(snap.data() as UserProfile);
+        } else {
+          setProfile({
+            name: currentUser.displayName || "Player",
+            nickname: "Rivalo Player",
+            email: currentUser.email || "",
+            mainSport: "calcetto",
+            role: "Player",
+            rivalScore: 50,
+            level: 1,
+            xp: 0,
+            wins: 0,
+            losses: 0,
+            mvp: 0,
+          });
+        }
+      } finally {
+        setLoading(false);
+      }
     });
 
     return () => unsubscribe();
   }, []);
 
-  async function logout() {
-    await signOut(auth);
-    window.location.href = "/";
-  }
+  const displayName = profile?.name || user?.displayName || "Player";
+  const nickname = profile?.nickname || "Rivalo Player";
+  const rivalScore = profile?.rivalScore ?? 50;
+  const level = profile?.level ?? 1;
+  const wins = profile?.wins ?? 0;
+  const losses = profile?.losses ?? 0;
+  const mvp = profile?.mvp ?? 0;
+  const mainSport = profile?.mainSport || "calcetto";
+  const photo = profile?.photoURL || profile?.photoUrl || "";
 
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-        <div className="rounded-3xl border border-cyan-400/20 bg-cyan-400/10 px-8 py-6 text-xl font-black text-cyan-300">
+        <div className="rounded-3xl border border-cyan-300/20 bg-cyan-400/10 px-8 py-5 font-black text-cyan-200">
           Caricamento Rivalo...
         </div>
       </main>
     );
   }
 
-  const displayName = profile?.nickname || profile?.name || user?.displayName || "Player";
-  const sport = profile?.mainSport || "calcetto";
-  const rivalScore = profile?.rivalScore ?? 50;
-  const level = profile?.level ?? 1;
-  const wins = profile?.wins ?? 0;
-  const mvp = profile?.mvp ?? 0;
-  const xp = profile?.xp ?? 0;
-  const photoUrl = profile?.photoUrl || "";
-
   return (
-    <main className="min-h-screen overflow-hidden bg-[#020617] pb-28 text-white">
+    <main className="min-h-screen overflow-hidden bg-[#020617] text-white">
       <Background />
 
-      <section className="relative z-10 mx-auto max-w-7xl px-4 py-6 md:px-6">
-        <header className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <LogoMark />
-            <div>
-              <div className="text-2xl font-black tracking-tight md:text-3xl">Rivalo</div>
-              <div className="text-[11px] font-black tracking-[.32em] text-cyan-300">PLAYER HUB</div>
+      <section className="relative z-10 mx-auto max-w-7xl px-5 py-6">
+        <TopBar displayName={displayName} />
+
+        <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_.9fr]">
+          <div>
+            <div className="rounded-[2.4rem] border border-white/10 bg-white/[.045] p-7 shadow-2xl backdrop-blur">
+              <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="inline-flex rounded-full border border-cyan-300/25 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[.22em] text-cyan-200">
+                    {mainSport}
+                  </div>
+
+                  <h1 className="mt-5 text-5xl font-black leading-tight tracking-tight md:text-6xl">
+                    Bentornato,
+                    <br />
+                    <span className="bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400 bg-clip-text text-transparent">
+                      {displayName}
+                    </span>
+                  </h1>
+
+                  <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
+                    Gestisci gruppi, match, eventi, profilo e ranking. Ogni partita può diventare ufficiale solo tramite FairPlay.
+                  </p>
+                </div>
+
+                <PlayerCard
+                  name={displayName}
+                  nickname={nickname}
+                  rivalScore={rivalScore}
+                  level={level}
+                  wins={wins}
+                  mvp={mvp}
+                  photo={photo}
+                />
+              </div>
             </div>
-          </Link>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href="/profile"
-              className="hidden rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-200 md:block"
-            >
-              Modifica card
-            </Link>
+            <ActionGrid />
 
-            <button className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[.045] backdrop-blur">
-              <Bell size={20} className="text-cyan-300" />
-              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-fuchsia-400 shadow-[0_0_12px_rgba(217,70,239,.9)]" />
-            </button>
-
-            <button
-              onClick={logout}
-              className="hidden items-center gap-2 rounded-2xl border border-white/10 bg-white/[.045] px-5 py-3 text-sm font-bold backdrop-blur md:flex"
-            >
-              <LogOut size={17} />
-              Esci
-            </button>
-          </div>
-        </header>
-
-        <section className="mt-8 grid gap-7 xl:grid-cols-[440px_1fr]">
-          <RivaloCollectorCard
-            name={displayName}
-            sport={sport}
-            rivalScore={rivalScore}
-            level={level}
-            xp={xp}
-            wins={wins}
-            mvp={mvp}
-            photoUrl={photoUrl}
-          />
-
-          <div className="grid gap-5">
-            <WelcomePanel name={displayName} />
-            <div className="grid gap-5 md:grid-cols-4">
-              <MetricCard icon={<Zap />} label="RivalScore" value={String(rivalScore)} tone="cyan" />
+            <section className="mt-6 grid gap-4 md:grid-cols-3">
               <MetricCard icon={<Trophy />} label="Vittorie" value={String(wins)} tone="lime" />
               <MetricCard icon={<Medal />} label="MVP" value={String(mvp)} tone="fuchsia" />
-              <MetricCard icon={<ShieldCheck />} label="FairPlay" value="100%" tone="blue" />
-            </div>
-            <ActionGrid />
+              <MetricCard icon={<BarChart3 />} label="Sconfitte" value={String(losses)} tone="cyan" />
+            </section>
           </div>
-        </section>
 
-        <section className="mt-7 grid gap-5 lg:grid-cols-[1fr_.9fr_.9fr]">
-          <Panel title="Prossima partita" icon={<CalendarDays />}>
-            <div className="rounded-3xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/[.10] to-blue-500/[.06] p-5">
-              <div className="text-sm font-bold text-slate-300">Calcetto • Milano</div>
-              <div className="mt-2 text-2xl font-black">Rival Team vs Black Sharks</div>
-              <button className="mt-5 w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-5 py-3 font-black">
-                Apri match
-              </button>
-            </div>
-          </Panel>
+          <aside className="space-y-6">
+            <Panel title="Centro attività" icon={<Bell />}>
+              <ActivityItem color="bg-cyan-300" title="Match programmati" text="Crea o apri una partita dal Match Center." href="/match" />
+              <ActivityItem color="bg-fuchsia-300" title="Risultati da confermare" text="FairPlay pronto per validare i match." href="/match" />
+              <ActivityItem color="bg-lime-300" title="Eventi in scadenza" text="Tornei e campionati saranno gestiti da Eventi." href="/events" />
+            </Panel>
 
-          <Panel title="Evento attivo" icon={<Trophy />}>
-            <div className="rounded-3xl border border-fuchsia-400/25 bg-gradient-to-br from-fuchsia-500/[.12] to-cyan-400/[.06] p-5">
-              <div className="text-sm font-black uppercase tracking-[.22em] text-fuchsia-300">Winter League</div>
-              <div className="mt-3 text-2xl font-black">Campionato 3 mesi</div>
-              <p className="mt-3 text-sm leading-6 text-slate-300">Classifica evento, premio finale, badge season.</p>
-            </div>
-          </Panel>
+            <Panel title="Classifica rapida" icon={<Trophy />}>
+              <div className="space-y-3">
+                <RankRow n="1" name={displayName} score={rivalScore} active />
+                <RankRow n="2" name="Marco" score={46} />
+                <RankRow n="3" name="Luca" score={42} />
+              </div>
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[.035] p-4 text-sm leading-6 text-slate-300">
+                Ranking demo temporaneo. Verrà sostituito dalla leaderboard reale ordinata da Firebase.
+              </div>
+            </Panel>
 
-          <Panel title="Notifiche" icon={<Bell />}>
-            <div className="space-y-3">
-              <Note color="cyan" title="Richiesta presenza" text="Manca 1 giocatore per stasera." />
-              <Note color="fuchsia" title="Match da confermare" text="Risultato in attesa di validazione." />
-              <Note color="lime" title="Evento in scadenza" text="Ultimi 3 giorni per salire." />
-            </div>
-          </Panel>
-        </section>
-
-        <section className="mt-7 grid gap-5 lg:grid-cols-[1fr_1fr]">
-          <Panel title="Community Hub" icon={<Users />}>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <CommunityTile title="Trova giocatore" text="Slot liberi vicino a te" />
-              <CommunityTile title="Trova squadra" text="Siamo in 5? Cerca avversari" />
-              <CommunityTile title="Avversario tennis" text="Sfide singolo o doppio" />
-              <CommunityTile title="Compagno padel" text="Singolo / doppio e match aperti" />
-            </div>
-          </Panel>
-
-          <Panel title="Classifica rapida" icon={<Trophy />}>
-            <div className="space-y-3">
-              {[
-                ["1", displayName, String(rivalScore)],
-                ["2", "Marco", "86"],
-                ["3", "Luca", "82"],
-              ].map(([pos, name, score]) => (
-                <div key={name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#061126]/70 p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-400/10 text-sm font-black text-cyan-300">{pos}</div>
-                    <div className="font-black">{name}</div>
-                  </div>
-                  <div className="font-black text-lime-300">{score}</div>
-                </div>
-              ))}
-            </div>
-          </Panel>
+            <Panel title="Prossimi upgrade" icon={<Sparkles />}>
+              <Upgrade text="Upload foto reale dalla galleria" />
+              <Upgrade text="Card giocatore premium evolutiva" />
+              <Upgrade text="RivalScore automatico" />
+              <Upgrade text="Leaderboard reale" />
+            </Panel>
+          </aside>
         </section>
       </section>
-
-      <BottomNav />
     </main>
   );
 }
 
-function Background() {
+function TopBar({ displayName }: { displayName: string }) {
   return (
-    <div className="pointer-events-none fixed inset-0">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_8%,rgba(34,211,238,.17),transparent_26%),radial-gradient(circle_at_82%_2%,rgba(217,70,239,.16),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(59,130,246,.14),transparent_38%),linear-gradient(180deg,#020617_0%,#030712_48%,#020617_100%)]" />
-      <div className="absolute left-[-140px] top-[130px] h-[360px] w-[360px] rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="absolute right-[-230px] top-[90px] h-[720px] w-[720px] rounded-full border border-cyan-400/10" />
-      <div className="absolute right-[-180px] top-[170px] h-[560px] w-[560px] rounded-full border border-fuchsia-500/10" />
-    </div>
-  );
-}
-
-function LogoMark() {
-  return (
-    <div className="relative h-14 w-14 shrink-0 md:h-16 md:w-16">
-      <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
-      <svg viewBox="0 0 120 120" className="relative h-full w-full" aria-label="Rivalo logo">
-        <defs>
-          <linearGradient id="dashPhotoLogoEdge" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#22d3ee" />
-            <stop offset="52%" stopColor="#3b82f6" />
-            <stop offset="100%" stopColor="#d946ef" />
-          </linearGradient>
-          <filter id="dashPhotoSoftGlow" x="-40%" y="-40%" width="180%" height="180%">
-            <feDropShadow dx="-3" dy="2" stdDeviation="4" floodColor="#22d3ee" floodOpacity=".65" />
-            <feDropShadow dx="4" dy="4" stdDeviation="5" floodColor="#d946ef" floodOpacity=".5" />
-          </filter>
-        </defs>
-        <path d="M20 100 L20 13 H71 C93 13 106 27 106 46 C106 61 97 72 83 77 L105 100 H74 L56 76 H49 L49 100 Z" fill="white" filter="url(#dashPhotoSoftGlow)" />
-        <path d="M49 36 H67 C75 36 80 40 80 47 C80 54 75 58 67 58 H49 Z" fill="#020617" />
-        <path d="M21 100 L49 76 H61 L29 114 Z" fill="url(#dashPhotoLogoEdge)" />
-        <path d="M73 78 L105 100 H76 L58 78 Z" fill="#d946ef" opacity=".55" />
-      </svg>
-    </div>
-  );
-}
-
-function RivaloCollectorCard({
-  name,
-  sport,
-  rivalScore,
-  level,
-  xp,
-  wins,
-  mvp,
-  photoUrl,
-}: {
-  name: string;
-  sport: string;
-  rivalScore: number;
-  level: number;
-  xp: number;
-  wins: number;
-  mvp: number;
-  photoUrl: string;
-}) {
-  const xpProgress = Math.min(100, Math.round((xp / 3000) * 100));
-
-  return (
-    <div className="relative mx-auto w-full max-w-[440px]">
-      <div className="absolute inset-0 rounded-[3rem] bg-cyan-400/20 blur-3xl" />
-      <div className="absolute inset-0 translate-x-4 translate-y-8 rounded-[3rem] bg-fuchsia-500/20 blur-3xl" />
-
-      <div className="relative rounded-[2.8rem] bg-gradient-to-br from-cyan-300 via-blue-500 to-fuchsia-500 p-[3px] shadow-[0_0_70px_rgba(34,211,238,.22)]">
-        <div className="relative overflow-hidden rounded-[2.65rem] bg-[#071126] p-5">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,rgba(255,255,255,.22),transparent_18%),radial-gradient(circle_at_50%_45%,rgba(34,211,238,.20),transparent_38%),linear-gradient(160deg,rgba(255,255,255,.08),transparent_35%,rgba(217,70,239,.12))]" />
-
-          <div className="relative rounded-[2.25rem] border border-white/15 bg-black/25 p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="text-[76px] font-black leading-none tracking-tight text-white drop-shadow-[0_0_25px_rgba(34,211,238,.35)]">
-                  {rivalScore}
-                </div>
-                <div className="mt-1 text-sm font-black uppercase tracking-[.24em] text-cyan-200">OVR</div>
-              </div>
-
-              <div className="text-right">
-                <div className="rounded-2xl border border-lime-300/35 bg-lime-300/10 px-3 py-2 text-sm font-black text-lime-300">
-                  LVL {level}
-                </div>
-                <div className="mt-3 text-xs font-black uppercase tracking-[.22em] text-slate-300">
-                  {sport}
-                </div>
-              </div>
-            </div>
-
-            <div className="relative mt-3 flex justify-center">
-              <div className="absolute top-5 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl" />
-              <div className="relative h-60 w-60 overflow-hidden rounded-[2rem] border border-cyan-300/25 bg-gradient-to-br from-cyan-400/15 to-fuchsia-500/15">
-                {photoUrl ? (
-                  <img
-                    src={photoUrl}
-                    alt="Foto profilo Rivalo"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <ElitePlayerFigure />
-                )}
-
-                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#071126] via-[#071126]/70 to-transparent" />
-              </div>
-            </div>
-
-            <div className="relative mt-2 text-center">
-              <div className="text-[32px] font-black uppercase tracking-tight text-white">{name}</div>
-              <div className="mt-2 flex items-center justify-center gap-2">
-                <span className="h-[1px] w-12 bg-gradient-to-r from-transparent to-cyan-300" />
-                <span className="text-xs font-black uppercase tracking-[.25em] text-cyan-200">Rival Icon</span>
-                <span className="h-[1px] w-12 bg-gradient-to-l from-transparent to-fuchsia-300" />
-              </div>
-            </div>
-
-            <div className="relative mt-6 grid grid-cols-3 gap-3 text-center">
-              <Attribute value={String(wins)} label="WIN" />
-              <Attribute value={String(mvp)} label="MVP" />
-              <Attribute value="100" label="FAIR" />
-              <Attribute value="84" label="ATK" />
-              <Attribute value="91" label="IQ" />
-              <Attribute value="88" label="CHE" />
-            </div>
-
-            <div className="relative mt-6 rounded-3xl border border-white/10 bg-white/[.06] p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-[.18em] text-slate-300">XP Evolution</span>
-                <span className="text-xs font-black text-cyan-300">{xp}/3000</span>
-              </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-500" style={{ width: `${xpProgress}%` }} />
-              </div>
-            </div>
-          </div>
-
-          <div className="relative mt-4 flex items-center justify-between px-4">
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-slate-400">
-              <Crown size={16} className="text-yellow-300" />
-              Elite Series
-            </div>
-            <div className="text-xs font-black uppercase tracking-[.18em] text-fuchsia-300">Season 01</div>
+    <nav className="flex items-center justify-between gap-5">
+      <Link href="/" className="flex items-center gap-4">
+        <LogoMark />
+        <div>
+          <div className="text-3xl font-black leading-none">Rivalo</div>
+          <div className="mt-2 text-[11px] font-black tracking-[.34em] text-cyan-300">
+            OWN THE GAME
           </div>
         </div>
+      </Link>
+
+      <div className="hidden items-center gap-3 lg:flex">
+        <NavLink href="/dashboard" text="Dashboard" active />
+        <NavLink href="/groups" text="Gruppi" />
+        <NavLink href="/match" text="Match" />
+        <NavLink href="/community" text="Community" />
+        <NavLink href="/events" text="Eventi" />
+        <NavLink href="/profile" text="Profilo" />
       </div>
-    </div>
+
+      <Link
+        href="/profile"
+        className="hidden rounded-2xl border border-white/10 bg-white/[.04] px-5 py-3 text-sm font-black text-slate-200 transition hover:border-cyan-300/30 hover:bg-white/[.08] sm:block"
+      >
+        {displayName}
+      </Link>
+    </nav>
   );
 }
 
-function ElitePlayerFigure() {
+function NavLink({ href, text, active }: { href: string; text: string; active?: boolean }) {
   return (
-    <svg viewBox="0 0 220 250" className="h-full w-full p-5 drop-shadow-[0_0_35px_rgba(34,211,238,.35)]">
-      <defs>
-        <linearGradient id="photoFigureBody" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#22d3ee" />
-          <stop offset="48%" stopColor="#2563eb" />
-          <stop offset="100%" stopColor="#d946ef" />
-        </linearGradient>
-      </defs>
-      <circle cx="110" cy="54" r="30" fill="#e0f2fe" opacity=".95" />
-      <path d="M53 230 C58 165 75 130 110 130 C145 130 162 165 167 230 Z" fill="url(#photoFigureBody)" />
-      <path d="M75 150 L32 190" stroke="#22d3ee" strokeWidth="16" strokeLinecap="round" />
-      <path d="M145 150 L188 190" stroke="#d946ef" strokeWidth="16" strokeLinecap="round" />
-      <path d="M92 226 L76 247" stroke="#60a5fa" strokeWidth="16" strokeLinecap="round" />
-      <path d="M128 226 L145 247" stroke="#c084fc" strokeWidth="16" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function Attribute({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
-      <div className="text-[26px] font-black leading-none">{value}</div>
-      <div className="mt-1 text-[11px] font-black uppercase tracking-[.14em] text-slate-300">{label}</div>
-    </div>
-  );
-}
-
-function WelcomePanel({ name }: { name: string }) {
-  return (
-    <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.045] p-6 shadow-2xl backdrop-blur">
-      <div className="absolute right-[-60px] top-[-60px] h-48 w-48 rounded-full bg-cyan-400/15 blur-3xl" />
-      <div className="relative">
-        <div className="text-sm font-black uppercase tracking-[.32em] text-cyan-300">Dashboard</div>
-        <h1 className="mt-3 text-4xl font-black leading-tight md:text-5xl">
-          Benvenuto nella tua arena, {name}.
-        </h1>
-        <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 md:text-lg">
-          La tua card evolve con foto, partite confermate, FairPlay, XP, tornei e RivalScore.
-        </p>
-      </div>
-    </div>
+    <Link
+      href={href}
+      className={`rounded-2xl px-4 py-3 text-sm font-black transition ${
+        active
+          ? "bg-cyan-400/10 text-cyan-300"
+          : "text-slate-300 hover:bg-white/[.05] hover:text-white"
+      }`}
+    >
+      {text}
+    </Link>
   );
 }
 
 function ActionGrid() {
   return (
-    <div className="grid gap-4 md:grid-cols-4">
-      <ActionButton href="/match" icon={<Plus />} title="Crea partita" subtitle="Data, campo, partecipanti" tone="cyan" />
-      <ActionButton href="/community" icon={<Search />} title="Trova match" subtitle="Giocatori o squadre" tone="fuchsia" />
-      <ActionButton href="/events" icon={<Trophy />} title="Eventi" subtitle="Tornei e campionati" tone="lime" />
-      <ActionButton href="/groups" icon={<Users />} title="Gruppi" subtitle="Amici e leghe" tone="blue" />
-    </div>
+    <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <ActionCard href="/groups" icon={<Users />} title="Crea gruppo" text="Community, leghe e squadre." tone="cyan" />
+      <ActionCard href="/match" icon={<Plus />} title="Organizza partite" text="Match, calendario e risultati." tone="fuchsia" />
+      <ActionCard href="/community" icon={<Search />} title="Cerca giocatori" text="Trova singoli o squadre." tone="lime" />
+      <ActionCard href="/events" icon={<CalendarDays />} title="Eventi" text="Tornei, premi, campionati." tone="blue" />
+      <ActionCard href="/profile" icon={<UserRound />} title="Profilo" text="Foto, card e statistiche." tone="orange" />
+    </section>
   );
 }
 
-function ActionButton({
+function ActionCard({
   href,
   icon,
   title,
-  subtitle,
+  text,
   tone,
 }: {
   href: string;
   icon: React.ReactNode;
   title: string;
-  subtitle: string;
-  tone: "cyan" | "fuchsia" | "lime" | "blue";
+  text: string;
+  tone: "cyan" | "fuchsia" | "lime" | "blue" | "orange";
 }) {
   const colors = {
     cyan: "text-cyan-300 bg-cyan-400/10 border-cyan-300/20",
     fuchsia: "text-fuchsia-300 bg-fuchsia-400/10 border-fuchsia-300/20",
     lime: "text-lime-300 bg-lime-300/10 border-lime-300/20",
     blue: "text-blue-300 bg-blue-400/10 border-blue-300/20",
+    orange: "text-orange-300 bg-orange-400/10 border-orange-300/20",
   };
 
   return (
     <Link
       href={href}
-      className="group rounded-[1.7rem] border border-white/10 bg-white/[.04] p-5 text-left shadow-2xl backdrop-blur transition hover:-translate-y-1 hover:border-cyan-400/30"
+      className="group rounded-[1.7rem] border border-white/10 bg-white/[.04] p-5 shadow-2xl backdrop-blur transition hover:-translate-y-1 hover:border-cyan-400/30 hover:bg-white/[.07]"
     >
       <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border ${colors[tone]}`}>
         {icon}
       </div>
+
       <div className="flex items-end justify-between gap-3">
         <div>
           <div className="font-black">{title}</div>
-          <div className="mt-1 text-sm leading-5 text-slate-400">{subtitle}</div>
+          <div className="mt-1 text-sm leading-5 text-slate-400">{text}</div>
         </div>
+
         <ChevronRight className="text-slate-500 transition group-hover:translate-x-1 group-hover:text-cyan-300" size={20} />
       </div>
     </Link>
   );
 }
 
-function MetricCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone: "cyan" | "lime" | "fuchsia" | "blue" }) {
+function PlayerCard({
+  name,
+  nickname,
+  rivalScore,
+  level,
+  wins,
+  mvp,
+  photo,
+}: {
+  name: string;
+  nickname: string;
+  rivalScore: number;
+  level: number;
+  wins: number;
+  mvp: number;
+  photo: string;
+}) {
+  return (
+    <div className="relative w-full max-w-[340px] overflow-hidden rounded-[2rem] border border-cyan-300/25 bg-gradient-to-br from-[#12356c] via-[#071a3d] to-[#130927] p-5 shadow-[0_0_40px_rgba(34,211,238,.16)]">
+      <div className="absolute right-[-50px] top-[-50px] h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl" />
+      <div className="absolute bottom-[-60px] left-[-40px] h-40 w-40 rounded-full bg-fuchsia-500/20 blur-3xl" />
+
+      <div className="relative flex items-start justify-between">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[.25em] text-cyan-200">
+            Rivalo Card
+          </div>
+          <div className="mt-3 text-4xl font-black text-lime-300">{rivalScore}</div>
+          <div className="text-xs font-black uppercase tracking-[.18em] text-slate-300">
+            RivalScore
+          </div>
+        </div>
+
+        <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl border border-cyan-300/30 bg-white/10">
+          {photo ? (
+            <img src={photo} alt="Foto profilo" className="h-full w-full object-cover" />
+          ) : (
+            <UserRound className="text-cyan-200" size={38} />
+          )}
+        </div>
+      </div>
+
+      <div className="relative mt-8">
+        <div className="text-3xl font-black">{name}</div>
+        <div className="mt-1 text-sm font-bold text-cyan-200">{nickname}</div>
+      </div>
+
+      <div className="relative mt-6 grid grid-cols-3 gap-3 text-center">
+        <Mini value={String(level)} label="Livello" />
+        <Mini value={String(wins)} label="Vittorie" />
+        <Mini value={String(mvp)} label="MVP" />
+      </div>
+    </div>
+  );
+}
+
+function Mini({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
+      <div className="text-2xl font-black">{value}</div>
+      <div className="mt-1 text-[10px] font-black uppercase tracking-[.14em] text-slate-300">{label}</div>
+    </div>
+  );
+}
+
+function MetricCard({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  tone: "cyan" | "fuchsia" | "lime";
+}) {
   const colors = {
     cyan: "text-cyan-300",
-    lime: "text-lime-300",
     fuchsia: "text-fuchsia-300",
-    blue: "text-blue-300",
+    lime: "text-lime-300",
   };
 
   return (
     <div className="rounded-[1.7rem] border border-white/10 bg-white/[.04] p-5 shadow-2xl backdrop-blur">
-      <div className={`mb-4 ${colors[tone]}`}>{icon}</div>
-      <div className="text-xs font-black uppercase tracking-[.22em] text-slate-400">{label}</div>
-      <div className={`mt-3 text-4xl font-black ${colors[tone]}`}>{value}</div>
+      <div className={colors[tone]}>{icon}</div>
+      <div className={`mt-4 text-4xl font-black ${colors[tone]}`}>{value}</div>
+      <div className="mt-2 text-sm font-black uppercase tracking-[.18em] text-slate-400">{label}</div>
     </div>
   );
 }
 
 function Panel({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/[.04] p-5 shadow-2xl backdrop-blur">
+    <div className="rounded-[2rem] border border-white/10 bg-white/[.045] p-6 shadow-2xl backdrop-blur">
       <div className="mb-5 flex items-center gap-3">
         <span className="text-cyan-300">{icon}</span>
-        <h2 className="text-xl font-black">{title}</h2>
+        <h2 className="text-2xl font-black">{title}</h2>
       </div>
       {children}
     </div>
   );
 }
 
-function Note({ color, title, text }: { color: "cyan" | "fuchsia" | "lime"; title: string; text: string }) {
-  const colors = {
-    cyan: "bg-cyan-400",
-    fuchsia: "bg-fuchsia-400",
-    lime: "bg-lime-300",
-  };
-
+function ActivityItem({
+  color,
+  title,
+  text,
+  href,
+}: {
+  color: string;
+  title: string;
+  text: string;
+  href: string;
+}) {
   return (
-    <div className="flex gap-3 rounded-2xl border border-white/10 bg-[#061126]/70 p-4">
-      <span className={`mt-2 h-2.5 w-2.5 rounded-full ${colors[color]}`} />
-      <div>
-        <div className="font-black">{title}</div>
-        <div className="mt-1 text-sm leading-5 text-slate-400">{text}</div>
+    <Link href={href} className="mb-3 block rounded-2xl border border-white/10 bg-[#071126]/80 p-4 transition hover:border-cyan-300/30">
+      <div className="flex gap-3">
+        <span className={`mt-1 h-3 w-3 rounded-full ${color}`} />
+        <div>
+          <div className="font-black">{title}</div>
+          <div className="mt-1 text-sm leading-6 text-slate-400">{text}</div>
+        </div>
       </div>
+    </Link>
+  );
+}
+
+function RankRow({ n, name, score, active }: { n: string; name: string; score: number; active?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between rounded-2xl border p-4 ${active ? "border-cyan-300/25 bg-cyan-400/10" : "border-white/10 bg-white/[.035]"}`}>
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-400/15 text-sm font-black text-cyan-200">
+          {n}
+        </div>
+        <div className="font-black">{name}</div>
+      </div>
+
+      <div className="font-black text-lime-300">{score}</div>
     </div>
   );
 }
 
-function CommunityTile({ title, text }: { title: string; text: string }) {
+function Upgrade({ text }: { text: string }) {
   return (
-    <button className="rounded-2xl border border-white/10 bg-[#061126]/70 p-4 text-left transition hover:border-cyan-400/30">
-      <div className="font-black">{title}</div>
-      <div className="mt-1 text-sm leading-5 text-slate-400">{text}</div>
-    </button>
+    <div className="mb-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[.035] p-4">
+      <Zap className="text-fuchsia-300" size={18} />
+      <span className="text-sm font-bold text-slate-300">{text}</span>
+    </div>
   );
 }
 
-function BottomNav() {
-  const items = [
-    { label: "Home", icon: <Home size={20} />, active: true },
-    { label: "Match", icon: <CalendarDays size={20} /> },
-    { label: "Community", icon: <Users size={20} /> },
-    { label: "Eventi", icon: <Trophy size={20} /> },
-    { label: "Profilo", icon: <Star size={20} /> },
-  ];
-
+function LogoMark() {
   return (
-    <nav className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-24px)] max-w-xl -translate-x-1/2 rounded-[2rem] border border-white/10 bg-[#061126]/90 p-2 shadow-2xl backdrop-blur-xl md:hidden">
-      <div className="grid grid-cols-5 gap-1">
-        {items.map((item) => (
-          <button
-            key={item.label}
-            className={`flex flex-col items-center justify-center gap-1 rounded-3xl px-2 py-3 text-[11px] font-bold ${
-              item.active ? "bg-cyan-400/10 text-cyan-300" : "text-slate-400"
-            }`}
-          >
-            {item.icon}
-            {item.label}
-          </button>
-        ))}
-      </div>
-    </nav>
+    <div className="relative h-14 w-14 shrink-0">
+      <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
+      <svg viewBox="0 0 120 120" className="relative h-14 w-14" aria-label="Rivalo logo">
+        <defs>
+          <linearGradient id="dashLogoEdge" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#22d3ee" />
+            <stop offset="52%" stopColor="#3b82f6" />
+            <stop offset="100%" stopColor="#d946ef" />
+          </linearGradient>
+          <filter id="dashSoftGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="-3" dy="2" stdDeviation="4" floodColor="#22d3ee" floodOpacity=".65" />
+            <feDropShadow dx="4" dy="4" stdDeviation="5" floodColor="#d946ef" floodOpacity=".5" />
+          </filter>
+        </defs>
+        <path d="M20 100 L20 13 H71 C93 13 106 27 106 46 C106 61 97 72 83 77 L105 100 H74 L56 76 H49 L49 100 Z" fill="white" filter="url(#dashSoftGlow)" />
+        <path d="M49 36 H67 C75 36 80 40 80 47 C80 54 75 58 67 58 H49 Z" fill="#020617" />
+        <path d="M21 100 L49 76 H61 L29 114 Z" fill="url(#dashLogoEdge)" />
+        <path d="M73 78 L105 100 H76 L58 78 Z" fill="#d946ef" opacity=".55" />
+      </svg>
+    </div>
+  );
+}
+
+function Background() {
+  return (
+    <div className="pointer-events-none fixed inset-0">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_4%,rgba(34,211,238,.16),transparent_28%),radial-gradient(circle_at_88%_8%,rgba(217,70,239,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
+      <div className="absolute right-[-260px] top-[120px] h-[650px] w-[650px] rounded-full border border-cyan-400/10" />
+      <div className="absolute left-[-180px] bottom-[-180px] h-[400px] w-[400px] rounded-full bg-fuchsia-500/10 blur-3xl" />
+    </div>
   );
 }
