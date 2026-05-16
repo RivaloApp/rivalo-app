@@ -115,11 +115,11 @@ export default function Home() {
         </section>
 
         <section id="features" className="mt-[76px] grid gap-4 md:grid-cols-5">
-          <Feature icon={<Users size={44} />} title="Crea il tuo gruppo" text="Invita i tuoi amici e costruisci la tua squadra." color="text-lime-300" />
-          <Feature icon={<CalendarDays size={44} />} title="Organizza partite" text="Scegli data, ora e campo. Noi pensiamo al resto." color="text-fuchsia-400" />
-          <Feature icon={<BarChart3 size={44} />} title="Statistiche reali" text="Ogni partita, ogni voto, ogni dettaglio conta." color="text-cyan-300" />
-          <Feature icon={<Trophy size={44} />} title="Classifiche live" text="Scala la classifica e diventa il numero uno." color="text-orange-400" />
-          <Feature icon={<Star size={44} />} title="Badge & XP" text="Gioca, vinci, sali di livello e sblocca badge unici." color="text-yellow-300" />
+          <Feature href="/community"icon={<Users size={44} />} title="Crea il tuo gruppo" text="Invita i tuoi amici e costruisci la tua squadra." color="text-lime-300" />
+          <Feature href="/match"icon={<CalendarDays size={44} />} title="Organizza partite" text="Scegli data, ora e campo. Noi pensiamo al resto." color="text-fuchsia-400" />
+          <Feature href=/dashboard"icon={<BarChart3 size={44} />} title="Statistiche reali" text="Ogni partita, ogni voto, ogni dettaglio conta." color="text-cyan-300" />
+          <Feature href="/leaderboard"icon={<Trophy size={44} />} title="Classifiche live" text="Scala la classifica e diventa il numero uno." color="text-orange-400" />
+          <Feature href="/dashboard"icon={<Star size={44} />} title="Badge & XP" text="Gioca, vinci, sali di livello e sblocca badge unici." color="text-yellow-300" />
         </section>
 
         <section className="mt-9 grid gap-6 lg:grid-cols-[1fr_1fr_.76fr]">
@@ -265,16 +265,47 @@ function HeroStat({ icon, value, label, color, border }: { icon: React.ReactNode
   );
 }
 
-function Feature({ icon, title, text, color }: { icon: React.ReactNode; title: string; text: string; color: string }) {
+function Feature({
+  icon,
+  title,
+  text,
+  color,
+  href,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+  color?: string;
+  href: string;
+}) {
   return (
-    <div className="rounded-[1.65rem] border border-white/10 bg-[#061126]/78 p-7 text-center shadow-2xl backdrop-blur transition hover:-translate-y-1 hover:border-cyan-400/30">
-      <div className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center ${color}`}>{icon}</div>
-      <h3 className="text-xl font-black">{title}</h3>
-      <p className="mt-4 text-[15px] leading-7 text-slate-300">{text}</p>
-    </div>
+    <Link
+      href={href}
+      className="group relative overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#061126]/80 p-7 text-center shadow-2xl backdrop-blur transition duration-300 hover:-translate-y-2 hover:border-cyan-400/40 hover:shadow-[0_0_35px_rgba(34,211,238,.18)]"
+    >
+      <div className="absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100 bg-[radial-gradient(circle_at_top,rgba(34,211,238,.12),transparent_60%)]" />
+
+      <div
+        className={`relative mx-auto mb-5 flex h-16 w-16 items-center justify-center transition duration-300 group-hover:scale-110 ${color}`}
+      >
+        {icon}
+      </div>
+
+      <h3 className="relative text-xl font-black transition group-hover:text-cyan-300">
+        {title}
+      </h3>
+
+      <p className="relative mt-4 text-[15px] leading-7 text-slate-300">
+        {text}
+      </p>
+
+      <div className="relative mt-5 flex items-center justify-center gap-2 text-sm font-black text-cyan-300 opacity-0 transition duration-300 group-hover:opacity-100">
+        Apri
+        <ChevronRight size={16} />
+      </div>
+    </Link>
   );
 }
-
 function TeamBadge({ label, rank }: { label: string; rank: number }) {
   const colors = rank === 1 ? "from-lime-300 to-cyan-400" : rank === 2 ? "from-cyan-400 to-blue-500" : "from-fuchsia-500 to-blue-500";
   return (
