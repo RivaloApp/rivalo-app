@@ -1,5 +1,4 @@
 import Link from "next/link";
-import RivaloLogo from "../components/RivaloLogo";
 import {
   LayoutDashboard,
   Users,
@@ -19,8 +18,9 @@ export default function DashboardPage() {
         
         {/* LOGO */}
         <div className="mb-10">
-          <RivaloLogo />
-        </div>
+          <div className="text-4xl font-black text-white">
+  RIVALO
+</div>
 
         {/* Menu */}
         <nav className="space-y-4">
