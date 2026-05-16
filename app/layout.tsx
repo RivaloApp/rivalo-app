@@ -11,6 +11,8 @@ const orbitron = Orbitron({
 export const metadata: Metadata = {
   title: "Rivalo",
   description: "La rivalità sportiva inizia qui.",
+  manifest: "/manifest.json",
+themeColor: "#020617",
 };
 
 export default function RootLayout({
