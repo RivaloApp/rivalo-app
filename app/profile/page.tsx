@@ -60,7 +60,7 @@ export default function ProfilePage() {
     setDebugError("");
 
     try {
-      const safeFileName = file.name.replaceAll(" ", "_");
+      const safeFileName = file.name.replace(/\s+/g, "_");
       const storageRef = ref(storage, `profiles/${user.uid}/${Date.now()}-${safeFileName}`);
 
       await uploadBytes(storageRef, file);
