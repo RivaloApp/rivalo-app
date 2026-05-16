@@ -1,3 +1,4 @@
+import RivaloLogo from "@/components/RivaloLogo";
 import Link from "next/link";
 import {
   BarChart3,
@@ -26,10 +27,17 @@ export default function Home() {
     <main className="min-h-screen overflow-hidden bg-[#020617] text-white">
       <section className="mx-auto max-w-7xl px-5 py-10">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-5xl font-black">Rivalo</h1>
-            <p className="mt-2 text-cyan-300">OWN THE GAME</p>
-          </div>
+         <div className="flex items-center gap-4">
+  <RivaloLogo size={82} />
+
+  <div>
+    <h1 className="text-5xl font-black">Rivalo</h1>
+
+    <p className="mt-2 text-sm font-black tracking-[.35em] text-cyan-300">
+      OWN THE GAME
+    </p>
+  </div>
+</div>
 
           <div className="flex gap-4">
             <Link
