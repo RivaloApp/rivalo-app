@@ -1,66 +1,174 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  CalendarDays,
-  ChevronRight,
-  MapPin,
-  Plus,
-  Search,
-  ShieldCheck,
-  Trophy,
-  Users,
-  Zap,
-} from "lucide-react";
+import { addDoc, collection, getDocs, orderBy, query, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth, db } from "../../lib/firebase";
+import { ArrowLeft, MessageCircle, Search, Send, Users } from "lucide-react";
 
-function Background() {
-  return (
-    <div className="pointer-events-none fixed inset-0">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_6%,rgba(34,211,238,.17),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(217,70,239,.15),transparent_32%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
-      <div className="absolute right-[-250px] top-[130px] h-[650px] w-[650px] rounded-full border border-cyan-400/10" />
-    </div>
-  );
-}
-
-function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <header className="mb-8">
-      <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-black text-cyan-300">
-        <ArrowLeft size={17} />
-        Torna alla dashboard
-      </Link>
-      <h1 className="mt-6 text-5xl font-black tracking-tight md:text-6xl">{title}</h1>
-      <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">{subtitle}</p>
-    </header>
-  );
-}
-
-function Panel({ icon, title, text, button }: { icon: React.ReactNode; title: string; text: string; button: string }) {
-  return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/[.045] p-6 shadow-2xl backdrop-blur">
-      <div className="text-cyan-300">{icon}</div>
-      <h2 className="mt-5 text-2xl font-black">{title}</h2>
-      <p className="mt-3 leading-7 text-slate-300">{text}</p>
-      <button className="mt-5 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black">
-        {button}
-        <ChevronRight size={20} />
-      </button>
-    </div>
-  );
-}
+type Post = {
+  id: string;
+  text?: string;
+  type?: string;
+  city?: string;
+  sport?: string;
+  authorName?: string;
+};
 
 export default function CommunityPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [text, setText] = useState("");
+  const [city, setCity] = useState("");
+  const [sport, setSport] = useState("calcetto");
+  const [type, setType] = useState("cerco_giocatore");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        window.location.href = "/login";
+        return;
+      }
+
+      setUser(currentUser);
+      await loadPosts();
+    });
+
+    return () => unsub();
+  }, []);
+
+  async function loadPosts() {
+    setLoading(true);
+    try {
+      const q = query(collection(db, "communityPosts"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      setPosts(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Post, "id">) })));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function publishPost(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user || !text.trim()) return;
+
+    await addDoc(collection(db, "communityPosts"), {
+      text,
+      city,
+      sport,
+      type,
+      authorId: user.uid,
+      authorName: user.displayName || "Rivalo Player",
+      reactions: 0,
+      comments: 0,
+      createdAt: serverTimestamp(),
+    });
+
+    setText("");
+    await loadPosts();
+  }
+
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
-      <Background />
-      <section className="relative z-10 mx-auto max-w-6xl px-5 py-8">
-        <PageHeader title="Community" subtitle="Trova giocatori, squadre avversarie, compagni padel/tennis e nuove partite nella tua città." />
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Panel icon={<Search size={42} />} title="Trova giocatore" text="Esempio: Milano, calcetto, manca 1 giocatore stasera alle 21:00." button="Cerca giocatori" />
-          <Panel icon={<Users size={42} />} title="Trova squadra" text="Esempio: siamo in 5, cerchiamo squadra avversaria a Lecce." button="Cerca avversari" />
+    <main className="min-h-screen bg-[#020617] px-5 py-8 text-white">
+      <section className="mx-auto max-w-6xl">
+        <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-black text-cyan-300">
+          <ArrowLeft size={17} />
+          Torna alla dashboard
+        </Link>
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-[.85fr_1.15fr]">
+          <form onSubmit={publishPost} className="rounded-[2rem] border border-white/10 bg-white/[.04] p-6 shadow-2xl">
+            <div className="mb-6 flex items-center gap-3">
+              <MessageCircle className="text-cyan-300" />
+              <div>
+                <h1 className="text-3xl font-black">Community</h1>
+                <p className="mt-1 text-slate-400">Trova giocatori, squadre e sfide nella tua città.</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Field label="Tipo richiesta">
+                <select value={type} onChange={(e) => setType(e.target.value)} className="w-full bg-transparent outline-none">
+                  <option value="cerco_giocatore">Cerco giocatore</option>
+                  <option value="cerco_squadra">Cerco squadra avversaria</option>
+                  <option value="cerco_match">Cerco match</option>
+                  <option value="post">Post community</option>
+                </select>
+              </Field>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Città">
+                  <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Milano, Lecce..." className="w-full bg-transparent outline-none placeholder:text-slate-500" />
+                </Field>
+                <Field label="Sport">
+                  <select value={sport} onChange={(e) => setSport(e.target.value)} className="w-full bg-transparent outline-none">
+                    <option value="calcetto">Calcetto</option>
+                    <option value="padel">Padel</option>
+                    <option value="tennis">Tennis</option>
+                  </select>
+                </Field>
+              </div>
+
+              <Field label="Messaggio">
+                <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Esempio: siamo in 5, cerchiamo squadra avversaria stasera..." className="min-h-[140px] w-full resize-none bg-transparent outline-none placeholder:text-slate-500" />
+              </Field>
+
+              <button type="submit" className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black">
+                Pubblica
+                <Send size={18} />
+              </button>
+            </div>
+          </form>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/[.04] p-6 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm font-black uppercase tracking-[.25em] text-cyan-300">Feed Rivalo</div>
+                <h2 className="mt-2 text-3xl font-black">Richieste e post</h2>
+              </div>
+              <Search className="text-cyan-300" />
+            </div>
+
+            {loading ? (
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-slate-400">Caricamento...</div>
+            ) : posts.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-slate-400">Nessun post ancora.</div>
+            ) : (
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <div key={post.id} className="rounded-2xl border border-white/10 bg-[#071126] p-5">
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      <Badge>{post.type}</Badge>
+                      <Badge>{post.sport}</Badge>
+                      <Badge>{post.city || "Italia"}</Badge>
+                    </div>
+                    <div className="text-lg font-bold">{post.text}</div>
+                    <div className="mt-4 flex items-center gap-3 text-sm text-slate-400">
+                      <Users size={16} />
+                      {post.authorName || "Rivalo Player"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </section>
     </main>
   );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-black text-slate-300">{label}</span>
+      <div className="rounded-2xl border border-white/10 bg-[#020617]/70 px-4 py-4">{children}</div>
+    </label>
+  );
+}
+
+function Badge({ children }: { children: React.ReactNode }) {
+  return <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs font-black uppercase text-cyan-200">{children}</span>;
 }
