@@ -20,7 +20,7 @@ export default function Home() {
     { n: "2", name: "Rival Team", pts: "2.210 pt", badge: "R" },
     { n: "3", name: "Black Sharks", pts: "1.980 pt", badge: "B" },
     { n: "4", name: "I Magnifici", pts: "1.760 pt", badge: "M" },
-    { n: "5", name: "Dream Team", pts: "1.520 pt", badge: "D" }
+    { n: "5", name: "Dream Team", pts: "1.520 pt", badge: "D" },
 ];
   return (
     <main className="min-h-screen overflow-hidden bg-[#020617] text-white">
