@@ -1,4 +1,4 @@
-import RivaloLogo from "@/components/RivaloLogo";
+import RivaloLogo from "../components/RivaloLogo";
 import Link from "next/link";
 import {
   BarChart3,
