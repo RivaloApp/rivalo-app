@@ -17,3 +17,36 @@ body {
 * {
   box-sizing: border-box;
 }
+/* Rivalo premium animations */
+@keyframes rivalo-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 12px rgba(34, 211, 238, .25)); }
+  50% { filter: drop-shadow(0 0 28px rgba(217, 70, 239, .38)); }
+}
+
+@keyframes rivalo-energy-slide {
+  0% { transform: translateX(-120%) rotate(18deg); opacity: 0; }
+  20% { opacity: .5; }
+  60% { opacity: .25; }
+  100% { transform: translateX(180%) rotate(18deg); opacity: 0; }
+}
+
+.rivalo-card-glow {
+  animation: rivalo-glow-pulse 3.8s ease-in-out infinite;
+}
+
+.rivalo-energy-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.rivalo-energy-sweep::after {
+  content: "";
+  position: absolute;
+  top: -25%;
+  left: 0;
+  width: 42%;
+  height: 150%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+  animation: rivalo-energy-slide 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
