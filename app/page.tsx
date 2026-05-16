@@ -1,201 +1,264 @@
-import RivaloLogo from "../components/RivaloLogo";
 import Link from "next/link";
+import RivaloLogo from "../../components/RivaloLogo";
 import {
-  BarChart3,
-  CalendarDays,
-  ChevronRight,
-  LockKeyhole,
-  PlayCircle,
-  RefreshCw,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Trophy,
+  LayoutDashboard,
   Users,
+  Trophy,
+  CalendarDays,
+  MessageCircle,
+  User,
+  MapPin,
 } from "lucide-react";
 
-export default function Home() {
-  const ranking = [
-    { n: "1", name: "The Warriors", pts: "2.450 pt", badge: "W" },
-    { n: "2", name: "Rival Team", pts: "2.210 pt", badge: "R" },
-    { n: "3", name: "Black Sharks", pts: "1.980 pt", badge: "B" },
-    { n: "4", name: "I Magnifici", pts: "1.760 pt", badge: "M" },
-    { n: "5", name: "Dream Team", pts: "1.520 pt", badge: "D" },
-  ];
-
+export default function DashboardPage() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[#020617] text-white">
-      <section className="mx-auto max-w-7xl px-5 py-10">
-        <div className="flex items-center justify-between">
-         <div className="flex items-center gap-4">
-  <RivaloLogo size={82} />
-
-  <div>
-    <h1 className="text-5xl font-black">Rivalo</h1>
-
-    <p className="mt-2 text-sm font-black tracking-[.35em] text-cyan-300">
-      OWN THE GAME
-    </p>
-  </div>
-</div>
-
-          <div className="flex gap-4">
-            <Link
-              href="/login"
-              className="rounded-2xl border border-white/10 px-6 py-3"
-            >
-              Accedi
-            </Link>
-
-            <Link
-              href="/signup"
-              className="rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-3 font-black"
-            >
-              Prova la Beta
-            </Link>
-          </div>
+    <main className="min-h-screen bg-[#020617] text-white flex">
+      
+      {/* Sidebar */}
+      <aside className="w-[290px] border-r border-white/10 bg-[#050b1f] p-6">
+        
+        {/* LOGO */}
+        <div className="mb-10">
+          <RivaloLogo />
         </div>
 
-        <div className="mt-20 grid gap-6 md:grid-cols-5">
-          <Feature
-            href="/community"
-            icon={<Users size={40} />}
-            title="Crea il tuo gruppo"
-            text="Invita amici e costruisci la tua squadra."
+        {/* Menu */}
+        <nav className="space-y-4">
+          <SidebarItem
+            icon={<LayoutDashboard size={22} />}
+            label="Dashboard"
+            active
           />
 
-          <Feature
-            href="/match"
-            icon={<CalendarDays size={40} />}
-            title="Organizza partite"
-            text="Crea e gestisci match reali."
+          <SidebarItem
+            icon={<Users size={22} />}
+            label="Gruppi"
           />
 
-          <Feature
-            href="/dashboard"
-            icon={<BarChart3 size={40} />}
-            title="Statistiche reali"
-            text="XP, RivalScore e progressione vera."
+          <SidebarItem
+            icon={<MapPin size={22} />}
+            label="Match"
           />
 
-          <Feature
-            href="/leaderboard"
-            icon={<Trophy size={40} />}
-            title="Classifiche live"
-            text="Scala il ranking globale Rivalo."
+          <SidebarItem
+            icon={<Trophy size={22} />}
+            label="Classifica"
           />
 
-          <Feature
-            href="/dashboard"
-            icon={<Star size={40} />}
-            title="Badge & XP"
-            text="Sblocca livelli e badge premium."
+          <SidebarItem
+            icon={<MessageCircle size={22} />}
+            label="Community"
           />
-        </div>
 
-        <div className="mt-20 grid gap-6 lg:grid-cols-3">
-          <Card>
-            <Trophy className="text-lime-300" size={38} />
-            <h2 className="mt-4 text-2xl font-black">Classifica generale</h2>
+          <SidebarItem
+            icon={<CalendarDays size={22} />}
+            label="Eventi"
+          />
 
-            <div className="mt-6 space-y-3">
-              {ranking.map((r) => (
-                <div
-                  key={r.n}
-                  className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="font-black text-cyan-300">#{r.n}</div>
-                    <div className="font-bold">{r.name}</div>
+          <Link href="/profile">
+            <SidebarItem
+              icon={<User size={22} />}
+              label="Profilo"
+            />
+          </Link>
+        </nav>
+      </aside>
+
+      {/* Content */}
+      <section className="flex-1 p-10">
+
+        <div className="grid grid-cols-[420px_1fr] gap-8">
+
+          {/* Player Card */}
+          <div className="rounded-[2.5rem] border border-white/10 bg-[#081226] p-6 shadow-2xl">
+
+            <div className="relative overflow-hidden rounded-[2rem] border border-orange-400/40 bg-gradient-to-br from-[#0a1227] via-[#0b1730] to-[#09101d] p-6 shadow-[0_0_50px_rgba(249,115,22,.25)]">
+
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,.35),transparent_45%)]" />
+
+              <div className="relative flex items-start justify-between">
+                <div>
+                  <div className="text-[68px] font-black leading-none text-yellow-300">
+                    83
                   </div>
 
-                  <div className="font-black text-lime-300">{r.pts}</div>
+                  <div className="mt-1 text-xl font-black tracking-[.18em] text-yellow-200">
+                    RIV
+                  </div>
                 </div>
-              ))}
+
+                <div className="rounded-full border border-cyan-400/40 bg-cyan-400/10 px-5 py-2 text-sm font-black text-cyan-300">
+                  CALCETTO
+                </div>
+              </div>
+
+              <div className="relative mt-6 flex justify-center">
+                <img
+                  src="https://i.pravatar.cc/300"
+                  alt="player"
+                  className="h-[170px] w-[170px] rounded-3xl object-cover border-4 border-white/10"
+                />
+              </div>
+
+              <div className="relative mt-7 text-center">
+                <div className="text-[42px] font-black text-yellow-300">
+                  SAMUELE
+                </div>
+
+                <div className="text-xl font-black tracking-[.15em] text-yellow-100">
+                  SAMPON
+                </div>
+
+                <div className="mt-3 text-yellow-300 text-2xl">
+                  ★
+                </div>
+              </div>
+
+              <div className="relative mt-8 grid grid-cols-4 gap-3 text-center">
+                <Stat value="79" label="PAC" />
+                <Stat value="81" label="PAS" />
+                <Stat value="84" label="DRI" />
+                <Stat value="77" label="PHY" />
+              </div>
             </div>
-          </Card>
+          </div>
 
-          <Card>
-            <Sparkles className="text-fuchsia-400" size={38} />
-            <h2 className="mt-4 text-2xl font-black">Esperienza Premium</h2>
-            <p className="mt-4 leading-8 text-slate-300">
-              Glow animati, card premium, ranking competitivo e UI stile game.
-            </p>
-          </Card>
+          {/* Right Side */}
+          <div className="space-y-6">
 
-          <Card>
-            <ShieldCheck className="text-cyan-300" size={38} />
-            <h2 className="mt-4 text-2xl font-black">Sistema competitivo</h2>
-            <p className="mt-4 leading-8 text-slate-300">
-              Match reali, conferme risultati, statistiche persistenti e RivalScore.
-            </p>
-          </Card>
+            <div className="rounded-[2rem] border border-white/10 bg-[#081226] p-8">
+              <h1 className="text-[46px] font-black leading-none">
+                Bentornato
+              </h1>
+
+              <div className="mt-4 text-[70px] font-black bg-gradient-to-r from-cyan-300 to-fuchsia-500 bg-clip-text text-transparent">
+                SAMUELE
+              </div>
+
+              <p className="mt-4 max-w-[650px] text-lg leading-8 text-slate-300">
+                Continua a giocare, salire di livello e dominare la classifica Rivalo.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-5">
+
+              <QuickCard
+                title="Partite"
+                value="84"
+                color="from-cyan-400 to-blue-600"
+              />
+
+              <QuickCard
+                title="Vittorie"
+                value="52"
+                color="from-lime-300 to-green-500"
+              />
+
+              <QuickCard
+                title="RivalScore"
+                value="83"
+                color="from-fuchsia-500 to-pink-500"
+              />
+
+            </div>
+
+            <div className="rounded-[2rem] border border-white/10 bg-[#081226] p-8">
+              <div className="text-3xl font-black">
+                Azioni rapide
+              </div>
+
+              <div className="mt-7 grid grid-cols-2 gap-5">
+
+                <ActionButton label="Crea Match" />
+                <ActionButton label="Nuovo Gruppo" />
+                <ActionButton label="Community" />
+                <ActionButton label="Eventi" />
+
+              </div>
+            </div>
+
+          </div>
         </div>
-
-        <footer className="mt-20 grid gap-4 text-sm text-slate-400 md:grid-cols-4">
-          <FooterItem icon={<ShieldCheck size={22} />} text="Sicuro e protetto" />
-          <FooterItem icon={<LockKeyhole size={22} />} text="Dati sempre tuoi" />
-          <FooterItem icon={<Sparkles size={22} />} text="Esperienza premium" />
-          <FooterItem icon={<RefreshCw size={22} />} text="Sempre aggiornato" />
-        </footer>
       </section>
     </main>
   );
 }
 
-function Feature({
+function SidebarItem({
   icon,
-  title,
-  text,
-  href,
+  label,
+  active,
 }: {
   icon: React.ReactNode;
-  title: string;
-  text: string;
-  href: string;
+  label: string;
+  active?: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      className="group rounded-[1.7rem] border border-white/10 bg-[#061126]/80 p-7 text-center shadow-2xl backdrop-blur transition duration-300 hover:-translate-y-2 hover:border-cyan-400/40 hover:shadow-[0_0_35px_rgba(34,211,238,.18)]"
+    <div
+      className={`flex items-center gap-4 rounded-2xl px-5 py-4 text-lg font-bold transition ${
+        active
+          ? "bg-gradient-to-r from-cyan-400 to-fuchsia-500 text-white shadow-[0_0_30px_rgba(34,211,238,.25)]"
+          : "text-slate-300 hover:bg-white/5"
+      }`}
     >
-      <div className="mb-5 flex justify-center text-cyan-300 transition duration-300 group-hover:scale-110">
-        {icon}
-      </div>
-
-      <h3 className="text-xl font-black transition group-hover:text-cyan-300">
-        {title}
-      </h3>
-
-      <p className="mt-4 text-sm leading-7 text-slate-300">{text}</p>
-
-      <div className="mt-5 flex items-center justify-center gap-2 text-sm font-black text-cyan-300 opacity-0 transition duration-300 group-hover:opacity-100">
-        Apri
-        <ChevronRight size={16} />
-      </div>
-    </Link>
-  );
-}
-
-function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-[2rem] border border-white/10 bg-[#061126]/80 p-6 shadow-2xl backdrop-blur">
-      {children}
+      {icon}
+      {label}
     </div>
   );
 }
 
-function FooterItem({
-  icon,
-  text,
+function Stat({
+  value,
+  label,
 }: {
-  icon: React.ReactNode;
-  text: string;
+  value: string;
+  label: string;
 }) {
   return (
-    <div className="flex items-center justify-center gap-3">
-      <span className="text-cyan-400">{icon}</span>
-      <span>{text}</span>
+    <div>
+      <div className="text-2xl font-black text-yellow-300">
+        {value}
+      </div>
+
+      <div className="text-sm font-bold text-slate-300">
+        {label}
+      </div>
     </div>
+  );
+}
+
+function QuickCard({
+  title,
+  value,
+  color,
+}: {
+  title: string;
+  value: string;
+  color: string;
+}) {
+  return (
+    <div className="rounded-[2rem] border border-white/10 bg-[#081226] p-6">
+      <div className="text-slate-400 font-semibold">
+        {title}
+      </div>
+
+      <div
+        className={`mt-4 bg-gradient-to-r ${color} bg-clip-text text-[58px] font-black text-transparent`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ActionButton({
+  label,
+}: {
+  label: string;
+}) {
+  return (
+    <button className="rounded-2xl border border-white/10 bg-white/[.04] px-6 py-5 text-lg font-black transition hover:border-cyan-400/40 hover:bg-cyan-400/10">
+      {label}
+    </button>
   );
 }
