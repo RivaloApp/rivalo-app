@@ -1,5 +1,5 @@
 import Link from "next/link";
-import RivaloLogo from "../../components/RivaloLogo";
+import RivaloLogo from "../components/RivaloLogo";
 import {
   LayoutDashboard,
   Users,
