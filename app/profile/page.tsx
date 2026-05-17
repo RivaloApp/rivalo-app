@@ -36,7 +36,7 @@ export default function ProfilePage() {
           setName(data.name || currentUser.displayName || "");
           setNickname(data.nickname || "Rival Player");
           setSport(data.mainSport || "calcetto");
-          setPhotoUrL(data.photoURL || data.photoUrl || "");
+          setPhotoUrL(data.photoUrL || data.photoUrl || "");
         } else {
           setName(currentUser.displayName || "");
         }
