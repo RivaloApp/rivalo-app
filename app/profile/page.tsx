@@ -130,9 +130,27 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
-        <Link href="/dashboard" className="mb-8 inline-block rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-bold text-cyan-300 transition hover:bg-white/10">
-          ← Torna alla dashboard
-        </Link>
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+  <Link href="/" className="flex items-center gap-4">
+    <LogoMark size={64} />
+
+    <div>
+      <div className="text-3xl font-black leading-none text-white">
+        Rivalo
+      </div>
+      <div className="mt-1 text-[10px] font-black tracking-[.3em] text-cyan-300">
+        OWN THE GAME
+      </div>
+    </div>
+  </Link>
+
+  <Link
+    href="/dashboard"
+    className="inline-block rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-bold text-cyan-300 transition hover:bg-white/10"
+  >
+    ← Torna alla dashboard
+  </Link>
+</div>
 
         <div className="mb-10">
           <h1 className="text-5xl font-black uppercase tracking-tight">Profilo Rivalo</h1>
@@ -252,6 +270,20 @@ function StatBox({ icon, label, value }: { icon: React.ReactNode; label: string;
       <div className="mb-3 flex justify-center text-cyan-300">{icon}</div>
       <div className="text-3xl font-black text-white">{value}</div>
       <div className="mt-1 text-sm font-bold uppercase text-slate-400">{label}</div>
+    </div>
+  );
+}
+function LogoMark({ size = 64 }: { size?: number }) {
+  return (
+    <div
+      className="relative shrink-0"
+      style={{ width: size, height: size }}
+    >
+      <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
+      <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-2xl bg-fuchsia-500/20 blur-xl" />
+      <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-white/20 bg-white text-3xl font-black italic text-[#020617] shadow-[0_0_28px_rgba(34,211,238,.22)]">
+        R
+      </div>
     </div>
   );
 }
