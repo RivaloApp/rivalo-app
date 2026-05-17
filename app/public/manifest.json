@@ -1,12 +1,11 @@
 {
   "name": "Rivalo",
   "short_name": "Rivalo",
-  "description": "Competizione. Statistiche. Rivalità.",
-  "start_url": "/",
+  "description": "Social sportivo competitivo per gruppi, match, ranking e community.",
+  "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#020617",
-  "orientation": "portrait",
   "icons": [
     {
       "src": "/icon-192.png",
