@@ -156,7 +156,7 @@ function Sidebar() {
   return (
     <aside className="hidden w-[205px] shrink-0 border-r border-white/10 bg-[#020617]/82 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
       <Link href="/" className="mb-9 flex items-center gap-4 px-2">
-  <LogoMark size={56} />
+  <LogoMark />
 
   <div>
     <div className="text-2xl font-black leading-none text-white">
