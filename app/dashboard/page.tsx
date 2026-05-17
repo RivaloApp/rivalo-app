@@ -158,14 +158,7 @@ function Sidebar() {
       <Link href="/" className="mb-9 flex items-center gap-4 px-2">
   <LogoMark />
 
-  <div>
-    <div className="text-2xl font-black leading-none text-white">
-      Rivalo
-    </div>
-    <div className="mt-1 text-[9px] font-black tracking-[.28em] text-cyan-300">
-      OWN THE GAME
-    </div>
-  </div>
+  
 </Link>
       <div className="space-y-2">
         <SideLink href="/dashboard" icon={<Grid2X2 />} text="Dashboard" active />
