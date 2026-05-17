@@ -404,3 +404,62 @@ function HeroStat({
     </div>
   );
 }
+function PhoneMockup() {
+  return (
+    <div className="relative mx-auto w-full max-w-[480px]">
+      <div className="absolute inset-0 rounded-[3rem] bg-cyan-400/20 blur-3xl" />
+
+      <div className="relative overflow-hidden rounded-[3rem] border border-white/10 bg-[#071126] p-5 shadow-[0_0_60px_rgba(34,211,238,.12)]">
+        <div className="rounded-[2rem] border border-white/10 bg-[#0b1730] p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-bold text-cyan-300">
+                RivalScore
+              </div>
+
+              <div className="mt-2 text-5xl font-black text-white">
+                91
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-gradient-to-br from-cyan-400 to-fuchsia-500 px-5 py-3 text-lg font-black text-white">
+              MVP
+            </div>
+          </div>
+
+          <div className="mt-8 grid grid-cols-3 gap-3">
+            <div className="rounded-2xl bg-white/[.04] p-4 text-center">
+              <div className="text-2xl font-black text-lime-300">
+                24
+              </div>
+
+              <div className="mt-1 text-xs text-slate-400">
+                Vittorie
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-white/[.04] p-4 text-center">
+              <div className="text-2xl font-black text-cyan-300">
+                11
+              </div>
+
+              <div className="mt-1 text-xs text-slate-400">
+                MVP
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-white/[.04] p-4 text-center">
+              <div className="text-2xl font-black text-fuchsia-300">
+                +320
+              </div>
+
+              <div className="mt-1 text-xs text-slate-400">
+                XP
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
