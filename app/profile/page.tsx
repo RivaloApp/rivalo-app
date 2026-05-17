@@ -36,7 +36,7 @@ export default function ProfilePage() {
           setName(data.name || currentUser.displayName || "");
           setNickname(data.nickname || "Rival Player");
           setSport(data.mainSport || "calcetto");
-          setPhotoUrl(localStorage.getItem("rivaloProfilePhoto") || data.photoUrl || "");
+          setphotoUrl(localStorage.getItem("rivaloProfilePhoto") || data.photoUrl || "");
         } else {
           setName(currentUser.displayName || "");
         }
