@@ -16,7 +16,7 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [sport, setSport] = useState("calcetto");
-  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoUrl, setphotoUrl] = useState("");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function ProfilePage() {
           setName(data.name || currentUser.displayName || "");
           setNickname(data.nickname || "Rival Player");
           setSport(data.mainSport || "calcetto");
-          setPhotoUrL(data.photoUrL || "");
+          setphotoUrl(data.photoUrl || "");
         } else {
           setName(currentUser.displayName || "");
         }
@@ -57,10 +57,10 @@ export default function ProfilePage() {
   const reader = new FileReader();
 
   reader.onloadend = () => {
-    const newPhotoUrl = reader.result as string;
+    const newphotoUrl = reader.result as string;
 
-    setPhotoUrl(newPhotoUrl);
-    localStorage.setItem("rivaloProfilePhoto", newPhotoUrl);
+    setphotoUrl(newphotoUrl);
+    localStorage.setItem("rivaloProfilePhoto", newphotoUrl);
 
       setSaving(false);
     }
@@ -80,8 +80,8 @@ export default function ProfilePage() {
           name,
           nickname,
           mainSport: sport,
-          photoUrL,
-          photoUrl: photoUrL,
+          photoUrl,
+          photoUrl: photoUrl,
           rivalScore: 1000,
           level: 1,
           xp: 100,
@@ -149,8 +149,8 @@ export default function ProfilePage() {
                   <div className="self-start text-5xl font-black text-yellow-300">87</div>
 
                   <div className="mt-2 flex h-[130px] w-[130px] items-center justify-center overflow-hidden rounded-[1.4rem] border border-white/20 bg-black/40">
-                    {photoUrL ? (
-                      <img src={photoUrL} alt="profile" className="h-full w-full object-cover" />
+                    {photoUrl ? (
+                      <img src={photoUrl} alt="profile" className="h-full w-full object-cover" />
                     ) : (
                       <UserRound size={70} className="text-cyan-200" />
                     )}
