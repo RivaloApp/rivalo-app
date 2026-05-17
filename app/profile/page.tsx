@@ -36,7 +36,7 @@ export default function ProfilePage() {
           setName(data.name || currentUser.displayName || "");
           setNickname(data.nickname || "Rival Player");
           setSport(data.mainSport || "calcetto");
-          setphotoUrl(data.photoUrl || "");
+          setPhotoUrl(localStorage.getItem("rivaloProfilePhoto") || data.photoUrl || "");
         } else {
           setName(currentUser.displayName || "");
         }
@@ -48,7 +48,7 @@ export default function ProfilePage() {
     return () => unsubscribe();
   }, []);
 
- async function uploadPhoto(file: File) {
+  async function uploadPhoto(file: File) {
   if (!file) return;
 
   setSaving(true);
@@ -56,15 +56,27 @@ export default function ProfilePage() {
 
   const reader = new FileReader();
 
-  reader.onloadend = () => {
-    const newphotoUrl = reader.result as string;
+  reader.onload = () => {
+    const result = reader.result;
 
-    setphotoUrl(newphotoUrl);
-    localStorage.setItem("rivaloProfilePhoto", newphotoUrl);
-
-      setSaving(false);
+    if (typeof result === "string") {
+      setPhotoUrl(result);
+      localStorage.setItem("rivaloProfilePhoto", result);
+      setMessage("Foto caricata. Ora premi Salva profilo.");
+    } else {
+      setMessage("Errore caricamento foto.");
     }
-  }
+
+    setSaving(false);
+  };
+
+  reader.onerror = () => {
+    setMessage("Errore caricamento foto.");
+    setSaving(false);
+  };
+
+  reader.readAsDataURL(file);
+}
 
   async function saveProfile() {
   setSaving(true);
