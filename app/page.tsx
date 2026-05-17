@@ -372,3 +372,35 @@ function LogoMark() {
     </div>
   );
 }
+
+function HeroStat({
+  icon,
+  value,
+  label,
+  color,
+  border,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+  color: string;
+  border?: boolean;
+}) {
+  return (
+    <div
+      className={`flex flex-col items-center justify-center px-4 py-6 text-center ${
+        border ? "border-l border-white/10" : ""
+      }`}
+    >
+      <div className={color}>{icon}</div>
+
+      <div className="mt-3 text-2xl font-black text-white">
+        {value}
+      </div>
+
+      <div className="mt-1 text-sm font-semibold text-slate-400">
+        {label}
+      </div>
+    </div>
+  );
+}
