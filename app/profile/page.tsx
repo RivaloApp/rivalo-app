@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db, storage } from "../../lib/firebase";
 import { Camera, Shield, Star, Trophy, UserRound } from "lucide-react";
@@ -17,7 +16,7 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [sport, setSport] = useState("calcetto");
-  const [photoURL, setPhotoURL] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -37,7 +36,7 @@ export default function ProfilePage() {
           setName(data.name || currentUser.displayName || "");
           setNickname(data.nickname || "Rival Player");
           setSport(data.mainSport || "calcetto");
-          setPhotoURL(data.photoURL || data.photoUrl || "");
+          setPhotoUrL(data.photoURL || data.photoUrl || "");
         } else {
           setName(currentUser.displayName || "");
         }
@@ -49,34 +48,20 @@ export default function ProfilePage() {
     return () => unsubscribe();
   }, []);
 
-  async function uploadPhoto(file: File) {
-    if (!user) return;
+ async function uploadPhoto(file: File) {
+  if (!file) return;
 
-    setSaving(true);
-    setMessage("");
+  setSaving(true);
+  setMessage("");
 
-    try {
-      const storageRef = ref(storage, `profiles/${user.uid}/avatar`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+  const reader = new FileReader();
 
-      setPhotoURL(url);
+  reader.onloadend = () => {
+    const newPhotoUrl = reader.result as string;
 
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          uid: user.uid,
-          photoURL: url,
-          photoUrl: url,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+    setPhotoUrl(newPhotoUrl);
+    localStorage.setItem("rivaloProfilePhoto", newPhotoUrl);
 
-      setMessage("Foto aggiornata.");
-    } catch {
-      setMessage("Errore caricamento foto.");
-    } finally {
       setSaving(false);
     }
   }
@@ -95,7 +80,7 @@ export default function ProfilePage() {
           name,
           nickname,
           mainSport: sport,
-          photoURL,
+          photoUrL,
           photoUrl: photoURL,
           rivalScore: 1000,
           level: 1,
@@ -135,7 +120,6 @@ export default function ProfilePage() {
   <Link href="/" className="flex items-center gap-4">
     <RivaloLogo />
 
-    
   </Link>
 
   <Link
@@ -165,8 +149,8 @@ export default function ProfilePage() {
                   <div className="self-start text-5xl font-black text-yellow-300">87</div>
 
                   <div className="mt-2 flex h-[130px] w-[130px] items-center justify-center overflow-hidden rounded-[1.4rem] border border-white/20 bg-black/40">
-                    {photoURL ? (
-                      <img src={photoURL} alt="profile" className="h-full w-full object-cover" />
+                    {photoUrL ? (
+                      <img src={photoUrL} alt="profile" className="h-full w-full object-cover" />
                     ) : (
                       <UserRound size={70} className="text-cyan-200" />
                     )}
