@@ -155,10 +155,18 @@ export default function DashboardPage() {
 function Sidebar() {
   return (
     <aside className="hidden w-[205px] shrink-0 border-r border-white/10 bg-[#020617]/82 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
-      <Link href="/" className="mb-9 flex items-center gap-3 px-2">
-        <LogoMark />
-        <div className="text-2xl font-black">RIVALO</div>
-      </Link>
+      <Link href="/" className="mb-9 flex items-center gap-4 px-2">
+  <LogoMark size={56} />
+
+  <div>
+    <div className="text-2xl font-black leading-none text-white">
+      Rivalo
+    </div>
+    <div className="mt-1 text-[9px] font-black tracking-[.28em] text-cyan-300">
+      OWN THE GAME
+    </div>
+  </div>
+</Link>
       <div className="space-y-2">
         <SideLink href="/dashboard" icon={<Grid2X2 />} text="Dashboard" active />
         <SideLink href="/groups" icon={<Users />} text="Gruppi" />
@@ -238,5 +246,18 @@ function Leaderboard({ leaders, currentUid, fallbackName, fallbackScore, fallbac
 function UpgradePanel() { return <div className="rounded-[1.8rem] border border-white/10 bg-[#071126]/80 p-6 shadow-2xl"><h2 className="text-2xl font-black uppercase">Prossimi upgrade</h2><div className="mt-5 rounded-2xl border border-purple-500 bg-purple-700/20 p-5"><div className="text-xl font-black">Completa il tuo profilo</div><div className="mt-2 leading-6 text-slate-300">Aggiungi foto e personalizza la tua card.</div></div><div className="mt-4 space-y-3"><Goal icon={<ShieldCheck />} text="Gioca 5 match" value="0/5" /><Goal icon={<Trophy />} text="Vinci 3 match" value="0/3" /><Goal icon={<Star />} text="Ottieni 1 MVP" value="0/1" /></div></div>; }
 function Goal({ icon, text, value }: { icon: React.ReactNode; text: string; value: string }) { return <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[.03] p-4"><div className="flex items-center gap-3"><span className="text-yellow-300">{icon}</span><span>{text}</span></div><span className="font-bold">{value}</span></div>; }
 
-function LogoMark() { return <div className="relative h-12 w-12 shrink-0"><div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" /><div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-2xl font-black italic text-[#020617]">R</div></div>; }
+function LogoMark({ size = 56 }: { size?: number }) {
+  return (
+    <div
+      className="relative shrink-0"
+      style={{ width: size, height: size }}
+    >
+      <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
+      <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-2xl bg-fuchsia-500/20 blur-xl" />
+      <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-white/20 bg-white text-2xl font-black italic text-[#020617] shadow-[0_0_28px_rgba(34,211,238,.22)]">
+        R
+      </div>
+    </div>
+  );
+}
 function Background() { return <div className="pointer-events-none fixed inset-0"><div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_8%,rgba(59,130,246,.13),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(124,58,237,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_48%,#020617_100%)]" /></div>; }
