@@ -246,16 +246,25 @@ function Leaderboard({ leaders, currentUid, fallbackName, fallbackScore, fallbac
 function UpgradePanel() { return <div className="rounded-[1.8rem] border border-white/10 bg-[#071126]/80 p-6 shadow-2xl"><h2 className="text-2xl font-black uppercase">Prossimi upgrade</h2><div className="mt-5 rounded-2xl border border-purple-500 bg-purple-700/20 p-5"><div className="text-xl font-black">Completa il tuo profilo</div><div className="mt-2 leading-6 text-slate-300">Aggiungi foto e personalizza la tua card.</div></div><div className="mt-4 space-y-3"><Goal icon={<ShieldCheck />} text="Gioca 5 match" value="0/5" /><Goal icon={<Trophy />} text="Vinci 3 match" value="0/3" /><Goal icon={<Star />} text="Ottieni 1 MVP" value="0/1" /></div></div>; }
 function Goal({ icon, text, value }: { icon: React.ReactNode; text: string; value: string }) { return <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[.03] p-4"><div className="flex items-center gap-3"><span className="text-yellow-300">{icon}</span><span>{text}</span></div><span className="font-bold">{value}</span></div>; }
 
-function LogoMark({ size = 56 }: { size?: number }) {
+function LogoMark() {
   return (
-    <div
-      className="relative shrink-0"
-      style={{ width: size, height: size }}
-    >
-      <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
-      <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-2xl bg-fuchsia-500/20 blur-xl" />
-      <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-white/20 bg-white text-2xl font-black italic text-[#020617] shadow-[0_0_28px_rgba(34,211,238,.22)]">
-        R
+    <div className="flex items-center gap-3">
+      <div className="relative h-14 w-14 shrink-0">
+        <div className="absolute inset-0 rounded-[1.2rem] bg-cyan-400/25 blur-xl" />
+
+        <div className="relative flex h-14 w-14 items-center justify-center rounded-[1.2rem] bg-white text-3xl font-black italic text-[#020617] shadow-[0_0_20px_rgba(255,255,255,.15)]">
+          R
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[30px] font-black leading-none text-white">
+          Rivalo
+        </div>
+
+        <div className="mt-1 text-[10px] font-black tracking-[.34em] text-cyan-300">
+          OWN THE GAME
+        </div>
       </div>
     </div>
   );
