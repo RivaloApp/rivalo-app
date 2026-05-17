@@ -54,11 +54,11 @@ export default function Home() {
               Funzionalità
             </a>
 
-            <Link href="/leaderboard" className="hover:text-white">
+            <Link href="/login" className="hover:text-white">
               Classifiche
             </Link>
 
-            <Link href="/community" className="hover:text-white">
+            <Link href="/login" className="hover:text-white">
               Community
             </Link>
 
@@ -118,7 +118,7 @@ export default function Home() {
 
             <div className="mt-10 flex flex-wrap gap-5">
               <Link
-                href="/dashboard"
+                href="/login"
                 className="group flex items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-10 py-5 text-lg font-black shadow-[0_0_34px_rgba(168,85,247,.25)] transition hover:scale-105"
               >
                 Entra in Rivalo
@@ -174,7 +174,7 @@ export default function Home() {
           className="mt-[76px] grid gap-4 md:grid-cols-5"
         >
           <Feature
-            href="/community"
+            href="/login"
             icon={<Users size={44} />}
             title="Crea il tuo gruppo"
             text="Invita i tuoi amici e costruisci la tua squadra."
@@ -182,7 +182,7 @@ export default function Home() {
           />
 
           <Feature
-            href="/match"
+            href="/login"
             icon={<CalendarDays size={44} />}
             title="Organizza partite"
             text="Crea match, risultati e MVP."
@@ -190,7 +190,7 @@ export default function Home() {
           />
 
           <Feature
-            href="/dashboard"
+            href="/login"
             icon={<BarChart3 size={44} />}
             title="Statistiche reali"
             text="RivalScore, XP e progressione."
@@ -198,7 +198,7 @@ export default function Home() {
           />
 
           <Feature
-            href="/leaderboard"
+            href="/login"
             icon={<Trophy size={44} />}
             title="Classifiche live"
             text="Scala la classifica e diventa il numero uno."
@@ -206,7 +206,7 @@ export default function Home() {
           />
 
           <Feature
-            href="/dashboard"
+            href="/login"
             icon={<Star size={44} />}
             title="Badge & XP"
             text="Gioca, vinci, sali di livello."
@@ -222,7 +222,7 @@ export default function Home() {
               </h2>
 
               <Link
-                href="/leaderboard"
+                href="/login"
                 className="rounded-xl border border-white/10 bg-white/[.035] px-4 py-2 text-sm font-semibold text-slate-300"
               >
                 Vedi tutte
@@ -268,25 +268,25 @@ export default function Home() {
 
             <div className="grid gap-3">
               <QuickLink
-                href="/dashboard"
+                href="/login"
                 icon={<BarChart3 />}
                 title="Dashboard"
               />
 
               <QuickLink
-                href="/match"
+                href="/login"
                 icon={<CalendarDays />}
                 title="Match"
               />
 
               <QuickLink
-                href="/community"
+                href="/login"
                 icon={<MessageCircle />}
                 title="Community"
               />
 
               <QuickLink
-                href="/profile"
+                href="/login"
                 icon={<UserRound />}
                 title="Profilo"
               />
@@ -368,193 +368,6 @@ function LogoMark() {
 
       <div className="relative flex h-[84px] w-[84px] items-center justify-center rounded-3xl border border-white/20 bg-white text-[48px] font-black italic text-[#020617] shadow-[0_0_35px_rgba(34,211,238,.2)]">
         R
-      </div>
-    </div>
-  );
-}
-
-function HeroStat({
-  icon,
-  value,
-  label,
-  color,
-  border,
-}: {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
-  color: string;
-  border?: boolean;
-}) {
-  return (
-    <div className={`px-5 py-5 ${border ? "border-l border-white/10" : ""}`}>
-      <div className={`mb-4 ${color}`}>{icon}</div>
-
-      <div className={`text-[30px] font-black leading-none ${color}`}>
-        {value}
-      </div>
-
-      <div className="mt-3 text-[15px] leading-tight text-slate-300">
-        {label}
-      </div>
-    </div>
-  );
-}
-
-function Feature({
-  icon,
-  title,
-  text,
-  color,
-  href,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  text: string;
-  color: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group rounded-[1.65rem] border border-white/10 bg-[#061126]/78 p-7 text-center shadow-2xl backdrop-blur transition hover:-translate-y-1 hover:border-cyan-400/30"
-    >
-      <div
-        className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center transition group-hover:scale-110 ${color}`}
-      >
-        {icon}
-      </div>
-
-      <h3 className="text-xl font-black transition group-hover:text-cyan-300">
-        {title}
-      </h3>
-
-      <p className="mt-4 text-[15px] leading-7 text-slate-300">
-        {text}
-      </p>
-    </Link>
-  );
-}
-
-function TeamBadge({ rank }: { rank: number }) {
-  const colors =
-    rank === 1
-      ? "from-lime-300 to-cyan-400"
-      : rank === 2
-      ? "from-cyan-400 to-blue-500"
-      : "from-fuchsia-500 to-blue-500";
-
-  return (
-    <div
-      className={`flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br ${colors} p-[2px]`}
-    >
-      <div className="flex h-full w-full items-center justify-center rounded-full bg-[#071126] text-sm font-black text-white">
-        {rank}
-      </div>
-    </div>
-  );
-}
-
-function QuickLink({
-  href,
-  icon,
-  title,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  title: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[.035] px-5 py-4 font-black transition hover:border-cyan-400/30 hover:bg-cyan-400/10"
-    >
-      <span className="flex items-center gap-3">
-        <span className="text-cyan-300">{icon}</span>
-
-        {title}
-      </span>
-
-      <ChevronRight size={18} />
-    </Link>
-  );
-}
-
-function FooterItem({
-  icon,
-  text,
-}: {
-  icon: React.ReactNode;
-  text: string;
-}) {
-  return (
-    <div className="flex items-center justify-center gap-3">
-      <span className="text-cyan-400">{icon}</span>
-
-      <span>{text}</span>
-    </div>
-  );
-}
-
-function PhoneMockup() {
-  return (
-    <div className="relative mx-auto w-full max-w-[480px] lg:-mt-8 lg:translate-x-2">
-      <div className="absolute inset-0 rounded-[4rem] bg-cyan-400/20 blur-3xl" />
-
-      <div className="relative rotate-[3.5deg] rounded-[4.1rem] border border-white/25 bg-gradient-to-br from-slate-700 to-black p-3 shadow-[0_0_65px_rgba(34,211,238,.18)]">
-        <div className="rounded-[3.62rem] border border-white/10 bg-[#050b1f] p-5">
-          <div className="mb-5 flex items-center justify-between px-2 text-sm font-black">
-            <span>9:41</span>
-
-            <span>▮▮▮ ▰</span>
-          </div>
-
-          <div className="rounded-2xl border border-blue-400/20 bg-[#071333] p-4">
-            <div className="text-sm font-semibold text-slate-300">
-              Il tuo RivalScore
-            </div>
-
-            <div className="mt-2 flex items-center gap-3">
-              <span className="text-5xl font-black text-lime-300">
-                91
-              </span>
-
-              <span className="rounded-full bg-lime-400/15 px-3 py-1 text-sm font-black text-lime-300">
-                +7
-              </span>
-            </div>
-
-            <div className="mt-4 text-sm text-slate-300">
-              Livello 18
-            </div>
-
-            <div className="mt-2 h-2 rounded-full bg-white/10">
-              <div className="h-2 w-[78%] rounded-full bg-lime-300" />
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-[1.7rem] border border-white/5 bg-white/[.035] p-5">
-            <div className="text-sm font-bold text-slate-200">
-              Prossima partita
-            </div>
-
-            <div className="mt-5 flex items-center justify-between">
-              <div className="font-black">Rival Team</div>
-
-              <span className="rounded-lg bg-white/5 px-2 py-1 text-xs text-cyan-300">
-                VS
-              </span>
-
-              <div className="font-black">Black Sharks</div>
-            </div>
-
-            <div className="mt-4 text-center text-sm text-slate-300">
-              Sab 17 Mag • 21:00
-              <br />
-              Centro Sportivo Aurora
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
