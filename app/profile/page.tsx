@@ -135,14 +135,7 @@ export default function ProfilePage() {
   <Link href="/" className="flex items-center gap-4">
     <RivaloLogo />
 
-    <div>
-      <div className="text-3xl font-black leading-none text-white">
-        Rivalo
-      </div>
-      <div className="mt-1 text-[10px] font-black tracking-[.3em] text-cyan-300">
-        OWN THE GAME
-      </div>
-    </div>
+    
   </Link>
 
   <Link
