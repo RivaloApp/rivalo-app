@@ -22,15 +22,25 @@ export default function Home() {
 
       <section className="relative z-10 mx-auto max-w-[1240px] px-5 py-7">
         <nav className="flex items-center justify-between gap-5">
-          <Link href="/" className="flex items-center gap-4">
-            import BrandLogo from "../components/BrandLogo";
-            <div>
-              <div className="text-[35px] font-black leading-none">Rivalo</div>
-              <div className="mt-2 text-[13px] font-black tracking-[.34em] text-cyan-300">
-                OWN THE GAME
-              </div>
-            </div>
-          </Link>
+         <Link href="/" className="flex items-center gap-4">
+  <div className="relative h-16 w-16 shrink-0">
+    <div className="absolute inset-0 rounded-[1.4rem] bg-cyan-400/25 blur-2xl" />
+
+    <div className="relative flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-white text-4xl font-black italic text-[#020617] shadow-[0_0_25px_rgba(255,255,255,.18)]">
+      R
+    </div>
+  </div>
+
+  <div>
+    <div className="text-[35px] font-black leading-none text-white">
+      Rivalo
+    </div>
+
+    <div className="mt-2 text-[13px] font-black tracking-[.34em] text-cyan-300">
+      OWN THE GAME
+    </div>
+  </div>
+</Link>
 
           <div className="flex items-center gap-4">
             <Link href="/login" className="rounded-2xl border border-white/20 bg-white/[.03] px-7 py-4 font-bold">
