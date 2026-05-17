@@ -7,6 +7,7 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db, storage } from "../../lib/firebase";
 import { Camera, Shield, Star, Trophy, UserRound } from "lucide-react";
+import RivaloLogo from "../../components/RivaloLogo";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -132,7 +133,7 @@ export default function ProfilePage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
   <Link href="/" className="flex items-center gap-4">
-    <LogoMark size={64} />
+    <RivaloLogo />
 
     <div>
       <div className="text-3xl font-black leading-none text-white">
