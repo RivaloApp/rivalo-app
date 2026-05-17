@@ -67,42 +67,22 @@ export default function ProfilePage() {
   }
 
   async function saveProfile() {
-    if (!user) return;
+  setSaving(true);
+  setMessage("");
 
-    setSaving(true);
-    setMessage("");
+  const profileData = {
+    name,
+    nickname,
+    mainSport: sport,
+    photoUrl,
+  };
 
-    try {
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          uid: user.uid,
-          name,
-          nickname,
-          mainSport: sport,
-          photoUrl: photoUrl,
-          rivalScore: 1000,
-          level: 1,
-          xp: 100,
-          wins: 0,
-          losses: 0,
-          draws: 0,
-          matchesPlayed: 0,
-          goals: 0,
-          assists: 0,
-          mvp: 0,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+  localStorage.setItem("rivaloProfile", JSON.stringify(profileData));
+  localStorage.setItem("rivaloProfilePhoto", photoUrl);
 
-      setMessage("Profilo aggiornato.");
-    } catch {
-      setMessage("Errore salvataggio profilo.");
-    } finally {
-      setSaving(false);
-    }
-  }
+  setMessage("Profilo aggiornato.");
+  setSaving(false);
+}
 
   if (loading) {
     return (
