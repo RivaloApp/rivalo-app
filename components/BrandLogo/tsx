@@ -1,0 +1,26 @@
+export default function BrandLogo({ size = 64 }: { size?: number }) {
+  return (
+    <div className="flex items-center gap-4">
+      <div
+        className="relative shrink-0"
+        style={{ width: size, height: size }}
+      >
+        <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
+        <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-2xl bg-fuchsia-500/20 blur-xl" />
+
+        <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-white/20 bg-white text-[34px] font-black italic text-[#020617] shadow-[0_0_28px_rgba(34,211,238,.22)]">
+          R
+        </div>
+      </div>
+
+      <div>
+        <div className="text-3xl font-black leading-none text-white">
+          Rivalo
+        </div>
+        <div className="mt-1 text-[10px] font-black tracking-[.3em] text-cyan-300">
+          OWN THE GAME
+        </div>
+      </div>
+    </div>
+  );
+}
