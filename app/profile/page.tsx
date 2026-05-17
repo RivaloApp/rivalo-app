@@ -80,7 +80,7 @@ export default function ProfilePage() {
           name,
           nickname,
           mainSport: sport,
-          photoUrl,
+          photoUrl: photoUrl,
           rivalScore: 1000,
           level: 1,
           xp: 100,
