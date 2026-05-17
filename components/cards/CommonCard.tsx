@@ -1,0 +1,1 @@
+"use client"; export default function CommonCard(){ return <div>Common Card</div> }

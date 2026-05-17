@@ -1,0 +1,1 @@
+"use client"; export default function LegendCard(){ return <div>Legend Card</div> }

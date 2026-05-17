@@ -191,8 +191,23 @@ function TopIcons() {
 
 function PlayerCard({ name, nickname, rivalScore, mainSport, photo }: { name: string; nickname: string; rivalScore: number; mainSport: string; photo: string }) {
   const rating = Math.max(70, Math.min(99, Math.round(rivalScore / 12)));
+  const displayPhoto =
+  typeof window !== "undefined"
+    ? localStorage.getItem("rivaloProfilePhoto") || photo
+    : photo;
+  const isLegend = rating >= 95;
+const isElite = rating >= 88;
+const isRare = rating >= 80;
   return (
-    <div className="relative mx-auto w-full max-w-[330px] rivalo-card-glow">
+    <div className={`relative mx-auto w-full max-w-[330px] rivalo-card-glow ${
+  isLegend
+    ? "scale-[1.03]"
+    : isElite
+    ? "shadow-[0_0_60px_rgba(0,255,255,0.35)]"
+    : isRare
+    ? "shadow-[0_0_40px_rgba(255,170,0,0.25)]"
+    : ""
+}`}>
       <div className="absolute -inset-4 rounded-[2.5rem] bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.62),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.58),transparent_38%)] blur-2xl" />
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-br from-yellow-300 via-orange-500 to-purple-500 shadow-[0_0_38px_rgba(249,115,22,.32),0_0_48px_rgba(124,58,237,.28)]" style={{ clipPath: "polygon(9% 0%, 91% 0%, 100% 9%, 100% 81%, 50% 100%, 0% 81%, 0% 9%)" }} />
@@ -204,7 +219,7 @@ function PlayerCard({ name, nickname, rivalScore, mainSport, photo }: { name: st
               <div className="rounded-2xl border border-cyan-300/35 bg-cyan-400/10 px-3 py-2 text-center text-[11px] font-black uppercase tracking-[.14em] text-cyan-100">{mainSport}</div>
             </div>
             <div className="relative mt-3 flex h-[140px] items-center justify-center">
-              {photo ? <img src={localStorage.getItem("rivaloProfilePhoto") || photo}alt="Foto profilo" className="relative z-10 h-[132px] w-[132px] rounded-[1.25rem] object-cover shadow-[0_0_22px_rgba(255,255,255,.12)]" /> : <div className="relative z-10 flex h-[132px] w-[132px] items-center justify-center rounded-[1.25rem] border border-cyan-300/20 bg-black/25"><UserRound size={70} className="text-cyan-200" /></div>}
+              {displayPhoto ? <img src={displayPhoto}alt="Foto profilo" className="relative z-10 h-[132px] w-[132px] rounded-[1.25rem] object-cover shadow-[0_0_22px_rgba(255,255,255,.12)]" /> : <div className="relative z-10 flex h-[132px] w-[132px] items-center justify-center rounded-[1.25rem] border border-cyan-300/20 bg-black/25"><UserRound size={70} className="text-cyan-200" /></div>}
             </div>
             <div className="mt-1 text-center"><div className="truncate px-3 text-3xl font-black uppercase text-yellow-300">{name}</div><div className="mt-1 truncate px-3 text-lg font-black uppercase text-yellow-200">{nickname}</div><div className="mt-2 text-lg text-yellow-300">★</div></div>
             <div className="mt-auto pt-3"><div className="grid grid-cols-6 gap-1 text-center">{["PAC","SHO","PAS","DRI","DEF","PHY"].map((l,i)=><CardStat key={l} label={l} value={Math.max(60, Math.min(99, rating + [0,-4,-2,1,-6,-1][i]))} />)}</div></div>
