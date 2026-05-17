@@ -60,7 +60,7 @@ export default function ProfilePage() {
     const result = reader.result;
 
     if (typeof result === "string") {
-      setPhotoUrl(result);
+      setphotoUrl(result);
       localStorage.setItem("rivaloProfilePhoto", result);
       setMessage("Foto caricata. Ora premi Salva profilo.");
     } else {
