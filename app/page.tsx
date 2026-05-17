@@ -1,3 +1,4 @@
+import BrandLogo from "../components/BrandLogo";
 import Link from "next/link";
 import {
   BarChart3,
@@ -22,7 +23,7 @@ export default function Home() {
       <section className="relative z-10 mx-auto max-w-[1240px] px-5 py-7">
         <nav className="flex items-center justify-between gap-5">
           <Link href="/" className="flex items-center gap-4">
-            <LogoMark />
+            import BrandLogo from "../components/BrandLogo";
             <div>
               <div className="text-[35px] font-black leading-none">Rivalo</div>
               <div className="mt-2 text-[13px] font-black tracking-[.34em] text-cyan-300">
