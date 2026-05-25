@@ -6,7 +6,6 @@ import {
   collection,
   getDocs,
   limit,
-  orderBy,
   query,
 } from "firebase/firestore";
 
@@ -16,13 +15,11 @@ import {
   ArrowLeft,
   Crown,
   Medal,
-  Trophy,
   UserRound,
   Flame,
   Target,
   ShieldCheck,
   Globe2,
-  Star,
 } from "lucide-react";
 
 type UserRow = {
@@ -47,6 +44,36 @@ type UserRow = {
 
 type SportFilter = "all" | "calcetto" | "padel" | "tennis";
 
+function normalizeSport(value?: string) {
+  return (value || "").toLowerCase().trim();
+}
+
+function calculateGlobalRankScore(user: UserRow) {
+  const matches = Number(user.matchesPlayed || 0);
+  const wins = Number(user.wins || 0);
+  const draws = Number(user.draws || 0);
+  const losses = Number(user.losses || 0);
+  const mvp = Number(user.mvp || 0);
+  const goals = Number(user.goals || 0);
+  const assists = Number(user.assists || 0);
+  const winStreak = Number(user.winStreak || 0);
+
+  const winRate = matches > 0 ? wins / matches : 0;
+
+  const score =
+    wins * 120 +
+    draws * 35 +
+    mvp * 90 +
+    matches * 18 +
+    Math.min(goals, 120) * 4 +
+    Math.min(assists, 80) * 5 +
+    Math.min(winStreak, 10) * 25 +
+    Math.round(winRate * 120) -
+    losses * 35;
+
+  return Math.max(0, Math.round(score));
+}
+
 export default function LeaderboardPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,8 +84,7 @@ export default function LeaderboardPage() {
       try {
         const q = query(
           collection(db, "users"),
-          orderBy("rivalScore", "desc"),
-          limit(100)
+          limit(200)
         );
 
         const snap = await getDocs(q);
@@ -81,32 +107,47 @@ export default function LeaderboardPage() {
     if (sportFilter === "all") return users;
 
     return users.filter(
-      (user) =>
-        (user.mainSport || "").toLowerCase() === sportFilter
+      (user) => normalizeSport(user.mainSport) === sportFilter
     );
   }, [users, sportFilter]);
 
+  const rankedUsers = useMemo(() => {
+    return [...filteredUsers].sort((a, b) => {
+      const scoreA = calculateGlobalRankScore(a);
+      const scoreB = calculateGlobalRankScore(b);
+
+      return (
+        scoreB - scoreA ||
+        Number(b.wins || 0) - Number(a.wins || 0) ||
+        Number(b.mvp || 0) - Number(a.mvp || 0) ||
+        Number(b.matchesPlayed || 0) - Number(a.matchesPlayed || 0) ||
+        Number(b.goals || 0) - Number(a.goals || 0) ||
+        Number(b.assists || 0) - Number(a.assists || 0)
+      );
+    });
+  }, [filteredUsers]);
+
   const topScorer = useMemo(() => {
     return [...filteredUsers].sort(
-      (a, b) => (b.goals || 0) - (a.goals || 0)
+      (a, b) => Number(b.goals || 0) - Number(a.goals || 0)
     )[0];
   }, [filteredUsers]);
 
   const topAssist = useMemo(() => {
     return [...filteredUsers].sort(
-      (a, b) => (b.assists || 0) - (a.assists || 0)
+      (a, b) => Number(b.assists || 0) - Number(a.assists || 0)
     )[0];
   }, [filteredUsers]);
 
   const topMvp = useMemo(() => {
     return [...filteredUsers].sort(
-      (a, b) => (b.mvp || 0) - (a.mvp || 0)
+      (a, b) => Number(b.mvp || 0) - Number(a.mvp || 0)
     )[0];
   }, [filteredUsers]);
 
   const topStreak = useMemo(() => {
     return [...filteredUsers].sort(
-      (a, b) => (b.winStreak || 0) - (a.winStreak || 0)
+      (a, b) => Number(b.winStreak || 0) - Number(a.winStreak || 0)
     )[0];
   }, [filteredUsers]);
 
@@ -141,8 +182,8 @@ export default function LeaderboardPage() {
                   </h1>
 
                   <p className="mt-3 max-w-3xl text-slate-300">
-                    Ranking generale tra tutti gli utenti Rivalo. Più giochi,
-                    più vinci, più sali.
+                    Ranking generale basato sulle statistiche reali: vittorie,
+                    MVP, partite, rendimento, gol e assist.
                   </p>
                 </div>
               </div>
@@ -156,7 +197,7 @@ export default function LeaderboardPage() {
 
                 <StatPill
                   label="In classifica"
-                  value={filteredUsers.length}
+                  value={rankedUsers.length}
                   color="yellow"
                 />
               </div>
@@ -198,7 +239,7 @@ export default function LeaderboardPage() {
               <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-slate-300">
                 Caricamento classifica...
               </div>
-            ) : filteredUsers.length === 0 ? (
+            ) : rankedUsers.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-slate-300">
                 Nessun utente trovato per questo sport.
               </div>
@@ -244,7 +285,7 @@ export default function LeaderboardPage() {
                   </div>
 
                   <div className="grid gap-5 md:grid-cols-3">
-                    {filteredUsers.slice(0, 3).map((user, index) => (
+                    {rankedUsers.slice(0, 3).map((user, index) => (
                       <LeaderboardPodiumCard
                         key={user.id}
                         user={user}
@@ -254,7 +295,7 @@ export default function LeaderboardPage() {
                   </div>
 
                   <div className="mt-10 space-y-4">
-                    {filteredUsers.slice(3).map((user, index) => (
+                    {rankedUsers.slice(3).map((user, index) => (
                       <CompactRow
                         key={user.id}
                         user={user}
@@ -367,8 +408,9 @@ function LeaderboardPodiumCard({
   index: number;
 }) {
   const photo = user.photoURL || user.photoUrl || "";
-  const matches = user.matchesPlayed || 0;
-  const wins = user.wins || 0;
+  const matches = Number(user.matchesPlayed || 0);
+  const wins = Number(user.wins || 0);
+  const rankScore = calculateGlobalRankScore(user);
 
   const winRate =
     matches > 0 ? Math.round((wins / matches) * 100) : 0;
@@ -443,11 +485,15 @@ function LeaderboardPodiumCard({
 
         <div className="mt-5">
           <div className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
-            RivalScore
+            Rank Score
           </div>
 
           <div className="text-5xl font-black text-cyan-300">
-            {user.rivalScore || 1000}
+            {rankScore}
+          </div>
+
+          <div className="mt-2 text-xs text-slate-400">
+            RivalScore salvato: {user.rivalScore || 1000}
           </div>
         </div>
 
@@ -501,6 +547,7 @@ function CompactRow({
   index: number;
 }) {
   const photo = user.photoURL || user.photoUrl || "";
+  const rankScore = calculateGlobalRankScore(user);
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/20 px-5 py-4 md:flex-row md:items-center md:justify-between">
@@ -539,8 +586,8 @@ function CompactRow({
 
       <div className="grid grid-cols-4 gap-4 text-center md:flex md:items-center md:gap-6">
         <CompactStat
-          label="Score"
-          value={user.rivalScore || 1000}
+          label="Rank"
+          value={rankScore}
           color="text-cyan-300"
         />
 
