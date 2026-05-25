@@ -183,7 +183,9 @@ function RivalryCard({
   rivalry: Rivalry;
   usersMap: Record<string, UserMini>;
 }) {
-  const userIds = Array.isArray(rivalry.users) ? rivalry.users : [];
+  const userIds = Array.isArray((rivalryData as any).users)
+  ? (rivalryData as any).users
+  : [];
 
   const firstUid = userIds[0] || "";
   const secondUid = userIds[1] || "";
@@ -192,7 +194,6 @@ function RivalryCard({
   const secondUser = usersMap[secondUid];
 
   const firstName =
-    firstUser?.name ||
     firstUser?.nickname ||
     "Player 1";
 
