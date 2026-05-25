@@ -41,7 +41,7 @@ type MatchPlayer = {
   goals?: number;
   assists?: number;
   isMvp?: boolean;
-  team?: "home" | "away";
+  team: "home" | "away";
 };
 
 type MatchDoc = {
@@ -152,9 +152,18 @@ export default function MatchDetailsPage() {
         setMvpName(data.mvpName || "");
         setNotes(data.notes || "");
 
-        if (Array.isArray(data.players) && data.players.length > 0) {
-          setPlayers(data.players);
-        }
+       if (Array.isArray(data.players) && data.players.length > 0) {
+  setPlayers(
+    data.players.map((player, index) => ({
+      uid: player.uid || "",
+      name: player.name || "",
+      goals: Number(player.goals || 0),
+      assists: Number(player.assists || 0),
+      isMvp: Boolean(player.isMvp),
+      team: player.team || (index % 2 === 0 ? "home" : "away"),
+    }))
+  );
+}
       }
     } finally {
       setLoading(false);
