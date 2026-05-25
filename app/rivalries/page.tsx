@@ -64,12 +64,16 @@ export default function RivalriesPage() {
         setRivalries(rivalriesData);
 
         const allUserIds = Array.from(
-          new Set(
-            rivalriesData.flatMap((rivalry) =>
-              Array.isArray(rivalry.users) ? rivalry.users : []
-            )
-          )
-        );
+  new Set(
+    rivalriesData.flatMap((rivalry) => {
+      const rivalrySafe = rivalry as any;
+
+      return Array.isArray(rivalrySafe.users)
+        ? rivalrySafe.users
+        : [];
+    })
+  )
+);
 
         const usersResult: Record<string, UserMini> = {};
 
@@ -183,8 +187,10 @@ function RivalryCard({
   rivalry: Rivalry;
   usersMap: Record<string, UserMini>;
 }) {
-  const userIds = Array.isArray((rivalryData as any).users)
-  ? (rivalryData as any).users
+  const rivalrySafe = rivalry as any;
+
+const userIds: string[] = Array.isArray(rivalrySafe.users)
+  ? rivalrySafe.users
   : [];
 
   const firstUid = userIds[0] || "";

@@ -45,15 +45,15 @@ export default function RivalryDetailPage() {
         }
 
         const rivalryData = {
-          id: rivalrySnap.id,
-          ...(rivalrySnap.data() as Omit<Rivalry, "id">),
-        };
+  id: rivalrySnap.id,
+  ...(rivalrySnap.data() as any),
+} as any;
 
-        setRivalry(rivalryData);
+setRivalry(rivalryData);
 
-        const userIds = Array.isArray(rivalryData.users)
-          ? rivalryData.users
-          : [];
+const userIds = Array.isArray(rivalryData.users)
+  ? rivalryData.users
+  : [];
 
         const loadedUsers: UserMini[] = [];
 
