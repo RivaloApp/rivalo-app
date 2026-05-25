@@ -1,4 +1,4 @@
-import { doc, getDoc, increment, serverTimestamp, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, increment, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 export type RivaloStatsInput = {
@@ -74,19 +74,10 @@ export async function applyMatchStats(input: RivaloStatsInput) {
 
   const currentXp = Number(data.xp || 0);
   const currentScore = Number(data.rivalScore || 1000);
-const { rivalScoreChange, xpChange } = calculateRivalScoreChange(input);
 
-const bonusXp = input.isMVP ? 25 : 0;);
-const performanceBonusXp =
-  (input.goals || 0) >= 5
-    ? 50
-    : (input.goals || 0) >= 3
-    ? 40
-    : 0;
+  const { rivalScoreChange, xpChange } = calculateRivalScoreChange(input);
 
-const assistBonusXp = (input.assists || 0) >= 3 ? 20 : 0;
-
-  const nextXp = currentXp + xpChange + bonusXp + performanceBonusXp + assistBonusXp;
+  const nextXp = currentXp + xpChange;
   const nextScore = Math.max(100, currentScore + rivalScoreChange);
   const nextLevel = calculateLevelFromXp(nextXp);
 
@@ -98,21 +89,9 @@ const assistBonusXp = (input.assists || 0) >= 3 ? 20 : 0;
     wins: input.result === "win" ? increment(1) : increment(0),
     losses: input.result === "loss" ? increment(1) : increment(0),
     draws: input.result === "draw" ? increment(1) : increment(0),
-    
-    currentStreak:
-  input.result === "win" ? increment(1) : 0,
-
-bestStreak:
-  input.result === "win"
-    ? Math.max(Number(data.bestStreak || 0), Number(data.currentStreak || 0) + 1)
-    : Number(data.bestStreak || 0),
     mvp: input.isMvp ? increment(1) : increment(0),
     goals: increment(input.goals || 0),
     assists: increment(input.assists || 0),
-    rivals:
-  input.opponentId
-    ? arrayUnion(input.opponentId)
-    : [],
     updatedAt: serverTimestamp(),
   });
 
