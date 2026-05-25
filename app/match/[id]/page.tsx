@@ -1,13 +1,48 @@
 "use client";
 
+import { updatePlayerStats } from "../../../lib/updatePlayerStats";
+import { updateRivalries } from "../../../lib/updateRivalries";
+import { updateEventStats } from "../../../lib/updateEventStats";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { arrayUnion, doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+
+import {
+  arrayUnion,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "../../../lib/firebase";
-import { applyMatchStats } from "../../../lib/rivaloStats";
-import { ArrowLeft, CalendarDays, ChevronRight, Clock, MapPin, ShieldCheck, Trophy, Users } from "lucide-react";
+
+import {
+  ArrowLeft,
+  CalendarDays,
+  ChevronRight,
+  Clock,
+  MapPin,
+  ShieldCheck,
+  Trophy,
+  Users,
+} from "lucide-react";
+
+import PlayerStatsEditor from "../../../components/match/PlayerStatsEditor";
+
+type MatchPlayer = {
+  uid: string;
+  name: string;
+  goals?: number;
+  assists?: number;
+  isMvp?: boolean;
+  team?: "home" | "away";
+};
 
 type MatchDoc = {
   createdBy?: string;
@@ -29,6 +64,9 @@ type MatchDoc = {
   mvpName?: string;
   notes?: string;
   statsApplied?: boolean;
+  eventId?: string;
+  eventTitle?: string;
+  players?: MatchPlayer[];
 };
 
 export default function MatchDetailsPage() {
@@ -45,6 +83,19 @@ export default function MatchDetailsPage() {
   const [awayScore, setAwayScore] = useState("");
   const [mvpName, setMvpName] = useState("");
   const [notes, setNotes] = useState("");
+
+  const [players, setPlayers] = useState<MatchPlayer[]>([
+    {
+      uid: "",
+      name: "",
+      goals: 0,
+      assists: 0,
+      isMvp: false,
+      team: "home",
+    },
+  ]);
+
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -71,13 +122,39 @@ export default function MatchDetailsPage() {
 
       if (snap.exists()) {
         const data = snap.data() as MatchDoc;
+
         setMatch(data);
+
+        const usersSnap = await getDocs(collection(db, "users"));
+
+        setAvailableUsers(
+          usersSnap.docs.map((docSnap) => ({
+            uid: docSnap.id,
+            ...(docSnap.data() as any),
+          }))
+        );
+
         setHomeTeam(data.homeTeam || "");
         setAwayTeam(data.awayTeam || "");
-        setHomeScore(data.homeScore !== undefined && data.homeScore !== null ? String(data.homeScore) : "");
-        setAwayScore(data.awayScore !== undefined && data.awayScore !== null ? String(data.awayScore) : "");
+
+        setHomeScore(
+          data.homeScore !== undefined && data.homeScore !== null
+            ? String(data.homeScore)
+            : ""
+        );
+
+        setAwayScore(
+          data.awayScore !== undefined && data.awayScore !== null
+            ? String(data.awayScore)
+            : ""
+        );
+
         setMvpName(data.mvpName || "");
         setNotes(data.notes || "");
+
+        if (Array.isArray(data.players) && data.players.length > 0) {
+          setPlayers(data.players);
+        }
       }
     } finally {
       setLoading(false);
@@ -86,6 +163,7 @@ export default function MatchDetailsPage() {
 
   async function proposeResult(e: React.FormEvent) {
     e.preventDefault();
+
     if (!user) return;
 
     setSaving(true);
@@ -99,16 +177,20 @@ export default function MatchDetailsPage() {
         awayScore: Number(awayScore),
         mvpName,
         notes,
+        players,
         status: "in_attesa_conferma",
         resultStatus: "proposto",
         fairPlayStatus: "in_attesa",
         resultProposedBy: user.uid,
         resultProposedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
 
       await loadMatch();
+
       setMessage("Risultato proposto. Ora puoi confermarlo.");
-    } catch {
+    } catch (error) {
+      console.error("ERRORE PROPOSTA RISULTATO:", error);
       setMessage("Errore durante il salvataggio del risultato.");
     } finally {
       setSaving(false);
@@ -122,41 +204,70 @@ export default function MatchDetailsPage() {
     setMessage("");
 
     try {
-      await updateDoc(doc(db, "matches", matchId), {
-        confirmedBy: arrayUnion(user.uid),
-        status: "ufficiale",
-        resultStatus: "confermato",
-        fairPlayStatus: "confermato",
-        confirmedAt: serverTimestamp(),
-      });
+      const finalHomeScore =
+        homeScore !== "" ? Number(homeScore) : Number(match.homeScore || 0);
+
+      const finalAwayScore =
+        awayScore !== "" ? Number(awayScore) : Number(match.awayScore || 0);
+
+      await setDoc(
+        doc(db, "matches", matchId),
+        {
+          homeTeam,
+          awayTeam,
+          homeScore: finalHomeScore,
+          awayScore: finalAwayScore,
+          mvpName,
+          notes,
+          players,
+          confirmedBy: arrayUnion(user.uid),
+          status: "ufficiale",
+          resultStatus: "confermato",
+          fairPlayStatus: "confermato",
+          confirmedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
       if (!match.statsApplied) {
-        const result =
-          Number(homeScore) > Number(awayScore)
-            ? "win"
-            : Number(homeScore) < Number(awayScore)
-              ? "loss"
-              : "draw";
-
-        await applyMatchStats({
-          uid: user.uid,
-          result,
-          isMvp: mvpName.trim().length > 0,
-          goals: 0,
-          assists: 0,
+        await updatePlayerStats({
+          homeScore: finalHomeScore,
+          awayScore: finalAwayScore,
+          players,
         });
 
-        await updateDoc(doc(db, "matches", matchId), {
-          statsApplied: true,
-          statsAppliedAt: serverTimestamp(),
-          statsAppliedBy: user.uid,
+        await updateRivalries({
+          homeScore: finalHomeScore,
+          awayScore: finalAwayScore,
+          players,
         });
+
+        await updateEventStats({
+          eventId: match.eventId || "",
+          sport: match.sport || "calcetto",
+          homeScore: finalHomeScore,
+          awayScore: finalAwayScore,
+          players,
+        });
+
+        await setDoc(
+          doc(db, "matches", matchId),
+          {
+            statsApplied: true,
+            statsAppliedAt: serverTimestamp(),
+            statsAppliedBy: user.uid,
+          },
+          { merge: true }
+        );
       }
 
       await loadMatch();
-      setMessage("Risultato confermato. Statistiche, XP e RivalScore aggiornati.");
-    } catch {
-      setMessage("Errore durante la conferma.");
+
+      setMessage("Risultato confermato. Statistiche aggiornate.");
+    } catch (error) {
+      console.error("ERRORE CONFERMA MATCH:", error);
+      setMessage("Errore durante la conferma match.");
     } finally {
       setSaving(false);
     }
@@ -175,11 +286,14 @@ export default function MatchDetailsPage() {
         resultStatus: "contestato",
         fairPlayStatus: "contestato",
         disputedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
 
       await loadMatch();
+
       setMessage("Risultato contestato. Servirà revisione.");
-    } catch {
+    } catch (error) {
+      console.error("ERRORE CONTESTAZIONE:", error);
       setMessage("Errore durante la contestazione.");
     } finally {
       setSaving(false);
@@ -187,11 +301,19 @@ export default function MatchDetailsPage() {
   }
 
   if (loading) {
-    return <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">Caricamento partita...</main>;
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
+        Caricamento partita...
+      </main>
+    );
   }
 
   if (!match) {
-    return <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">Partita non trovata.</main>;
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
+        Partita non trovata.
+      </main>
+    );
   }
 
   return (
@@ -199,7 +321,10 @@ export default function MatchDetailsPage() {
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_10%_4%,rgba(34,211,238,.16),transparent_28%),radial-gradient(circle_at_88%_8%,rgba(217,70,239,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
 
       <section className="relative z-10 mx-auto max-w-7xl px-5 py-8">
-        <Link href="/match" className="inline-flex items-center gap-2 text-sm font-black text-cyan-300">
+        <Link
+          href="/match"
+          className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
+        >
           <ArrowLeft size={17} />
           Torna ai match
         </Link>
@@ -208,88 +333,187 @@ export default function MatchDetailsPage() {
           <div className="relative overflow-hidden p-8 md:p-10">
             <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[.22em] text-cyan-200">{match.sport}</div>
-                <h1 className="mt-5 text-5xl font-black tracking-tight md:text-6xl">{match.name}</h1>
+                <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[.22em] text-cyan-200">
+                  {match.sport || "sport"}
+                </div>
+
+                <h1 className="mt-5 text-5xl font-black tracking-tight md:text-6xl">
+                  {match.name || "Match Rivalo"}
+                </h1>
+
+                {match.eventTitle && (
+                  <div className="mt-3 inline-flex rounded-full border border-yellow-300/20 bg-yellow-400/10 px-4 py-2 text-xs font-black uppercase tracking-[.16em] text-yellow-200">
+                    Evento: {match.eventTitle}
+                  </div>
+                )}
 
                 <div className="mt-5 flex flex-wrap items-center gap-4 text-sm font-semibold text-slate-300">
                   <Info icon={<MapPin size={17} />} text={match.city || "-"} />
-                  <Info icon={<CalendarDays size={17} />} text={match.date || "-"} />
+                  <Info
+                    icon={<CalendarDays size={17} />}
+                    text={match.date || "-"}
+                  />
                   <Info icon={<Clock size={17} />} text={match.time || "-"} />
-                  <div className="rounded-full border border-white/10 bg-white/[.04] px-4 py-2">{match.mode}</div>
+
+                  <div className="rounded-full border border-white/10 bg-white/[.04] px-4 py-2">
+                    {match.mode || "match"}
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <Stat value={String(match.slots || 0)} label="Slot" />
                 <Stat value={match.status || "programmata"} label="Stato" />
-                <Stat value={match.resultStatus || "non inserito"} label="Risultato" />
+                <Stat
+                  value={match.resultStatus || "non inserito"}
+                  label="Risultato"
+                />
               </div>
             </div>
           </div>
         </section>
 
         <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_.9fr]">
-          <form onSubmit={proposeResult} className="rounded-[2rem] border border-white/10 bg-white/[.045] p-6 shadow-2xl backdrop-blur">
+          <form
+            onSubmit={proposeResult}
+            className="rounded-[2rem] border border-white/10 bg-white/[.045] p-6 shadow-2xl backdrop-blur"
+          >
             <div className="mb-6 flex items-center gap-3">
               <Trophy className="text-cyan-300" size={30} />
+
               <div>
-                <h2 className="text-2xl font-black">Risultato e FairPlay</h2>
-                <p className="mt-1 text-sm text-slate-400">Il risultato diventa ufficiale solo dopo conferma.</p>
+                <h2 className="text-2xl font-black">
+                  Risultato e FairPlay
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  Il risultato diventa ufficiale solo dopo conferma.
+                </p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Squadra 1">
-                  <input required value={homeTeam} onChange={(e) => setHomeTeam(e.target.value)} placeholder="Es. Rival Team" className="w-full bg-transparent outline-none placeholder:text-slate-500" />
+                  <input
+                    required
+                    value={homeTeam}
+                    onChange={(e) => setHomeTeam(e.target.value)}
+                    placeholder="Es. Rival Team"
+                    className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                  />
                 </Field>
 
                 <Field label="Squadra 2">
-                  <input required value={awayTeam} onChange={(e) => setAwayTeam(e.target.value)} placeholder="Es. Black Sharks" className="w-full bg-transparent outline-none placeholder:text-slate-500" />
+                  <input
+                    required
+                    value={awayTeam}
+                    onChange={(e) => setAwayTeam(e.target.value)}
+                    placeholder="Es. Black Sharks"
+                    className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                  />
                 </Field>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Gol squadra 1">
-                  <input required type="number" min="0" value={homeScore} onChange={(e) => setHomeScore(e.target.value)} className="w-full bg-transparent outline-none" />
+                  <input
+                    required
+                    type="number"
+                    min="0"
+                    value={homeScore}
+                    onChange={(e) => setHomeScore(e.target.value)}
+                    className="w-full bg-transparent outline-none"
+                  />
                 </Field>
 
                 <Field label="Gol squadra 2">
-                  <input required type="number" min="0" value={awayScore} onChange={(e) => setAwayScore(e.target.value)} className="w-full bg-transparent outline-none" />
+                  <input
+                    required
+                    type="number"
+                    min="0"
+                    value={awayScore}
+                    onChange={(e) => setAwayScore(e.target.value)}
+                    className="w-full bg-transparent outline-none"
+                  />
                 </Field>
               </div>
 
               <Field label="MVP partita">
-                <input value={mvpName} onChange={(e) => setMvpName(e.target.value)} placeholder="Nome MVP" className="w-full bg-transparent outline-none placeholder:text-slate-500" />
+                <input
+                  value={mvpName}
+                  onChange={(e) => setMvpName(e.target.value)}
+                  placeholder="Nome MVP"
+                  className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                />
               </Field>
 
               <Field label="Note statistiche">
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Gol, assist, note o dettagli partita..." className="min-h-[120px] w-full resize-none bg-transparent outline-none placeholder:text-slate-500" />
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Gol, assist, note o dettagli partita..."
+                  className="min-h-[120px] w-full resize-none bg-transparent outline-none placeholder:text-slate-500"
+                />
               </Field>
 
-              {message && <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold text-cyan-200">{message}</div>}
+              {message && (
+                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold text-cyan-200">
+                  {message}
+                </div>
+              )}
 
-              <button type="submit" disabled={saving} className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60">
+              <button
+                type="submit"
+                disabled={saving}
+                className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
+              >
                 {saving ? "Salvataggio..." : "Proponi risultato"}
                 <ChevronRight className="transition group-hover:translate-x-1" />
               </button>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <button type="button" onClick={confirmResult} disabled={saving} className="rounded-2xl border border-lime-300/30 bg-lime-400/10 px-6 py-4 font-black text-lime-200 disabled:opacity-60">
+                <button
+                  type="button"
+                  onClick={confirmResult}
+                  disabled={saving}
+                  className="rounded-2xl border border-lime-300/30 bg-lime-400/10 px-6 py-4 font-black text-lime-200 disabled:opacity-60"
+                >
                   Conferma risultato
                 </button>
 
-                <button type="button" onClick={disputeResult} disabled={saving} className="rounded-2xl border border-red-300/30 bg-red-500/10 px-6 py-4 font-black text-red-200 disabled:opacity-60">
+                <button
+                  type="button"
+                  onClick={disputeResult}
+                  disabled={saving}
+                  className="rounded-2xl border border-red-300/30 bg-red-500/10 px-6 py-4 font-black text-red-200 disabled:opacity-60"
+                >
                   Contesta
                 </button>
               </div>
             </div>
           </form>
 
+          <PlayerStatsEditor
+            players={players}
+            setPlayers={setPlayers}
+            participants={availableUsers}
+          />
+
           <div className="space-y-5">
-            <Panel icon={<ShieldCheck />} title="Sistema anti-fake">Risultato proposto → conferma → match ufficiale → statistiche aggiornate.</Panel>
-            <Panel icon={<Users />} title="Conferme">La contestazione mette il match in revisione.</Panel>
-            <Panel icon={<Trophy />} title="Ranking">Solo i match confermati aggiornano RivalScore, XP, vittorie e MVP.</Panel>
+            <Panel icon={<ShieldCheck />} title="Sistema anti-fake">
+              Risultato proposto → conferma → match ufficiale → statistiche
+              aggiornate.
+            </Panel>
+
+            <Panel icon={<Users />} title="Conferme">
+              La contestazione mette il match in revisione.
+            </Panel>
+
+            <Panel icon={<Trophy />} title="Ranking">
+              Solo i match confermati aggiornano RivalScore, XP, vittorie, MVP
+              e classifiche evento.
+            </Panel>
           </div>
         </section>
       </section>
@@ -297,36 +521,83 @@ export default function MatchDetailsPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-black text-slate-300">{label}</span>
-      <div className="rounded-2xl border border-white/10 bg-[#020617]/70 px-4 py-4">{children}</div>
+      <span className="mb-2 block text-sm font-black text-slate-300">
+        {label}
+      </span>
+
+      <div className="rounded-2xl border border-white/10 bg-[#020617]/70 px-4 py-4">
+        {children}
+      </div>
     </label>
   );
 }
 
-function Info({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return <div className="flex items-center gap-2"><span className="text-cyan-300">{icon}</span>{text}</div>;
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
+function Info({
+  icon,
+  text,
+}: {
+  icon: React.ReactNode;
+  text: string;
+}) {
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-white/[.04] p-5 text-center">
-      <div className="max-w-[130px] truncate text-2xl font-black text-cyan-300">{value}</div>
-      <div className="mt-2 text-xs font-black uppercase tracking-[.18em] text-slate-400">{label}</div>
+    <div className="flex items-center gap-2">
+      <span className="text-cyan-300">{icon}</span>
+      {text}
     </div>
   );
 }
 
-function Panel({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function Stat({
+  value,
+  label,
+}: {
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="rounded-[1.5rem] border border-white/10 bg-white/[.04] p-5 text-center">
+      <div className="max-w-[130px] truncate text-2xl font-black text-cyan-300">
+        {value}
+      </div>
+
+      <div className="mt-2 text-xs font-black uppercase tracking-[.18em] text-slate-400">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function Panel({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-[2rem] border border-white/10 bg-white/[.045] p-6 shadow-2xl backdrop-blur">
       <div className="mb-4 flex items-center gap-3">
         <span className="text-cyan-300">{icon}</span>
-        <h3 className="text-2xl font-black">{title}</h3>
+
+        <h3 className="text-2xl font-black">
+          {title}
+        </h3>
       </div>
-      <p className="leading-7 text-slate-300">{children}</p>
+
+      <p className="leading-7 text-slate-300">
+        {children}
+      </p>
     </div>
   );
 }

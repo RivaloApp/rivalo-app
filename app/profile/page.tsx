@@ -4,20 +4,34 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { auth, db, storage } from "../../lib/firebase";
-import { Camera, Shield, Star, Trophy, UserRound } from "lucide-react";
+import { auth, db } from "../../lib/firebase";
+import { Camera, Shield, Star, Trophy } from "lucide-react";
 import RivaloLogo from "../../components/RivaloLogo";
+import PlayerCard from "../../components/cards/PlayerCard";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [sport, setSport] = useState("calcetto");
-  const [photoUrl, setphotoUrl] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
   const [message, setMessage] = useState("");
+
+  const [rivalScore, setRivalScore] = useState(1000);
+  const [level, setLevel] = useState(1);
+  const [xp, setXp] = useState(0);
+  const [wins, setWins] = useState(0);
+  const [losses, setLosses] = useState(0);
+  const [matchesPlayed, setMatchesPlayed] = useState(0);
+  const [mvp, setMvp] = useState(0);
+  const [goals, setGoals] = useState(0);
+  const [assists, setAssists] = useState(0);
+  const [winStreak, setWinStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -33,12 +47,44 @@ export default function ProfilePage() {
 
         if (snap.exists()) {
           const data = snap.data();
+
           setName(data.name || currentUser.displayName || "");
           setNickname(data.nickname || "Rival Player");
           setSport(data.mainSport || "calcetto");
-          setphotoUrl(localStorage.getItem("rivaloProfilePhoto") || data.photoUrl || "");
+
+          setPhotoUrl(
+            localStorage.getItem("rivaloProfilePhoto") ||
+              data.photoUrl ||
+              data.photoURL ||
+              ""
+          );
+
+          setRivalScore(Number(data.rivalScore || 1000));
+          setLevel(Number(data.level || 1));
+          setXp(Number(data.xp || 0));
+          setWins(Number(data.wins || 0));
+          setLosses(Number(data.losses || 0));
+          setMatchesPlayed(Number(data.matchesPlayed || 0));
+          setMvp(Number(data.mvp || 0));
+          setGoals(Number(data.goals || 0));
+          setAssists(Number(data.assists || 0));
+          setWinStreak(Number(data.winStreak || 0));
+          setBestStreak(Number(data.bestStreak || 0));
         } else {
           setName(currentUser.displayName || "");
+          setNickname("Rival Player");
+          setSport("calcetto");
+          setRivalScore(1000);
+          setLevel(1);
+          setXp(0);
+          setWins(0);
+          setLosses(0);
+          setMatchesPlayed(0);
+          setMvp(0);
+          setGoals(0);
+          setAssists(0);
+          setWinStreak(0);
+          setBestStreak(0);
         }
       } finally {
         setLoading(false);
@@ -49,52 +95,61 @@ export default function ProfilePage() {
   }, []);
 
   async function uploadPhoto(file: File) {
-  if (!file) return;
+    if (!file) return;
 
-  setSaving(true);
-  setMessage("");
+    setSaving(true);
+    setMessage("");
 
-  const reader = new FileReader();
+    const reader = new FileReader();
 
-  reader.onload = () => {
-    const result = reader.result;
+    reader.onload = () => {
+      const result = reader.result;
 
-    if (typeof result === "string") {
-      setphotoUrl(result);
-      localStorage.setItem("rivaloProfilePhoto", result);
-      setMessage("Foto caricata. Ora premi Salva profilo.");
-    } else {
+      if (typeof result === "string") {
+        setPhotoUrl(result);
+        localStorage.setItem("rivaloProfilePhoto", result);
+        setMessage("Foto caricata. Ora premi Salva profilo.");
+      } else {
+        setMessage("Errore caricamento foto.");
+      }
+
+      setSaving(false);
+    };
+
+    reader.onerror = () => {
       setMessage("Errore caricamento foto.");
+      setSaving(false);
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  async function saveProfile() {
+    try {
+      setSaving(true);
+
+      if (!user) return;
+
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          name,
+          nickname,
+          mainSport: sport,
+          photoUrl,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setMessage("Profilo aggiornato.");
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore salvataggio.");
     }
 
     setSaving(false);
-  };
-
-  reader.onerror = () => {
-    setMessage("Errore caricamento foto.");
-    setSaving(false);
-  };
-
-  reader.readAsDataURL(file);
-}
-
-  async function saveProfile() {
-  setSaving(true);
-  setMessage("");
-
-  const profileData = {
-    name,
-    nickname,
-    mainSport: sport,
-    photoUrl,
-  };
-
-  localStorage.setItem("rivaloProfile", JSON.stringify(profileData));
-  localStorage.setItem("rivaloProfilePhoto", photoUrl);
-
-  setMessage("Profilo aggiornato.");
-  setSaving(false);
-}
+  }
 
   if (loading) {
     return (
@@ -108,22 +163,16 @@ export default function ProfilePage() {
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-  <Link href="/" className="flex items-center gap-4">
-    <RivaloLogo />
+          <Link href="/" className="flex items-center gap-4">
+            <RivaloLogo />
+          </Link>
 
-  </Link>
-
-  <Link
-    href="/dashboard"
-    className="inline-block rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-bold text-cyan-300 transition hover:bg-white/10"
-  >
-    ← Torna alla dashboard
-  </Link>
-</div>
-
-        <div className="mb-10">
-          <h1 className="text-5xl font-black uppercase tracking-tight">Profilo Rivalo</h1>
-          <p className="mt-3 text-slate-400">Personalizza la tua card premium.</p>
+          <Link
+            href="/dashboard"
+            className="inline-block rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-bold text-cyan-300 transition hover:bg-white/10"
+          >
+            ← Torna alla dashboard
+          </Link>
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[360px_1fr]">
@@ -131,46 +180,43 @@ export default function ProfilePage() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,.22),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(249,115,22,.18),transparent_30%)]" />
 
             <div className="relative z-10">
-              <div className="relative mx-auto h-[320px] w-[260px] overflow-hidden rounded-[2rem] border border-yellow-400/50 bg-black shadow-[0_0_40px_rgba(249,115,22,.35)]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_30%,rgba(249,115,22,.45),transparent_30%),radial-gradient(circle_at_80%_30%,rgba(59,130,246,.45),transparent_35%),linear-gradient(180deg,#050816_0%,#020617_100%)]" />
-                <div className="absolute left-0 top-0 h-full w-2 bg-gradient-to-b from-orange-400 to-yellow-300" />
-                <div className="absolute right-0 top-0 h-full w-2 bg-gradient-to-b from-cyan-400 to-blue-500" />
-
-                <div className="relative z-10 flex h-full flex-col items-center px-5 py-5">
-                  <div className="self-start text-5xl font-black text-yellow-300">87</div>
-
-                  <div className="mt-2 flex h-[130px] w-[130px] items-center justify-center overflow-hidden rounded-[1.4rem] border border-white/20 bg-black/40">
-                    {photoUrl ? (
-                      <img src={photoUrl} alt="profile" className="h-full w-full object-cover" />
-                    ) : (
-                      <UserRound size={70} className="text-cyan-200" />
-                    )}
-                  </div>
-
-                  <div className="mt-6 text-center">
-                    <div className="text-3xl font-black uppercase text-yellow-300">{name || "PLAYER"}</div>
-                    <div className="text-xl font-black uppercase text-yellow-100">{nickname || "RIVAL PLAYER"}</div>
-                  </div>
-
-                  <div className="mt-auto grid w-full grid-cols-3 gap-3 text-center">
-                    <CardMini value="87" label="PAC" />
-                    <CardMini value="85" label="DRI" />
-                    <CardMini value="84" label="PHY" />
-                  </div>
-                </div>
-              </div>
+              <PlayerCard
+                name={name || "Player"}
+                nickname={nickname || "Rival Player"}
+                rivalScore={rivalScore}
+                mainSport={sport}
+                photo={photoUrl}
+              />
             </div>
           </div>
 
           <div className="rounded-[2rem] border border-white/10 bg-[#071120] p-8">
             <div className="grid gap-6 md:grid-cols-2">
-              <Field label="Nome" value={name} setValue={setName} placeholder="Antonio" />
-              <Field label="Nickname" value={nickname} setValue={setNickname} placeholder="Tony10" />
+              <Field
+                label="Nome"
+                value={name}
+                setValue={setName}
+                placeholder="Antonio"
+              />
+
+              <Field
+                label="Nickname"
+                value={nickname}
+                setValue={setNickname}
+                placeholder="Tony10"
+              />
             </div>
 
             <div className="mt-6">
-              <label className="mb-2 block text-sm font-bold uppercase text-slate-400">Sport principale</label>
-              <select value={sport} onChange={(e) => setSport(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400">
+              <label className="mb-2 block text-sm font-bold uppercase text-slate-400">
+                Sport principale
+              </label>
+
+              <select
+                value={sport}
+                onChange={(e) => setSport(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
+              >
                 <option value="calcetto">Calcetto</option>
                 <option value="padel">Padel</option>
                 <option value="tennis">Tennis</option>
@@ -180,9 +226,15 @@ export default function ProfilePage() {
             <div className="mt-8 rounded-[1.5rem] border border-cyan-400/20 bg-cyan-400/5 p-6">
               <div className="flex items-center gap-3">
                 <Camera className="text-cyan-300" />
+
                 <div>
-                  <div className="font-black uppercase">Carica foto card</div>
-                  <div className="text-sm text-slate-400">La dashboard si aggiorna automaticamente.</div>
+                  <div className="font-black uppercase">
+                    Carica foto card
+                  </div>
+
+                  <div className="text-sm text-slate-400">
+                    La dashboard si aggiorna automaticamente.
+                  </div>
                 </div>
               </div>
 
@@ -198,14 +250,47 @@ export default function ProfilePage() {
             </div>
 
             <div className="mt-8 grid gap-4 md:grid-cols-3">
-              <StatBox icon={<Shield />} label="Rival Score" value="1000" />
-              <StatBox icon={<Trophy />} label="Vittorie" value="0" />
-              <StatBox icon={<Star />} label="MVP" value="0" />
+              <StatBox
+                icon={<Shield />}
+                label="Rival Score"
+                value={String(rivalScore)}
+              />
+
+              <StatBox
+                icon={<Trophy />}
+                label="Vittorie"
+                value={String(wins)}
+              />
+
+              <StatBox
+                icon={<Star />}
+                label="MVP"
+                value={String(mvp)}
+              />
             </div>
 
-            {message && <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-cyan-200">{message}</div>}
+            <div className="mt-4 grid gap-4 md:grid-cols-4">
+              <MiniStat label="Livello" value={String(level)} />
+              <MiniStat label="Partite" value={String(matchesPlayed)} />
+              <MiniStat label="Gol" value={String(goals)} />
+              <MiniStat label="Assist" value={String(assists)} />
+              <MiniStat label="Sconfitte" value={String(losses)} />
+              <MiniStat label="XP" value={String(xp)} />
+              <MiniStat label="Serie vittorie" value={String(winStreak)} />
+              <MiniStat label="Miglior serie" value={String(bestStreak)} />
+            </div>
 
-            <button onClick={saveProfile} disabled={saving} className="mt-8 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-4 text-lg font-black uppercase transition hover:scale-[1.02] disabled:opacity-60">
+            {message && (
+              <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-cyan-200">
+                {message}
+              </div>
+            )}
+
+            <button
+              onClick={saveProfile}
+              disabled={saving}
+              className="mt-8 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-4 text-lg font-black uppercase transition hover:scale-[1.02] disabled:opacity-60"
+            >
               {saving ? "Salvataggio..." : "Salva profilo"}
             </button>
           </div>
@@ -215,43 +300,74 @@ export default function ProfilePage() {
   );
 }
 
-function Field({ label, value, setValue, placeholder }: { label: string; value: string; setValue: (v: string) => void; placeholder: string }) {
+function Field({
+  label,
+  value,
+  setValue,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  setValue: (v: string) => void;
+  placeholder: string;
+}) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-bold uppercase text-slate-400">{label}</label>
-      <input value={value} onChange={(e) => setValue(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400" placeholder={placeholder} />
+      <label className="mb-2 block text-sm font-bold uppercase text-slate-400">
+        {label}
+      </label>
+
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
+        placeholder={placeholder}
+      />
     </div>
   );
 }
 
-function CardMini({ value, label }: { value: string; label: string }) {
-  return (
-    <div>
-      <div className="text-2xl font-black text-yellow-300">{value}</div>
-      <div className="text-xs font-bold text-white/70">{label}</div>
-    </div>
-  );
-}
-
-function StatBox({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function StatBox({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 text-center">
-      <div className="mb-3 flex justify-center text-cyan-300">{icon}</div>
-      <div className="text-3xl font-black text-white">{value}</div>
-      <div className="mt-1 text-sm font-bold uppercase text-slate-400">{label}</div>
+      <div className="mb-3 flex justify-center text-cyan-300">
+        {icon}
+      </div>
+
+      <div className="text-3xl font-black text-white">
+        {value}
+      </div>
+
+      <div className="mt-1 text-sm font-bold uppercase text-slate-400">
+        {label}
+      </div>
     </div>
   );
 }
-function LogoMark({ size = 64 }: { size?: number }) {
+
+function MiniStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
-    <div
-      className="relative shrink-0"
-      style={{ width: size, height: size }}
-    >
-      <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
-      <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-2xl bg-fuchsia-500/20 blur-xl" />
-      <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-white/20 bg-white text-3xl font-black italic text-[#020617] shadow-[0_0_28px_rgba(34,211,238,.22)]">
-        R
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-center">
+      <div className="text-2xl font-black text-cyan-200">
+        {value}
+      </div>
+
+      <div className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-slate-400">
+        {label}
       </div>
     </div>
   );

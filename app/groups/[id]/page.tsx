@@ -33,10 +33,17 @@ type RivaloGroup = {
 
 export default function GroupDetailsPage() {
   const params = useParams();
-  const groupId = params.id as string;
+
+const groupId =
+  typeof params?.id === "string"
+    ? params.id
+    : Array.isArray(params?.id)
+    ? params.id[0]
+    : "";
 
   const [group, setGroup] = useState<RivaloGroup | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     async function loadGroup() {
@@ -45,7 +52,17 @@ export default function GroupDetailsPage() {
         const snap = await getDoc(ref);
 
         if (snap.exists()) {
-          setGroup(snap.data() as RivaloGroup);
+          const data = snap.data();
+
+setGroup({
+  name: data.name || "Gruppo Rivalo",
+  city: data.city || "Nessuna città",
+  sport: data.sport || "Sport",
+  mode: data.mode || "Amichevole",
+  privacy: data.privacy || "public",
+  premiumPlan: data.premiumPlan || "free",
+  members: Array.isArray(data.members) ? data.members : [],
+});
         }
       } finally {
         setLoading(false);
@@ -56,7 +73,12 @@ export default function GroupDetailsPage() {
       loadGroup();
     }
   }, [groupId]);
-
+  useEffect(() => {
+  setMounted(true);
+}, []);
+if (!mounted) {
+  return null;
+}
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">

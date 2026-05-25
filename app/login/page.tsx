@@ -2,28 +2,94 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../lib/firebase";
+import {
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { auth, db } from "../../lib/firebase";
 import { ChevronRight, LockKeyhole, Mail } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+
     setError("");
+    setMessage("");
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password
+      );
+
+      const loggedUser = userCredential.user;
+if (!loggedUser.emailVerified) {
+  await sendEmailVerification(loggedUser);
+  await signOut(auth);
+
+  setError(
+    "Email non verificata. Ti abbiamo inviato un nuovo link di verifica. Controlla la posta, anche nello spam."
+  );
+
+  return;
+}
+
+      await setDoc(
+        doc(db, "users", loggedUser.uid),
+        {
+          email: loggedUser.email || email.trim(),
+          emailVerified: true,
+          lastLoginAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
       window.location.href = "/dashboard";
-    } catch {
+    } catch (err) {
+      console.error(err);
       setError("Email o password non corretti.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handlePasswordReset() {
+    setError("");
+    setMessage("");
+
+    if (!email.trim()) {
+      setError("Inserisci prima la tua email nel campo email.");
+      return;
+    }
+
+    setResetLoading(true);
+
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+
+      setMessage(
+        "Email per reimpostare la password inviata. Controlla la tua casella di posta."
+      );
+    } catch (err) {
+      console.error(err);
+      setError("Non sono riuscito a inviare l'email di recupero password.");
+    } finally {
+      setResetLoading(false);
     }
   }
 
@@ -42,25 +108,37 @@ export default function LoginPage() {
               <div className="text-5xl font-black leading-tight">
                 Entra nella tua arena competitiva.
               </div>
+
               <p className="mt-6 max-w-md text-lg leading-8 text-slate-300">
-                Accedi al tuo profilo, controlla ranking, partite, gruppi e progressi.
+                Accedi al tuo profilo, controlla ranking, partite, gruppi e
+                progressi.
               </p>
             </div>
           </div>
 
           <div className="p-8 sm:p-12">
-            <Link href="/" className="mb-10 inline-block text-sm font-bold text-cyan-300">
+            <Link
+              href="/"
+              className="mb-10 inline-block text-sm font-bold text-cyan-300"
+            >
               ← Torna alla home
             </Link>
 
             <h1 className="text-4xl font-black">Accedi</h1>
-            <p className="mt-3 text-slate-300">Continua con il tuo account Rivalo.</p>
+
+            <p className="mt-3 text-slate-300">
+              Continua con il tuo account Rivalo.
+            </p>
 
             <form onSubmit={handleLogin} className="mt-10 space-y-5">
               <label className="block">
-                <span className="mb-2 block text-sm font-bold text-slate-300">Email</span>
+                <span className="mb-2 block text-sm font-bold text-slate-300">
+                  Email
+                </span>
+
                 <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#020617]/70 px-4 py-4">
                   <Mail className="text-cyan-300" size={20} />
+
                   <input
                     type="email"
                     required
@@ -73,9 +151,13 @@ export default function LoginPage() {
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-bold text-slate-300">Password</span>
+                <span className="mb-2 block text-sm font-bold text-slate-300">
+                  Password
+                </span>
+
                 <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#020617]/70 px-4 py-4">
                   <LockKeyhole className="text-cyan-300" size={20} />
+
                   <input
                     type="password"
                     required
@@ -87,9 +169,24 @@ export default function LoginPage() {
                 </div>
               </label>
 
+              <button
+                type="button"
+                onClick={handlePasswordReset}
+                disabled={resetLoading}
+                className="text-sm font-black text-cyan-300 transition hover:text-cyan-200 disabled:opacity-60"
+              >
+                {resetLoading ? "Invio email..." : "Password dimenticata?"}
+              </button>
+
               {error && (
                 <div className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
                   {error}
+                </div>
+              )}
+
+              {message && (
+                <div className="rounded-2xl border border-green-400/30 bg-green-500/10 px-4 py-3 text-sm font-bold text-green-200">
+                  {message}
                 </div>
               )}
 
@@ -122,7 +219,11 @@ function RivaloLogo() {
       <div className="relative h-16 w-16 shrink-0">
         <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
 
-        <svg viewBox="0 0 120 120" className="relative h-full w-full" aria-label="Rivalo logo">
+        <svg
+          viewBox="0 0 120 120"
+          className="relative h-full w-full"
+          aria-label="Rivalo logo"
+        >
           <defs>
             <linearGradient id="loginLogoEdge" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#22d3ee" />
@@ -130,9 +231,27 @@ function RivaloLogo() {
               <stop offset="100%" stopColor="#d946ef" />
             </linearGradient>
 
-            <filter id="loginSoftGlow" x="-40%" y="-40%" width="180%" height="180%">
-              <feDropShadow dx="-3" dy="2" stdDeviation="4" floodColor="#22d3ee" floodOpacity=".65" />
-              <feDropShadow dx="4" dy="4" stdDeviation="5" floodColor="#d946ef" floodOpacity=".5" />
+            <filter
+              id="loginSoftGlow"
+              x="-40%"
+              y="-40%"
+              width="180%"
+              height="180%"
+            >
+              <feDropShadow
+                dx="-3"
+                dy="2"
+                stdDeviation="4"
+                floodColor="#22d3ee"
+                floodOpacity=".65"
+              />
+              <feDropShadow
+                dx="4"
+                dy="4"
+                stdDeviation="5"
+                floodColor="#d946ef"
+                floodOpacity=".5"
+              />
             </filter>
           </defs>
 
@@ -142,14 +261,29 @@ function RivaloLogo() {
             filter="url(#loginSoftGlow)"
           />
 
-          <path d="M49 36 H67 C75 36 80 40 80 47 C80 54 75 58 67 58 H49 Z" fill="#020617" />
-          <path d="M21 100 L49 76 H61 L29 114 Z" fill="url(#loginLogoEdge)" />
-          <path d="M73 78 L105 100 H76 L58 78 Z" fill="#d946ef" opacity=".55" />
+          <path
+            d="M49 36 H67 C75 36 80 40 80 47 C80 54 75 58 67 58 H49 Z"
+            fill="#020617"
+          />
+
+          <path
+            d="M21 100 L49 76 H61 L29 114 Z"
+            fill="url(#loginLogoEdge)"
+          />
+
+          <path
+            d="M73 78 L105 100 H76 L58 78 Z"
+            fill="#d946ef"
+            opacity=".55"
+          />
         </svg>
       </div>
 
       <div>
-        <div className="text-3xl font-black tracking-tight text-white">Rivalo</div>
+        <div className="text-3xl font-black tracking-tight text-white">
+          Rivalo
+        </div>
+
         <div className="mt-1 text-xs font-black tracking-[.32em] text-cyan-300">
           OWN THE GAME
         </div>
