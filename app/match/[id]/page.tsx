@@ -38,9 +38,9 @@ import PlayerStatsEditor from "../../../components/match/PlayerStatsEditor";
 type MatchPlayer = {
   uid: string;
   name: string;
-  goals?: number;
-  assists?: number;
-  isMvp?: boolean;
+  goals: number;
+  assists: number;
+  isMvp: boolean;
   team: "home" | "away";
 };
 
