@@ -51,6 +51,17 @@ type BracketMatch = {
   matchId?: string;
 };
 
+type LeagueFixture = {
+  round: number;
+  matchNumber: number;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeName: string;
+  awayName: string;
+  matchId?: string;
+  status?: string;
+};
+
 type ParticipantInfo = {
   uid: string;
   name?: string;
@@ -112,6 +123,7 @@ type EventData = {
   linkedMatchId?: string;
 linkedMatchIds?: string[];
 bracket? : BracketMatch[];
+leagueFixtures?: LeagueFixture[];
 };
 
 export default function EventDetailPage() {
@@ -125,6 +137,7 @@ export default function EventDetailPage() {
   const [eventStats, setEventStats] = useState<EventStat[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
   const [generatingBracket, setGeneratingBracket] = useState(false);
+  const [generatingLeague, setGeneratingLeague] = useState(false);
 
   const [teamName, setTeamName] = useState("");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
@@ -485,6 +498,115 @@ async function generateTournamentBracket() {
   }
 
   setGeneratingBracket(false);
+}
+async function generateLeagueSchedule() {
+  if (!user || !event) return;
+
+  const teams = event.teams || [];
+
+  if (event.type !== "campionato") {
+    setMessage("Il calendario è disponibile solo per i campionati.");
+    return;
+  }
+
+  if (teams.length < 2) {
+    setMessage("Servono almeno 2 squadre per generare il calendario.");
+    return;
+  }
+
+  setGeneratingLeague(true);
+  setMessage("");
+
+  try {
+    const workingTeams: TeamInfo[] =
+      teams.length % 2 === 0
+        ? [...teams]
+        : [
+            ...teams,
+            {
+              id: "bye",
+              name: "Riposo",
+              players: [],
+            },
+          ];
+
+    const teamCount = workingTeams.length;
+    const rounds = teamCount - 1;
+    const half = teamCount / 2;
+
+    let rotating = [...workingTeams];
+    const firstLeg: LeagueFixture[] = [];
+    let matchNumber = 1;
+
+    for (let round = 1; round <= rounds; round++) {
+      for (let i = 0; i < half; i++) {
+        const home = rotating[i];
+        const away = rotating[teamCount - 1 - i];
+
+        if (home.id !== "bye" && away.id !== "bye") {
+          firstLeg.push({
+            round,
+            matchNumber,
+            homeTeamId: home.id,
+            awayTeamId: away.id,
+            homeName: home.name,
+            awayName: away.name,
+            matchId: "",
+            status: "programmata",
+          });
+
+          matchNumber++;
+        }
+      }
+
+      rotating = [
+        rotating[0],
+        rotating[teamCount - 1],
+        ...rotating.slice(1, teamCount - 1),
+      ];
+    }
+
+    const secondLeg: LeagueFixture[] = firstLeg.map((fixture) => ({
+      round: fixture.round + rounds,
+      matchNumber: matchNumber++,
+      homeTeamId: fixture.awayTeamId,
+      awayTeamId: fixture.homeTeamId,
+      homeName: fixture.awayName,
+      awayName: fixture.homeName,
+      matchId: "",
+      status: "programmata",
+    }));
+
+    const leagueFixtures = [...firstLeg, ...secondLeg];
+
+    await updateDoc(doc(db, "events", event.id), {
+      leagueFixtures,
+      status: "calendario creato",
+      updatedAt: serverTimestamp(),
+    });
+
+    setEvent({
+      ...event,
+      leagueFixtures,
+      status: "calendario creato",
+    });
+
+    await createActivity({
+      uid: user.uid,
+      type: "event",
+      text: `Calendario campionato generato: ${
+        event.title || "Campionato Rivalo"
+      }`,
+      value: 1,
+    });
+
+    setMessage("Calendario campionato generato.");
+  } catch (error) {
+    console.error(error);
+    setMessage("Errore durante la generazione del calendario.");
+  }
+
+  setGeneratingLeague(false);
 }
 
   async function shareEvent() {
@@ -1004,6 +1126,68 @@ async function generateTournamentBracket() {
       </div>
     )}
   </section>
+)}{event.type === "campionato" && isTeamCompetition && (
+  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
+    <div className="mb-5 flex items-center justify-between gap-4">
+      <div>
+        <div className="text-sm font-black uppercase tracking-[0.25em] text-lime-300">
+          Calendario campionato
+        </div>
+
+        <h2 className="mt-2 text-3xl font-black">
+          Giornate andata / ritorno
+        </h2>
+
+        <p className="mt-2 text-sm text-slate-400">
+          Le giornate vengono generate dalle squadre iscritte al campionato.
+        </p>
+      </div>
+
+      <CalendarDays className="text-lime-300" />
+    </div>
+
+    {!event.leagueFixtures || event.leagueFixtures.length === 0 ? (
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
+        Nessun calendario generato.
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {event.leagueFixtures.map((fixture) => (
+          <div
+            key={`${fixture.round}_${fixture.matchNumber}`}
+            className="rounded-2xl border border-white/10 bg-white/[.03] p-4"
+          >
+            <div className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+              Giornata {fixture.round} · Match {fixture.matchNumber}
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
+              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 font-black text-cyan-100">
+                {fixture.homeName}
+              </div>
+
+              <div className="text-center text-sm font-black text-slate-400">
+                VS
+              </div>
+
+              <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-4 font-black text-fuchsia-100">
+                {fixture.awayName}
+              </div>
+            </div>
+
+            {fixture.matchId && (
+              <Link
+                href={`/match/${fixture.matchId}`}
+                className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200"
+              >
+                Apri match
+              </Link>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
 )}
               <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
                 <div className="mb-5 flex items-center justify-between gap-4">
@@ -1117,6 +1301,16 @@ async function generateTournamentBracket() {
         {generatingBracket ? "Generazione..." : "Genera tabellone"}
       </button>
     )}
+    {event.type === "campionato" && isTeamCompetition && (
+  <button
+    onClick={generateLeagueSchedule}
+    disabled={generatingLeague}
+    className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/10 px-6 py-4 font-black text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
+  >
+    <CalendarDays size={18} />
+    {generatingLeague ? "Generazione..." : "Genera calendario"}
+  </button>
+)}
   </>
 )}
 
