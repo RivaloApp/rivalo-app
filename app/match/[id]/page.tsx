@@ -7,8 +7,18 @@ import { arrayUnion, doc, getDoc, serverTimestamp, updateDoc } from "firebase/fi
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "../../../lib/firebase";
 import { applyMatchStats } from "../../../lib/rivaloStats";
+import { updatePlayerStats } from "../../../lib/updatePlayerStats";
 import { updateTeamEventStats } from "../../../lib/updateTeamEventStats";
 import { ArrowLeft, CalendarDays, ChevronRight, Clock, MapPin, ShieldCheck, Trophy, Users } from "lucide-react";
+
+type MatchPlayer = {
+  uid: string;
+  name: string;
+  team?: "home" | "away";
+  goals?: number;
+  assists?: number;
+  isMvp?: boolean;
+};
 
 type MatchDoc = {
   createdBy?: string;
@@ -30,6 +40,7 @@ type MatchDoc = {
   mvpName?: string;
   notes?: string;
   statsApplied?: boolean;
+players?: MatchPlayer[];
   eventId?: string;
 eventTitle?: string;
 competitionFormat?: string;
@@ -142,13 +153,36 @@ export default function MatchDetailsPage() {
               ? "loss"
               : "draw";
 
-        await applyMatchStats({
-          uid: user.uid,
-          result,
-          isMvp: mvpName.trim().length > 0,
-          goals: 0,
-          assists: 0,
-        });
+        const matchPlayers = Array.isArray(match.players) ? match.players : [];
+
+if (matchPlayers.length > 0) {
+  const cleanPlayers = matchPlayers.map((player) => ({
+    uid: player.uid,
+    name: player.name || "Rivalo Player",
+    team: player.team,
+    goals: Number(player.goals || 0),
+    assists: Number(player.assists || 0),
+    isMvp:
+      Boolean(player.isMvp) ||
+      player.name?.toLowerCase().trim() === mvpName.toLowerCase().trim(),
+  }));
+
+  await updatePlayerStats({
+    homeScore: Number(homeScore || 0),
+    awayScore: Number(awayScore || 0),
+    players: cleanPlayers,
+    eventId: match.eventId,
+    sport: match.sport,
+  });
+} else {
+  await applyMatchStats({
+    uid: user.uid,
+    result,
+    isMvp: mvpName.trim().length > 0,
+    goals: 0,
+    assists: 0,
+  });
+}
 
         await updateTeamEventStats({
   eventId: match.eventId,

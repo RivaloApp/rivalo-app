@@ -100,6 +100,22 @@ type EventStat = {
   goalsFor?: number;
   goalsAgainst?: number;
   photoUrl?: string;
+  teamId?: string;
+  teamName?: string;
+};
+
+type TeamStat = {
+  id: string;
+  eventId?: string;
+  teamId?: string;
+  teamName?: string;
+  points?: number;
+  matchesPlayed?: number;
+  wins?: number;
+  draws?: number;
+  losses?: number;
+  goalsFor?: number;
+  goalsAgainst?: number;
 };
 
 type EventData = {
@@ -135,6 +151,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<EventData | null>(null);
   const [participantsInfo, setParticipantsInfo] = useState<ParticipantInfo[]>([]);
   const [eventStats, setEventStats] = useState<EventStat[]>([]);
+  const [teamStats, setTeamStats] = useState<any[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
   const [generatingBracket, setGeneratingBracket] = useState(false);
   const [generatingLeague, setGeneratingLeague] = useState(false);
@@ -230,7 +247,7 @@ export default function EventDetailPage() {
       const statsSnap = await getDocs(statsQuery);
 
       const statsResult = statsSnap.docs.map((docSnap) => {
-        const data = docSnap.data() as Omit<EventStat, "id">;
+        const data = docSnap.data() as any;
 
         const participant = participantsResult.find((p) => p.uid === data.uid);
 
@@ -253,6 +270,30 @@ export default function EventDetailPage() {
       });
 
       setEventStats(statsResult);
+      const teamStatsQuery = query(
+  collection(db, "teamEventStats"),
+  where("eventId", "==", id)
+);
+
+const teamStatsSnap = await getDocs(teamStatsQuery);
+
+const teamStatsResult = teamStatsSnap.docs.map((docSnap) => {
+  const data = docSnap.data() as any;
+
+  return {
+    id: docSnap.id,
+    ...data,
+    points: Number(data.points || 0),
+    matchesPlayed: Number(data.matchesPlayed || 0),
+    wins: Number(data.wins || 0),
+    draws: Number(data.draws || 0),
+    losses: Number(data.losses || 0),
+    goalsFor: Number(data.goalsFor || 0),
+    goalsAgainst: Number(data.goalsAgainst || 0),
+  };
+});
+
+setTeamStats(teamStatsResult);
     } finally {
       setLoading(false);
     }
@@ -907,6 +948,18 @@ async function generateLeagueSchedule() {
       ? "Squadre"
       : "Singolo";
 
+      const rankedTeamStats = [...teamStats].sort((a, b) => {
+  const goalDiffA = Number(a.goalsFor || 0) - Number(a.goalsAgainst || 0);
+  const goalDiffB = Number(b.goalsFor || 0) - Number(b.goalsAgainst || 0);
+
+  return (
+    Number(b.points || 0) - Number(a.points || 0) ||
+    goalDiffB - goalDiffA ||
+    Number(b.goalsFor || 0) - Number(a.goalsFor || 0) ||
+    Number(b.wins || 0) - Number(a.wins || 0)
+  );
+});
+
   const rankedEventStats =
     eventStats.length > 0
       ? [...eventStats].sort(
@@ -1271,6 +1324,40 @@ async function generateLeagueSchedule() {
     )}
   </section>
 )}
+
+{isTeamCompetition && (event.type === "campionato" || event.type === "torneo") && (
+  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
+    <div className="mb-5 flex items-center justify-between gap-4">
+      <div>
+        <div className="text-sm font-black uppercase tracking-[0.25em] text-lime-300">
+          Classifica squadre
+        </div>
+
+        <h2 className="mt-2 text-3xl font-black">
+          Ranking competizione
+        </h2>
+
+        <p className="mt-2 text-sm text-slate-400">
+          Qui contano solo i risultati confermati di questa competizione.
+        </p>
+      </div>
+
+      <Trophy className="text-lime-300" />
+    </div>
+
+    {rankedTeamStats.length === 0 ? (
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
+        Nessuna statistica squadra ancora.
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {rankedTeamStats.map((team, index) => (
+          <TeamRankRow key={team.id} team={team} index={index} />
+        ))}
+      </div>
+    )}
+  </section>
+)}
               <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
                 <div className="mb-5 flex items-center justify-between gap-4">
                   <div>
@@ -1468,6 +1555,42 @@ function TeamCard({ team }: { team: TeamInfo }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function TeamRankRow({
+  team,
+  index,
+}: {
+  team: TeamStat;
+  index: number;
+}) {
+  const goalDifference =
+    Number(team.goalsFor || 0) - Number(team.goalsAgainst || 0);
+
+  return (
+    <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[.03] p-4 md:grid-cols-[50px_1fr_60px_60px_60px_60px_60px_60px] md:items-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-400/10 text-lg font-black text-lime-300">
+        #{index + 1}
+      </div>
+
+      <div className="min-w-0">
+        <div className="truncate font-black uppercase">
+          {team.teamName || "Squadra"}
+        </div>
+
+        <div className="text-xs text-slate-400">
+          {team.matchesPlayed || 0} match giocati
+        </div>
+      </div>
+
+      <RankStat label="PT" value={team.points || 0} />
+      <RankStat label="G" value={team.matchesPlayed || 0} />
+      <RankStat label="V" value={team.wins || 0} />
+      <RankStat label="N" value={team.draws || 0} />
+      <RankStat label="P" value={team.losses || 0} />
+      <RankStat label="DR" value={goalDifference} />
     </div>
   );
 }
