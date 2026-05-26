@@ -7,6 +7,7 @@ import { arrayUnion, doc, getDoc, serverTimestamp, updateDoc } from "firebase/fi
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "../../../lib/firebase";
 import { applyMatchStats } from "../../../lib/rivaloStats";
+import { updateTeamEventStats } from "../../../lib/updateTeamEventStats";
 import { ArrowLeft, CalendarDays, ChevronRight, Clock, MapPin, ShieldCheck, Trophy, Users } from "lucide-react";
 
 type MatchDoc = {
@@ -29,6 +30,9 @@ type MatchDoc = {
   mvpName?: string;
   notes?: string;
   statsApplied?: boolean;
+  eventId?: string;
+eventTitle?: string;
+competitionFormat?: string;
 };
 
 export default function MatchDetailsPage() {
@@ -145,6 +149,14 @@ export default function MatchDetailsPage() {
           goals: 0,
           assists: 0,
         });
+
+        await updateTeamEventStats({
+  eventId: match.eventId,
+  homeTeam,
+  awayTeam,
+  homeScore: Number(homeScore || 0),
+  awayScore: Number(awayScore || 0),
+});
 
         await updateDoc(doc(db, "matches", matchId), {
           statsApplied: true,
