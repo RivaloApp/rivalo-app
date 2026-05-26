@@ -60,6 +60,7 @@ export default function MatchDetailsPage() {
   const [awayScore, setAwayScore] = useState("");
   const [mvpName, setMvpName] = useState("");
   const [notes, setNotes] = useState("");
+  const [players, setPlayers] = useState<MatchPlayer[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -93,11 +94,29 @@ export default function MatchDetailsPage() {
         setAwayScore(data.awayScore !== undefined && data.awayScore !== null ? String(data.awayScore) : "");
         setMvpName(data.mvpName || "");
         setNotes(data.notes || "");
+        setPlayers(Array.isArray(data.players) ? data.players : []);
       }
     } finally {
       setLoading(false);
     }
   }
+
+  function updatePlayerField(
+  uid: string,
+  field: "goals" | "assists" | "isMvp",
+  value: number | boolean
+) {
+  setPlayers((currentPlayers) =>
+    currentPlayers.map((player) =>
+      player.uid === uid
+        ? {
+            ...player,
+            [field]: value,
+          }
+        : player
+    )
+  );
+}
 
   async function proposeResult(e: React.FormEvent) {
     e.preventDefault();
@@ -114,6 +133,7 @@ export default function MatchDetailsPage() {
         awayScore: Number(awayScore),
         mvpName,
         notes,
+        players,
         status: "in_attesa_conferma",
         resultStatus: "proposto",
         fairPlayStatus: "in_attesa",
@@ -308,6 +328,85 @@ if (matchPlayers.length > 0) {
               <Field label="MVP partita">
                 <input value={mvpName} onChange={(e) => setMvpName(e.target.value)} placeholder="Nome MVP" className="w-full bg-transparent outline-none placeholder:text-slate-500" />
               </Field>
+              {players.length > 0 && (
+  <div className="rounded-2xl border border-white/10 bg-[#020617]/70 p-4">
+    <div className="mb-4 text-sm font-black uppercase tracking-[0.16em] text-cyan-300">
+      Statistiche giocatori
+    </div>
+
+    <div className="space-y-3">
+      {players.map((player) => (
+        <div
+          key={player.uid}
+          className="grid gap-3 rounded-2xl border border-white/10 bg-black/20 p-3 md:grid-cols-[1fr_80px_90px_90px]"
+        >
+          <div>
+            <div className="font-black">
+              {player.name || "Rivalo Player"}
+            </div>
+
+            <div className="text-xs uppercase text-slate-400">
+              {player.team === "home" ? homeTeam || "Home" : awayTeam || "Away"}
+            </div>
+          </div>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-black text-slate-400">
+              Gol
+            </span>
+            <input
+              type="number"
+              min="0"
+              value={player.goals || 0}
+              onChange={(e) =>
+                updatePlayerField(
+                  player.uid,
+                  "goals",
+                  Number(e.target.value || 0)
+                )
+              }
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-black text-slate-400">
+              Assist
+            </span>
+            <input
+              type="number"
+              min="0"
+              value={player.assists || 0}
+              onChange={(e) =>
+                updatePlayerField(
+                  player.uid,
+                  "assists",
+                  Number(e.target.value || 0)
+                )
+              }
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none"
+            />
+          </label>
+
+          <label className="flex items-center gap-2 pt-6 text-sm font-black text-yellow-200">
+            <input
+              type="checkbox"
+              checked={Boolean(player.isMvp)}
+              onChange={(e) => {
+                updatePlayerField(player.uid, "isMvp", e.target.checked);
+
+                if (e.target.checked) {
+                  setMvpName(player.name || "Rivalo Player");
+                }
+              }}
+            />
+            MVP
+          </label>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
               <Field label="Note statistiche">
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Gol, assist, note o dettagli partita..." className="min-h-[120px] w-full resize-none bg-transparent outline-none placeholder:text-slate-500" />
