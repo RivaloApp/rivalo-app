@@ -27,6 +27,8 @@ type MatchData = {
   homeScore: number;
   awayScore: number;
   players: Player[];
+  eventId?: string;
+  sport?: string;
 };
 
 export async function updatePlayerStats(match: MatchData) {
@@ -185,6 +187,47 @@ export async function updatePlayerStats(match: MatchData) {
       },
       { merge: true }
     );
+    if (match.eventId) {
+  const eventRef = doc(
+    db,
+    "eventStats",
+    `${match.eventId}_${player.uid}`
+  );
+
+  await setDoc(
+    eventRef,
+    {
+      eventId: match.eventId,
+
+      uid: player.uid,
+      playerName: player.name || "Player",
+      sport: match.sport || "",
+
+      points: increment(seasonPoints),
+      matchesPlayed: increment(1),
+
+      wins: increment(won ? 1 : 0),
+      losses: increment(lost ? 1 : 0),
+      draws: increment(isDraw ? 1 : 0),
+
+      goals: increment(goals),
+      assists: increment(assists),
+      mvp: increment(isMvp ? 1 : 0),
+
+      goalsFor: increment(
+        player.team === "home" ? homeScore : awayScore
+      ),
+      goalsAgainst: increment(
+        player.team === "home" ? awayScore : homeScore
+      ),
+
+      rivalScoreChange: increment(rivalScoreChange),
+
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
 
     await createActivity({
       uid: player.uid,
