@@ -624,137 +624,219 @@ async function generateLeagueSchedule() {
   }
 
   async function createMatchFromEvent() {
-    if (!user || !event) return;
+  if (!user || !event) return;
 
+  const competitionFormat =
+    event.competitionFormat ||
+    (event.sport === "calcetto" ? "squadre" : "singolo");
 
-    const competitionFormat =
-      event.competitionFormat ||
-      (event.sport === "calcetto" ? "squadre" : "singolo");
+  setCreatingMatch(true);
+  setMessage("");
 
-    setCreatingMatch(true);
-    setMessage("");
+  try {
+    let players: {
+      uid: string;
+      name: string;
+      team: "home" | "away";
+      goals: number;
+      assists: number;
+      isMvp: boolean;
+    }[] = [];
 
-    try {
-      let players: {
-        uid: string;
-        name: string;
-        team: "home" | "away";
-        goals: number;
-        assists: number;
-        isMvp: boolean;
-      }[] = [];
+    let homeTeamName = "Home";
+    let awayTeamName = "Away";
 
-      let homeTeamName = "Home";
-      let awayTeamName = "Away";
+    let sourceBracketIndex = -1;
+    let sourceLeagueIndex = -1;
 
-      if (competitionFormat === "singolo") {
-        if (participantsInfo.length < 2) {
-          setMessage("Servono almeno 2 partecipanti per creare un match.");
+    if (competitionFormat === "singolo") {
+      if (participantsInfo.length < 2) {
+        setMessage("Servono almeno 2 partecipanti per creare un match.");
+        setCreatingMatch(false);
+        return;
+      }
+
+      players = participantsInfo.slice(0, 2).map((participant, index) => ({
+        uid: participant.uid,
+        name: participant.name || "Rivalo Player",
+        team: index === 0 ? "home" : "away",
+        goals: 0,
+        assists: 0,
+        isMvp: false,
+      }));
+
+      homeTeamName = participantsInfo[0]?.name || "Player 1";
+      awayTeamName = participantsInfo[1]?.name || "Player 2";
+    } else {
+      const teams = event.teams || [];
+
+      if (teams.length < 2) {
+        setMessage("Servono almeno 2 squadre per creare un match.");
+        setCreatingMatch(false);
+        return;
+      }
+
+      let homeTeam: TeamInfo | undefined;
+      let awayTeam: TeamInfo | undefined;
+
+      if (event.type === "torneo" && event.bracket?.length) {
+        const nextBracketIndex = event.bracket.findIndex(
+          (match) => !match.matchId && Boolean(match.awayTeamId)
+        );
+
+        if (nextBracketIndex === -1) {
+          setMessage("Non ci sono match del tabellone da creare.");
           setCreatingMatch(false);
           return;
         }
 
-        players = participantsInfo.slice(0, 2).map((participant, index) => ({
-          uid: participant.uid,
-          name: participant.name || "Rivalo Player",
-          team: index === 0 ? "home" : "away",
-          goals: 0,
-          assists: 0,
-          isMvp: false,
-        }));
+        const bracketMatch = event.bracket[nextBracketIndex];
 
-        homeTeamName = participantsInfo[0]?.name || "Player 1";
-        awayTeamName = participantsInfo[1]?.name || "Player 2";
+        homeTeam = teams.find((team) => team.id === bracketMatch.homeTeamId);
+        awayTeam = teams.find((team) => team.id === bracketMatch.awayTeamId);
+
+        homeTeamName = bracketMatch.homeName;
+        awayTeamName = bracketMatch.awayName;
+        sourceBracketIndex = nextBracketIndex;
+      } else if (event.type === "campionato" && event.leagueFixtures?.length) {
+        const nextFixtureIndex = event.leagueFixtures.findIndex(
+          (fixture) => !fixture.matchId
+        );
+
+        if (nextFixtureIndex === -1) {
+          setMessage("Tutte le giornate del campionato hanno già un match.");
+          setCreatingMatch(false);
+          return;
+        }
+
+        const fixture = event.leagueFixtures[nextFixtureIndex];
+
+        homeTeam = teams.find((team) => team.id === fixture.homeTeamId);
+        awayTeam = teams.find((team) => team.id === fixture.awayTeamId);
+
+        homeTeamName = fixture.homeName;
+        awayTeamName = fixture.awayName;
+        sourceLeagueIndex = nextFixtureIndex;
       } else {
-        const teams = event.teams || [];
-
-        if (teams.length < 2) {
-          setMessage("Servono almeno 2 squadre per creare un match.");
-          setCreatingMatch(false);
-          return;
-        }
-
-        const homeTeam = teams[0];
-        const awayTeam = teams[1];
+        homeTeam = teams[0];
+        awayTeam = teams[1];
 
         homeTeamName = homeTeam.name || "Squadra 1";
         awayTeamName = awayTeam.name || "Squadra 2";
-
-        players = [
-          ...homeTeam.players.map((player) => ({
-            uid: player.uid,
-            name: player.name || "Rivalo Player",
-            team: "home" as const,
-            goals: 0,
-            assists: 0,
-            isMvp: false,
-          })),
-          ...awayTeam.players.map((player) => ({
-            uid: player.uid,
-            name: player.name || "Rivalo Player",
-            team: "away" as const,
-            goals: 0,
-            assists: 0,
-            isMvp: false,
-          })),
-        ];
       }
 
-      const matchRef = await addDoc(collection(db, "matches"), {
-        createdBy: user.uid,
-        createdByName: user.displayName || "Rivalo Player",
+      if (!homeTeam || !awayTeam) {
+        setMessage("Squadre non trovate. Controlla tabellone o calendario.");
+        setCreatingMatch(false);
+        return;
+      }
 
-        eventId: event.id,
-        eventTitle: event.title || "Evento Rivalo",
-
-        name: event.title || "Match da evento",
-        sport: event.sport || "calcetto",
-        city: event.city || "",
-        field: event.field || "",
-        date: event.date || "",
-        time: event.time || "",
-        mode: "evento",
-        competitionFormat,
-
-        slots: event.maxPlayers || players.length,
-        participants: players.map((player) => player.uid),
-        players,
-
-        homeTeam: homeTeamName,
-        awayTeam: awayTeamName,
-        homeScore: null,
-        awayScore: null,
-
-        status: "programmato",
-        resultStatus: "da_confermare",
-        fairPlayStatus: "da_confermare",
-
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      await updateDoc(doc(db, "events", event.id), {
-  linkedMatchId: matchRef.id,
-  linkedMatchIds: arrayUnion(matchRef.id),
-  status: "in corso",
-  updatedAt: serverTimestamp(),
-});
-
-      await createActivity({
-        uid: user.uid,
-        type: "event",
-        text: `Match creato dall'evento: ${event.title || "Evento Rivalo"}`,
-        value: 1,
-      });
-
-      router.push(`/match/${matchRef.id}`);
-    } catch (error) {
-      console.error(error);
-      setMessage("Errore durante la creazione del match.");
+      players = [
+        ...homeTeam.players.map((player) => ({
+          uid: player.uid,
+          name: player.name || "Rivalo Player",
+          team: "home" as const,
+          goals: 0,
+          assists: 0,
+          isMvp: false,
+        })),
+        ...awayTeam.players.map((player) => ({
+          uid: player.uid,
+          name: player.name || "Rivalo Player",
+          team: "away" as const,
+          goals: 0,
+          assists: 0,
+          isMvp: false,
+        })),
+      ];
     }
 
-    setCreatingMatch(false);
+    const matchRef = await addDoc(collection(db, "matches"), {
+      createdBy: user.uid,
+      createdByName: user.displayName || "Rivalo Player",
+
+      eventId: event.id,
+      eventTitle: event.title || "Evento Rivalo",
+
+      name:
+        event.type === "campionato"
+          ? `${event.title || "Campionato"} · ${homeTeamName} vs ${awayTeamName}`
+          : event.type === "torneo"
+          ? `${event.title || "Torneo"} · ${homeTeamName} vs ${awayTeamName}`
+          : event.title || "Match da evento",
+
+      sport: event.sport || "calcetto",
+      city: event.city || "",
+      field: event.field || "",
+      date: event.date || "",
+      time: event.time || "",
+      mode: event.type || "evento",
+      competitionFormat,
+
+      slots: event.maxPlayers || players.length,
+      participants: players.map((player) => player.uid),
+      players,
+
+      homeTeam: homeTeamName,
+      awayTeam: awayTeamName,
+      homeScore: null,
+      awayScore: null,
+
+      status: "programmato",
+      resultStatus: "da_confermare",
+      fairPlayStatus: "da_confermare",
+
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    const updatePayload: any = {
+      linkedMatchId: matchRef.id,
+      linkedMatchIds: arrayUnion(matchRef.id),
+      status: "in corso",
+      updatedAt: serverTimestamp(),
+    };
+
+    if (sourceBracketIndex >= 0 && event.bracket) {
+      const nextBracket = [...event.bracket];
+
+      nextBracket[sourceBracketIndex] = {
+        ...nextBracket[sourceBracketIndex],
+        matchId: matchRef.id,
+      };
+
+      updatePayload.bracket = nextBracket;
+    }
+
+    if (sourceLeagueIndex >= 0 && event.leagueFixtures) {
+      const nextFixtures = [...event.leagueFixtures];
+
+      nextFixtures[sourceLeagueIndex] = {
+        ...nextFixtures[sourceLeagueIndex],
+        matchId: matchRef.id,
+        status: "match creato",
+      };
+
+      updatePayload.leagueFixtures = nextFixtures;
+    }
+
+    await updateDoc(doc(db, "events", event.id), updatePayload);
+
+    await createActivity({
+      uid: user.uid,
+      type: "event",
+      text: `Match creato dall'evento: ${event.title || "Evento Rivalo"}`,
+      value: 1,
+    });
+
+    router.push(`/match/${matchRef.id}`);
+  } catch (error) {
+    console.error(error);
+    setMessage("Errore durante la creazione del match.");
   }
+
+  setCreatingMatch(false);
+}
 
   if (loading) {
     return (
