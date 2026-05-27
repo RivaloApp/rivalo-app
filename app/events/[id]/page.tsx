@@ -1570,7 +1570,7 @@ function TeamRankRow({
     Number(team.goalsFor || 0) - Number(team.goalsAgainst || 0);
 
   return (
-    <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[.03] p-4 md:grid-cols-[50px_1fr_60px_60px_60px_60px_60px_60px] md:items-center">
+    <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[.03] p-4 md:grid-cols-[50px_1fr_54px_54px_54px_54px_54px_54px_54px_54px] md:items-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-400/10 text-lg font-black text-lime-300">
         #{index + 1}
       </div>
@@ -1586,11 +1586,13 @@ function TeamRankRow({
       </div>
 
       <RankStat label="PT" value={team.points || 0} />
-      <RankStat label="G" value={team.matchesPlayed || 0} />
-      <RankStat label="V" value={team.wins || 0} />
-      <RankStat label="N" value={team.draws || 0} />
-      <RankStat label="P" value={team.losses || 0} />
-      <RankStat label="DR" value={goalDifference} />
+<RankStat label="G" value={team.matchesPlayed || 0} />
+<RankStat label="V" value={team.wins || 0} />
+<RankStat label="N" value={team.draws || 0} />
+<RankStat label="P" value={team.losses || 0} />
+<RankStat label="GF" value={team.goalsFor || 0} />
+<RankStat label="GS" value={team.goalsAgainst || 0} />
+<RankStat label="DR" value={goalDifference} />
     </div>
   );
 }
