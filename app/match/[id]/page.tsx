@@ -448,6 +448,63 @@ const otherPlayers = players.filter(
               </Field>
 
               {message && <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold text-cyan-200">{message}</div>}
+              <div className="rounded-2xl border border-white/10 bg-black/25 p-5">
+  <div className="mb-4 text-sm font-black uppercase tracking-[0.16em] text-cyan-300">
+    Riepilogo conferma
+  </div>
+
+  <div className="grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-center">
+    <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-center">
+      <div className="text-xs font-black uppercase tracking-[0.14em] text-cyan-300">
+        Squadra 1
+      </div>
+      <div className="mt-2 text-xl font-black">
+        {homeTeam || "Da definire"}
+      </div>
+    </div>
+
+    <div className="text-center">
+      <div className="text-5xl font-black text-white">
+        {homeScore || "0"} - {awayScore || "0"}
+      </div>
+      <div className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+        Risultato
+      </div>
+    </div>
+
+    <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-4 text-center">
+      <div className="text-xs font-black uppercase tracking-[0.14em] text-fuchsia-300">
+        Squadra 2
+      </div>
+      <div className="mt-2 text-xl font-black">
+        {awayTeam || "Da definire"}
+      </div>
+    </div>
+  </div>
+
+  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+    <div className="rounded-xl border border-white/10 bg-white/[.03] p-3">
+      <div className="text-xs text-slate-400">MVP</div>
+      <div className="mt-1 truncate font-black text-yellow-200">
+        {mvpName || "Non inserito"}
+      </div>
+    </div>
+
+    <div className="rounded-xl border border-white/10 bg-white/[.03] p-3">
+      <div className="text-xs text-slate-400">Giocatori</div>
+      <div className="mt-1 font-black text-cyan-200">
+        {players.length}
+      </div>
+    </div>
+
+    <div className="rounded-xl border border-white/10 bg-white/[.03] p-3">
+      <div className="text-xs text-slate-400">Stato stats</div>
+      <div className="mt-1 font-black text-lime-200">
+        {match.statsApplied ? "Applicate" : "Da applicare"}
+      </div>
+    </div>
+  </div>
+</div>
 
               <button type="submit" disabled={saving} className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60">
                 {saving ? "Salvataggio..." : "Proponi risultato"}
