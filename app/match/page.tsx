@@ -7,6 +7,7 @@ import { addDoc, collection, getDocs, query, serverTimestamp, where } from "fire
 import { auth, db } from "../../lib/firebase";
 import { ArrowLeft, CalendarDays, ChevronRight, Clock, ShieldCheck, Trophy, Users } from "lucide-react";
 
+type CompetitionFormat = "singolo" | "doppio" | "squadre";
 type GroupDoc = { id: string; name?: string; city?: string; sport?: string };
 type MatchDoc = {
   id: string;
@@ -17,6 +18,7 @@ type MatchDoc = {
   date?: string;
   time?: string;
   mode?: string;
+  competitionFormat?: CompetitionFormat;
   slots?: number;
   status?: string;
 };
@@ -33,7 +35,9 @@ export default function MatchPage() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [mode, setMode] = useState("amichevole");
-  const [slots, setSlots] = useState("10");
+const [competitionFormat, setCompetitionFormat] =
+  useState<CompetitionFormat>("squadre");
+const [slots, setSlots] = useState("10");
   const [saving, setSaving] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [message, setMessage] = useState("");
@@ -80,7 +84,26 @@ export default function MatchPage() {
       setLoadingData(false);
     }
   }
+function handleSportChange(nextSport: string) {
+  setSport(nextSport);
 
+  if (nextSport === "calcetto") {
+    setCompetitionFormat("squadre");
+    setSlots("10");
+    return;
+  }
+
+  if (nextSport === "padel") {
+    setCompetitionFormat("doppio");
+    setSlots("4");
+    return;
+  }
+
+  if (nextSport === "tennis") {
+    setCompetitionFormat("singolo");
+    setSlots("2");
+  }
+}
   async function createMatch(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
@@ -99,9 +122,20 @@ export default function MatchPage() {
         date,
         time,
         mode,
-        slots: Number(slots),
-        status: "programmata",
-        participants: [user.uid],
+competitionFormat,
+slots: Number(slots),
+status: "programmata",
+participants: [user.uid],
+players: [
+  {
+    uid: user.uid,
+    name: user.displayName || "Rivalo Player",
+    team: "home",
+    goals: 0,
+    assists: 0,
+    isMvp: false,
+  },
+],
         resultStatus: "non_inserito",
         fairPlayStatus: "in_attesa",
         homeTeam: "",
@@ -120,6 +154,16 @@ export default function MatchPage() {
       setField("");
       setDate("");
       setTime("");
+      if (sport === "calcetto") {
+  setCompetitionFormat("squadre");
+  setSlots("10");
+} else if (sport === "padel") {
+  setCompetitionFormat("doppio");
+  setSlots("4");
+} else {
+  setCompetitionFormat("singolo");
+  setSlots("2");
+}
       setMessage("Partita creata correttamente.");
       await loadData(user.uid);
     } catch {
@@ -147,7 +191,7 @@ export default function MatchPage() {
               </div>
               <div>
                 <div className="text-sm font-black uppercase tracking-[.3em] text-cyan-300">Rivalo Match</div>
-                <h1 className="mt-2 text-4xl font-black">Crea una partita</h1>
+                <h1 className="mt-2 text-4xl font-black">Match rapido / Amichevole</h1>
               </div>
             </div>
 
@@ -167,7 +211,7 @@ export default function MatchPage() {
 
               <div className="grid gap-5 md:grid-cols-2">
                 <Field label="Sport">
-                  <select value={sport} onChange={(e) => setSport(e.target.value)} className="w-full bg-transparent outline-none">
+                  <select value={sport} onChange={(e) => handleSportChange(e.target.value)} className="w-full bg-transparent outline-none">
                     <option value="calcetto">Calcetto</option>
                     <option value="padel">Padel</option>
                     <option value="tennis">Tennis</option>
@@ -175,14 +219,36 @@ export default function MatchPage() {
                 </Field>
 
                 <Field label="Modalità">
-                  <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full bg-transparent outline-none">
-                    <option value="amichevole">Amichevole</option>
-                    <option value="campionato">Campionato</option>
-                    <option value="torneo">Torneo</option>
-                  </select>
-                </Field>
+  <select
+    value={mode}
+    onChange={(e) => setMode(e.target.value)}
+    className="w-full bg-transparent outline-none"
+  >
+    <option value="amichevole">Amichevole</option>
+    <option value="allenamento">Allenamento</option>
+  </select>
+</Field>
               </div>
+<Field label="Formato partita">
+  <select
+    value={competitionFormat}
+    onChange={(e) =>
+      setCompetitionFormat(e.target.value as CompetitionFormat)
+    }
+    className="w-full bg-transparent outline-none"
+  >
+    {sport === "calcetto" && (
+      <option value="squadre">Squadre</option>
+    )}
 
+    {(sport === "padel" || sport === "tennis") && (
+      <>
+        <option value="singolo">Singolo</option>
+        <option value="doppio">Doppio</option>
+      </>
+    )}
+  </select>
+</Field>
               <Field label="Città">
                 <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Milano, Lecce, Roma..." className="w-full bg-transparent outline-none placeholder:text-slate-500" required />
               </Field>
@@ -204,7 +270,7 @@ export default function MatchPage() {
               </div>
 
               <button type="submit" disabled={saving} className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60">
-                {saving ? "Creazione..." : "Crea partita Rivalo"}
+                {saving ? "Creazione..." : "Crea match rapido"}
                 <ChevronRight className="transition group-hover:translate-x-1" />
               </button>
 
@@ -285,6 +351,7 @@ function MatchCard({ match }: { match: MatchDoc }) {
           <Badge>{match.time || "Ora"}</Badge>
           <Badge>{match.slots || 0} slot</Badge>
           <Badge>{match.mode}</Badge>
+          <Badge>{match.competitionFormat || "formato"}</Badge>
           <div className="rounded-xl bg-lime-400/10 px-3 py-2 font-black text-lime-300">{match.status || "programmata"}</div>
         </div>
       </div>
