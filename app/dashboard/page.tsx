@@ -54,6 +54,8 @@ type UserProfile = {
   mvp?: number;
   photoURL?: string;
   photoUrl?: string;
+  onboardingCompleted?: boolean;
+profileCompleted?: boolean;
 };
 
 export default function DashboardPage() {
@@ -75,28 +77,21 @@ export default function DashboardPage() {
         const snap = await getDoc(doc(db, "users", currentUser.uid));
 
         if (snap.exists()) {
-          setProfile({
-            uid: currentUser.uid,
-            ...(snap.data() as UserProfile),
-          });
-        } else {
-          setProfile({
-            uid: currentUser.uid,
-            name: currentUser.displayName || "Player",
-            nickname: "Rivalo Player",
-            mainSport: "calcetto",
-            rivalScore: 1000,
-            level: 1,
-            xp: 100,
-            wins: 0,
-            losses: 0,
-            draws: 0,
-            matchesPlayed: 0,
-            goals: 0,
-            assists: 0,
-            mvp: 0,
-          });
-        }
+  const data = snap.data() as UserProfile;
+
+  if (!data.onboardingCompleted) {
+    window.location.href = "/onboarding";
+    return;
+  }
+
+  setProfile({
+    uid: currentUser.uid,
+    ...data,
+  });
+} else {
+  window.location.href = "/onboarding";
+  return;
+}
 
         const q = query(
           collection(db, "users"),
