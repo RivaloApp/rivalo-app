@@ -18,8 +18,12 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [sport, setSport] = useState("calcetto");
-  const [photoUrl, setPhotoUrl] = useState("");
-  const [message, setMessage] = useState("");
+const [city, setCity] = useState("");
+const [role, setRole] = useState("");
+const [playStyle, setPlayStyle] = useState("");
+const [availability, setAvailability] = useState("");
+const [photoUrl, setPhotoUrl] = useState("");
+const [message, setMessage] = useState("");
 
   const [rivalScore, setRivalScore] = useState(1000);
   const [level, setLevel] = useState(1);
@@ -51,6 +55,10 @@ export default function ProfilePage() {
           setName(data.name || currentUser.displayName || "");
           setNickname(data.nickname || "Rival Player");
           setSport(data.mainSport || "calcetto");
+          setCity(data.city || "");
+setRole(data.role || "");
+setPlayStyle(data.playStyle || "");
+setAvailability(data.availability || "");
 
           setPhotoUrl(
             localStorage.getItem("rivaloProfilePhoto") ||
@@ -74,6 +82,10 @@ export default function ProfilePage() {
           setName(currentUser.displayName || "");
           setNickname("Rival Player");
           setSport("calcetto");
+          setCity("");
+setRole("");
+setPlayStyle("");
+setAvailability("");
           setRivalScore(1000);
           setLevel(1);
           setXp(0);
@@ -131,16 +143,22 @@ export default function ProfilePage() {
       if (!user) return;
 
       await setDoc(
-        doc(db, "users", user.uid),
-        {
-          name,
-          nickname,
-          mainSport: sport,
-          photoUrl,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+  doc(db, "users", user.uid),
+  {
+    name,
+    nickname,
+    mainSport: sport,
+    city,
+    role,
+    playStyle,
+    availability,
+    photoUrl,
+    onboardingCompleted: true,
+    profileCompleted: true,
+    updatedAt: serverTimestamp(),
+  },
+  { merge: true }
+);
 
       setMessage("Profilo aggiornato.");
     } catch (error) {
@@ -222,7 +240,37 @@ export default function ProfilePage() {
                 <option value="tennis">Tennis</option>
               </select>
             </div>
+<div className="mt-6 grid gap-6 md:grid-cols-2">
+  <Field
+    label="Città / zona"
+    value={city}
+    setValue={setCity}
+    placeholder="Es. Lecce"
+  />
 
+  <Field
+    label="Ruolo o posizione"
+    value={role}
+    setValue={setRole}
+    placeholder="Es. Attaccante, difensore, destro..."
+  />
+</div>
+
+<div className="mt-6 grid gap-6 md:grid-cols-2">
+  <Field
+    label="Stile di gioco"
+    value={playStyle}
+    setValue={setPlayStyle}
+    placeholder="Es. tecnico, veloce, competitivo..."
+  />
+
+  <Field
+    label="Disponibilità"
+    value={availability}
+    setValue={setAvailability}
+    placeholder="Es. sera, weekend, 2 volte a settimana..."
+  />
+</div>
             <div className="mt-8 rounded-[1.5rem] border border-cyan-400/20 bg-cyan-400/5 p-6">
               <div className="flex items-center gap-3">
                 <Camera className="text-cyan-300" />
