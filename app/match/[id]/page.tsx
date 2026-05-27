@@ -132,8 +132,13 @@ export default function MatchDetailsPage() {
 }
 
   async function proposeResult(e: React.FormEvent) {
-    e.preventDefault();
-    if (!user) return;
+  e.preventDefault();
+  if (!user || !match) return;
+
+  if (match.status === "ufficiale" || match.resultStatus === "confermato") {
+    setMessage("Match già ufficiale. Non puoi modificare il risultato.");
+    return;
+  }
 
     setSaving(true);
     setMessage("");
@@ -287,7 +292,12 @@ export default function MatchDetailsPage() {
 }
 
   async function disputeResult() {
-    if (!user) return;
+  if (!user || !match) return;
+
+  if (match.status === "ufficiale" || match.resultStatus === "confermato") {
+    setMessage("Match già ufficiale. Non puoi contestarlo da qui.");
+    return;
+  }
 
     setSaving(true);
     setMessage("");
@@ -317,6 +327,10 @@ export default function MatchDetailsPage() {
   if (!match) {
     return <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">Partita non trovata.</main>;
   }
+  const isOfficial =
+  match.status === "ufficiale" || match.resultStatus === "confermato";
+
+const statsLocked = Boolean(match.statsApplied || match.statsApplying);
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
