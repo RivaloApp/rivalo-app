@@ -332,6 +332,12 @@ export default function MatchDetailsPage() {
 
 const statsLocked = Boolean(match.statsApplied || match.statsApplying);
 
+const homePlayers = players.filter((player) => player.team === "home");
+const awayPlayers = players.filter((player) => player.team === "away");
+const otherPlayers = players.filter(
+  (player) => player.team !== "home" && player.team !== "away"
+);
+
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_10%_4%,rgba(34,211,238,.16),transparent_28%),radial-gradient(circle_at_88%_8%,rgba(217,70,239,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
@@ -400,82 +406,39 @@ const statsLocked = Boolean(match.statsApplied || match.statsApplying);
               <Field label="MVP partita">
                 <input value={mvpName} onChange={(e) => setMvpName(e.target.value)} placeholder="Nome MVP" className="w-full bg-transparent outline-none placeholder:text-slate-500" />
               </Field>
-              {players.length > 0 && (
+            {players.length > 0 && (
   <div className="rounded-2xl border border-white/10 bg-[#020617]/70 p-4">
     <div className="mb-4 text-sm font-black uppercase tracking-[0.16em] text-cyan-300">
       Statistiche giocatori
     </div>
 
-    <div className="space-y-3">
-      {players.map((player) => (
-        <div
-          key={player.uid}
-          className="grid gap-3 rounded-2xl border border-white/10 bg-black/20 p-3 md:grid-cols-[1fr_80px_90px_90px]"
-        >
-          <div>
-            <div className="font-black">
-              {player.name || "Rivalo Player"}
-            </div>
+    <div className="space-y-4">
+      <PlayerStatsGroup
+        title="Squadra 1"
+        players={homePlayers}
+        teamName={homeTeam}
+        isOfficial={isOfficial}
+        updatePlayerField={updatePlayerField}
+        setMvpName={setMvpName}
+      />
 
-            <div className="text-xs uppercase text-slate-400">
-              {player.team === "home" ? homeTeam || "Home" : awayTeam || "Away"}
-            </div>
-          </div>
+      <PlayerStatsGroup
+        title="Squadra 2"
+        players={awayPlayers}
+        teamName={awayTeam}
+        isOfficial={isOfficial}
+        updatePlayerField={updatePlayerField}
+        setMvpName={setMvpName}
+      />
 
-          <label className="block">
-            <span className="mb-1 block text-xs font-black text-slate-400">
-              Gol
-            </span>
-            <input
-              type="number"
-              min="0"
-              value={player.goals || 0}
-              onChange={(e) =>
-                updatePlayerField(
-                  player.uid,
-                  "goals",
-                  Number(e.target.value || 0)
-                )
-              }
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none"
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-1 block text-xs font-black text-slate-400">
-              Assist
-            </span>
-            <input
-              type="number"
-              min="0"
-              value={player.assists || 0}
-              onChange={(e) =>
-                updatePlayerField(
-                  player.uid,
-                  "assists",
-                  Number(e.target.value || 0)
-                )
-              }
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none"
-            />
-          </label>
-
-          <label className="flex items-center gap-2 pt-6 text-sm font-black text-yellow-200">
-            <input
-              type="checkbox"
-              checked={Boolean(player.isMvp)}
-              onChange={(e) => {
-                updatePlayerField(player.uid, "isMvp", e.target.checked);
-
-                if (e.target.checked) {
-                  setMvpName(player.name || "Rivalo Player");
-                }
-              }}
-            />
-            MVP
-          </label>
-        </div>
-      ))}
+      <PlayerStatsGroup
+        title="Altri giocatori"
+        players={otherPlayers}
+        teamName="Non assegnati"
+        isOfficial={isOfficial}
+        updatePlayerField={updatePlayerField}
+        setMvpName={setMvpName}
+      />
     </div>
   </div>
 )}
@@ -511,6 +474,123 @@ const statsLocked = Boolean(match.statsApplied || match.statsApplying);
         </section>
       </section>
     </main>
+  );
+}
+
+function PlayerStatsGroup({
+  title,
+  players,
+  teamName,
+  isOfficial,
+  updatePlayerField,
+  setMvpName,
+}: {
+  title: string;
+  players: MatchPlayer[];
+  teamName: string;
+  isOfficial: boolean;
+  updatePlayerField: (
+    uid: string,
+    field: "goals" | "assists" | "isMvp",
+    value: number | boolean
+  ) => void;
+  setMvpName: React.Dispatch<React.SetStateAction<string>>;
+}) {
+  if (players.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
+            {title}
+          </div>
+
+          <div className="mt-1 text-xl font-black">
+            {teamName || title}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200">
+          {players.length} giocatori
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {players.map((player) => (
+          <div
+            key={player.uid}
+            className="grid gap-3 rounded-2xl border border-white/10 bg-[#020617]/70 p-3 md:grid-cols-[1fr_80px_90px_90px]"
+          >
+            <div>
+              <div className="font-black">
+                {player.name || "Rivalo Player"}
+              </div>
+
+              <div className="text-xs uppercase text-slate-400">
+                {teamName || title}
+              </div>
+            </div>
+
+            <label className="block">
+              <span className="mb-1 block text-xs font-black text-slate-400">
+                Gol
+              </span>
+              <input
+                type="number"
+                min="0"
+                value={player.goals || 0}
+                disabled={isOfficial}
+                onChange={(e) =>
+                  updatePlayerField(
+                    player.uid,
+                    "goals",
+                    Number(e.target.value || 0)
+                  )
+                }
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none disabled:opacity-60"
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-1 block text-xs font-black text-slate-400">
+                Assist
+              </span>
+              <input
+                type="number"
+                min="0"
+                value={player.assists || 0}
+                disabled={isOfficial}
+                onChange={(e) =>
+                  updatePlayerField(
+                    player.uid,
+                    "assists",
+                    Number(e.target.value || 0)
+                  )
+                }
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none disabled:opacity-60"
+              />
+            </label>
+
+            <label className="flex items-center gap-2 pt-6 text-sm font-black text-yellow-200">
+              <input
+                type="checkbox"
+                checked={Boolean(player.isMvp)}
+                disabled={isOfficial}
+                onChange={(e) => {
+                  updatePlayerField(player.uid, "isMvp", e.target.checked);
+
+                  if (e.target.checked) {
+                    setMvpName(player.name || "Rivalo Player");
+                  }
+                }}
+              />
+              MVP
+            </label>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
