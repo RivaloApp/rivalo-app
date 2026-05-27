@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { arrayUnion, doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import {
+  arrayUnion,
+  doc,
+  getDoc,
+  runTransaction,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "../../../lib/firebase";
 import { applyMatchStats } from "../../../lib/rivaloStats";
@@ -40,6 +47,12 @@ type MatchDoc = {
   mvpName?: string;
   notes?: string;
   statsApplied?: boolean;
+  statsApplying?: boolean;
+statsAppliedAt?: any;
+statsAppliedBy?: string;
+statsApplyingBy?: string;
+statsError?: boolean;
+statsErrorAt?: any;
 players?: MatchPlayer[];
   eventId?: string;
 eventTitle?: string;
@@ -151,82 +164,127 @@ export default function MatchDetailsPage() {
   }
 
   async function confirmResult() {
-    if (!user || !match) return;
+  if (!user || !match) return;
 
-    setSaving(true);
-    setMessage("");
+  setSaving(true);
+  setMessage("");
 
-    try {
-      await updateDoc(doc(db, "matches", matchId), {
+  const matchRef = doc(db, "matches", matchId);
+  let matchForStats: MatchDoc | null = null;
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const freshSnap = await transaction.get(matchRef);
+
+      if (!freshSnap.exists()) {
+        throw new Error("MATCH_NOT_FOUND");
+      }
+
+      const freshMatch = freshSnap.data() as MatchDoc;
+      matchForStats = freshMatch;
+
+      if (freshMatch.statsApplied) {
+        throw new Error("STATS_ALREADY_APPLIED");
+      }
+
+      if (freshMatch.statsApplying) {
+        throw new Error("STATS_IN_PROGRESS");
+      }
+
+      transaction.update(matchRef, {
         confirmedBy: arrayUnion(user.uid),
         status: "ufficiale",
         resultStatus: "confermato",
         fairPlayStatus: "confermato",
         confirmedAt: serverTimestamp(),
+        statsApplying: true,
+        statsApplyingBy: user.uid,
       });
+    });
 
-      if (!match.statsApplied) {
-        const result =
-          Number(homeScore) > Number(awayScore)
-            ? "win"
-            : Number(homeScore) < Number(awayScore)
-              ? "loss"
-              : "draw";
+    const safeMatch: MatchDoc = matchForStats || match;
 
-        const matchPlayers = Array.isArray(match.players) ? match.players : [];
+    const result =
+      Number(homeScore) > Number(awayScore)
+        ? "win"
+        : Number(homeScore) < Number(awayScore)
+        ? "loss"
+        : "draw";
 
-if (matchPlayers.length > 0) {
-  const cleanPlayers = matchPlayers.map((player) => ({
-    uid: player.uid,
-    name: player.name || "Rivalo Player",
-    team: player.team,
-    goals: Number(player.goals || 0),
-    assists: Number(player.assists || 0),
-    isMvp:
-      Boolean(player.isMvp) ||
-      player.name?.toLowerCase().trim() === mvpName.toLowerCase().trim(),
-  }));
+    const matchPlayers = Array.isArray(safeMatch.players)
+      ? safeMatch.players
+      : [];
 
-  await updatePlayerStats({
-    homeScore: Number(homeScore || 0),
-    awayScore: Number(awayScore || 0),
-    players: cleanPlayers,
-    eventId: match.eventId,
-    sport: match.sport,
-  });
-} else {
-  await applyMatchStats({
-    uid: user.uid,
-    result,
-    isMvp: mvpName.trim().length > 0,
-    goals: 0,
-    assists: 0,
-  });
-}
+    if (matchPlayers.length > 0) {
+      const cleanPlayers = matchPlayers.map((player) => ({
+        uid: player.uid,
+        name: player.name || "Rivalo Player",
+        team: player.team,
+        goals: Number(player.goals || 0),
+        assists: Number(player.assists || 0),
+        isMvp:
+          Boolean(player.isMvp) ||
+          player.name?.toLowerCase().trim() === mvpName.toLowerCase().trim(),
+      }));
 
-        await updateTeamEventStats({
-  eventId: match.eventId,
-  homeTeam,
-  awayTeam,
-  homeScore: Number(homeScore || 0),
-  awayScore: Number(awayScore || 0),
-});
-
-        await updateDoc(doc(db, "matches", matchId), {
-          statsApplied: true,
-          statsAppliedAt: serverTimestamp(),
-          statsAppliedBy: user.uid,
-        });
-      }
-
-      await loadMatch();
-      setMessage("Risultato confermato. Statistiche, XP e RivalScore aggiornati.");
-    } catch {
-      setMessage("Errore durante la conferma.");
-    } finally {
-      setSaving(false);
+      await updatePlayerStats({
+        homeScore: Number(homeScore || 0),
+        awayScore: Number(awayScore || 0),
+        players: cleanPlayers,
+        eventId: safeMatch.eventId,
+        sport: safeMatch.sport,
+      });
+    } else {
+      await applyMatchStats({
+        uid: user.uid,
+        result,
+        isMvp: mvpName.trim().length > 0,
+        goals: 0,
+        assists: 0,
+      });
     }
+
+    await updateTeamEventStats({
+      eventId: safeMatch.eventId,
+      homeTeam,
+      awayTeam,
+      homeScore: Number(homeScore || 0),
+      awayScore: Number(awayScore || 0),
+    });
+
+    await updateDoc(matchRef, {
+      statsApplied: true,
+      statsApplying: false,
+      statsAppliedAt: serverTimestamp(),
+      statsAppliedBy: user.uid,
+    });
+
+    await loadMatch();
+    setMessage("Risultato confermato. Statistiche applicate una sola volta.");
+  } catch (error: any) {
+    console.error(error);
+
+    if (error?.message === "STATS_ALREADY_APPLIED") {
+      setMessage(
+        "Statistiche già applicate. Questo match non può aggiornare due volte i dati."
+      );
+    } else if (error?.message === "STATS_IN_PROGRESS") {
+      setMessage(
+        "Aggiornamento statistiche già in corso. Attendi qualche secondo."
+      );
+    } else {
+      await updateDoc(matchRef, {
+        statsApplying: false,
+        statsError: true,
+        statsErrorAt: serverTimestamp(),
+      }).catch(() => null);
+
+      setMessage("Errore durante la conferma.");
+    }
+  } finally {
+    setSaving(false);
   }
+}
 
   async function disputeResult() {
     if (!user) return;
