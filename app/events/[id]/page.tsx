@@ -60,6 +60,9 @@ type LeagueFixture = {
   awayName: string;
   matchId?: string;
   status?: string;
+  resultStatus?: string;
+  homeScore?: number | null;
+  awayScore?: number | null;
 };
 
 type ParticipantInfo = {
@@ -1443,9 +1446,27 @@ const canCreateEventMatch =
             key={`${fixture.round}_${fixture.matchNumber}`}
             className="rounded-2xl border border-white/10 bg-white/[.03] p-4"
           >
-            <div className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-              Giornata {fixture.round} · Match {fixture.matchNumber}
-            </div>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+    Giornata {fixture.round} · Match {fixture.matchNumber}
+  </div>
+
+  <div
+    className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
+      fixture.resultStatus === "confermato"
+        ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
+        : fixture.matchId
+        ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+        : "border-white/10 bg-white/[.03] text-slate-400"
+    }`}
+  >
+    {fixture.resultStatus === "confermato"
+      ? "Completata"
+      : fixture.matchId
+      ? "Match creato"
+      : "Da creare"}
+  </div>
+</div>
 
             <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
               <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 font-black text-cyan-100">
@@ -1460,6 +1481,12 @@ const canCreateEventMatch =
                 {fixture.awayName}
               </div>
             </div>
+            {typeof fixture.homeScore === "number" &&
+  typeof fixture.awayScore === "number" && (
+    <div className="mt-3 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200">
+      Risultato: {fixture.homeScore} - {fixture.awayScore}
+    </div>
+  )}
 
             {fixture.matchId && (
               <Link
