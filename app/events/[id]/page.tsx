@@ -49,6 +49,10 @@ type BracketMatch = {
   awayName: string;
   winnerTeamId?: string;
   matchId?: string;
+  status?: string;
+  resultStatus?: string;
+  homeScore?: number | null;
+  awayScore?: number | null;
 };
 
 type LeagueFixture = {
@@ -1381,9 +1385,27 @@ const canCreateEventMatch =
             key={`${match.round}_${match.matchNumber}`}
             className="rounded-2xl border border-white/10 bg-white/[.03] p-4"
           >
-            <div className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-              Round {match.round} · Match {match.matchNumber}
-            </div>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+    Round {match.round} · Match {match.matchNumber}
+  </div>
+
+  <div
+    className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
+      match.resultStatus === "confermato"
+        ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
+        : match.matchId
+        ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+        : "border-white/10 bg-white/[.03] text-slate-400"
+    }`}
+  >
+    {match.resultStatus === "confermato"
+      ? "Completato"
+      : match.matchId
+      ? "Match creato"
+      : "Da creare"}
+  </div>
+</div>
 
             <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
               <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 font-black text-cyan-100">
@@ -1393,6 +1415,13 @@ const canCreateEventMatch =
               <div className="text-center text-sm font-black text-slate-400">
                 VS
               </div>
+
+              {typeof match.homeScore === "number" &&
+  typeof match.awayScore === "number" && (
+    <div className="mt-3 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200">
+      Risultato: {match.homeScore} - {match.awayScore}
+    </div>
+  )}
 
               <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-4 font-black text-fuchsia-100">
                 {match.awayName}
