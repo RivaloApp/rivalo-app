@@ -1077,6 +1077,23 @@ setMessage("");
   );
 });
 
+const hasPendingTournamentMatch =
+  event.type === "torneo" &&
+  Array.isArray(event.bracket) &&
+  event.bracket.some((match) => !match.matchId && Boolean(match.awayTeamId));
+
+const hasPendingLeagueMatch =
+  event.type === "campionato" &&
+  Array.isArray(event.leagueFixtures) &&
+  event.leagueFixtures.some((fixture) => !fixture.matchId);
+
+const canCreateEventMatch =
+  event.type === "torneo"
+    ? hasPendingTournamentMatch
+    : event.type === "campionato"
+    ? hasPendingLeagueMatch
+    : true;
+
   const rankedEventStats =
     eventStats.length > 0
       ? [...eventStats].sort(
@@ -1587,12 +1604,14 @@ setMessage("");
   <>
     <button
       onClick={createMatchFromEvent}
-      disabled={creatingMatch}
+      disabled={creatingMatch || !canCreateEventMatch}
       className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/10 px-6 py-4 font-black text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
     >
       <PlayCircle size={18} />
       {creatingMatch
   ? "Creazione match..."
+  : !canCreateEventMatch
+  ? "Tutti i match creati"
   : event.type === "torneo"
   ? "Crea prossimo match torneo"
   : event.type === "campionato"
