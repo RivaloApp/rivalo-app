@@ -1094,8 +1094,14 @@ const hasPendingLeagueMatch =
   Array.isArray(event.leagueFixtures) &&
   event.leagueFixtures.some((fixture) => !fixture.matchId);
 
+const isCompetitionCompleted =
+  event.status === "torneo completato" ||
+  event.status === "campionato completato";
+
 const canCreateEventMatch =
-  event.type === "torneo"
+  isCompetitionCompleted
+    ? false
+    : event.type === "torneo"
     ? hasPendingTournamentMatch
     : event.type === "campionato"
     ? hasPendingLeagueMatch
@@ -1475,7 +1481,7 @@ const canCreateEventMatch =
 
       <CalendarDays className="text-lime-300" />
     </div>
-    
+
     {event.status === "campionato completato" && (
   <div className="mb-5 rounded-2xl border border-lime-300/20 bg-lime-400/10 p-5">
     <div className="text-xs font-black uppercase tracking-[0.2em] text-lime-200">
@@ -1690,6 +1696,8 @@ const canCreateEventMatch =
       <PlayCircle size={18} />
       {creatingMatch
   ? "Creazione match..."
+  : isCompetitionCompleted
+  ? "Competizione completata"
   : !canCreateEventMatch
   ? "Tutti i match creati"
   : event.type === "torneo"
