@@ -759,12 +759,28 @@ async function generateLeagueSchedule() {
   async function createMatchFromEvent() {
   if (!user || !event) return;
 
-  const competitionFormat =
-    event.competitionFormat ||
-    (event.sport === "calcetto" ? "squadre" : "singolo");
+const competitionFormat =
+  event.competitionFormat ||
+  (event.sport === "calcetto" ? "squadre" : "singolo");
 
-  setCreatingMatch(true);
-  setMessage("");
+if (
+  event.type === "torneo" &&
+  (!event.bracket || event.bracket.length === 0)
+) {
+  setMessage("Prima genera il tabellone del torneo.");
+  return;
+}
+
+if (
+  event.type === "campionato" &&
+  (!event.leagueFixtures || event.leagueFixtures.length === 0)
+) {
+  setMessage("Prima genera il calendario del campionato.");
+  return;
+}
+
+setCreatingMatch(true);
+setMessage("");
 
   try {
     let players: {
@@ -1554,7 +1570,13 @@ async function generateLeagueSchedule() {
       className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/10 px-6 py-4 font-black text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
     >
       <PlayCircle size={18} />
-      {creatingMatch ? "Creazione match..." : "Crea nuovo match"}
+      {creatingMatch
+  ? "Creazione match..."
+  : event.type === "torneo"
+  ? "Crea prossimo match torneo"
+  : event.type === "campionato"
+  ? "Crea prossima giornata"
+  : "Crea nuovo match"}
     </button>
 
     {event.type === "torneo" && isTeamCompetition && (
