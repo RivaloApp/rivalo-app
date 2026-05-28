@@ -199,45 +199,62 @@ export default function EventDetailPage() {
 
       setEvent(eventData);
 
-      const usersSnap = await getDocs(collection(db, "users"));
-
-      const usersResult = usersSnap.docs.map((docSnap) => ({
-        uid: docSnap.id,
-        ...(docSnap.data() as Omit<UserOption, "uid">),
-      }));
-
-      setAvailableUsers(usersResult);
-
       const savedInfo = Array.isArray(eventData.participantsInfo)
-        ? eventData.participantsInfo
-        : [];
+  ? eventData.participantsInfo
+  : [];
 
-      const participants = Array.isArray(eventData.participants)
-        ? eventData.participants
-        : [];
+const participants = Array.isArray(eventData.participants)
+  ? eventData.participants
+  : [];
 
-      const participantsResult: ParticipantInfo[] = [];
+const participantsResult: ParticipantInfo[] = [];
 
-      for (const uid of participants) {
-        const alreadySaved = savedInfo.find((p) => p.uid === uid);
-        const userData = usersResult.find((u) => u.uid === uid);
+for (const uid of participants) {
+  const alreadySaved = savedInfo.find((p) => p.uid === uid);
 
-        participantsResult.push({
-          uid,
-          name:
-            userData?.name ||
-            userData?.nickname ||
-            alreadySaved?.name ||
-            "Rivalo Player",
-          photoUrl:
-            userData?.photoUrl ||
-            userData?.photoURL ||
-            alreadySaved?.photoUrl ||
-            "",
-        });
-      }
+  let userName = alreadySaved?.name || "Rivalo Player";
+  let userPhoto = alreadySaved?.photoUrl || "";
 
-      setParticipantsInfo(participantsResult);
+  try {
+    const userSnap = await getDoc(doc(db, "users", uid));
+
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+
+      userName =
+        userData.name ||
+        userData.nickname ||
+        alreadySaved?.name ||
+        "Rivalo Player";
+
+      userPhoto =
+        userData.photoUrl ||
+        userData.photoURL ||
+        alreadySaved?.photoUrl ||
+        "";
+    }
+  } catch {
+    // Se il profilo non si legge, usa i dati salvati nell'evento
+  }
+
+  participantsResult.push({
+    uid,
+    name: userName,
+    photoUrl: userPhoto,
+  });
+}
+
+setParticipantsInfo(participantsResult);
+
+setAvailableUsers(
+  participantsResult.map((participant) => ({
+    uid: participant.uid,
+    name: participant.name || "Rivalo Player",
+    nickname: "",
+    photoUrl: participant.photoUrl || "",
+    photoURL: participant.photoUrl || "",
+  }))
+);
 
       const statsQuery = query(
         collection(db, "eventStats"),
@@ -367,6 +384,16 @@ setTeamStats(teamStatsResult);
       });
 
       setParticipantsInfo([...participantsInfo, newParticipant]);
+      setAvailableUsers([
+  ...availableUsers,
+  {
+    uid: newParticipant.uid,
+    name: newParticipant.name || "Rivalo Player",
+    nickname: "",
+    photoUrl: newParticipant.photoUrl || "",
+    photoURL: newParticipant.photoUrl || "",
+  },
+]);
 
       setMessage("Iscrizione confermata.");
     } catch (error) {
@@ -1151,7 +1178,7 @@ async function generateLeagueSchedule() {
 
                       <div className="mt-4">
                         <div className="mb-2 text-sm font-black uppercase tracking-[0.12em] text-slate-300">
-                          Giocatori
+                          Giocatori iscritti all'evento
                         </div>
 
                         <select
@@ -1166,6 +1193,11 @@ async function generateLeagueSchedule() {
                           }
                           className="min-h-[150px] w-full rounded-2xl border border-white/10 bg-[#020617] p-4 text-white outline-none"
                         >
+                          {availableUsers.length === 0 && (
+  <option className="bg-[#020617] text-white" disabled>
+    Nessun giocatore iscritto all'evento
+  </option>
+)}
                           {availableUsers.map((availableUser) => (
                             <option
                               key={availableUser.uid}
