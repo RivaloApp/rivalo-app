@@ -523,6 +523,43 @@ if (duplicatedPlayer) {
 
     setCreatingTeam(false);
   }
+
+  function validateTeamsForCompetition() {
+  if (!event) return false;
+
+  const competitionFormat =
+    event.competitionFormat ||
+    (event.sport === "calcetto" ? "squadre" : "singolo");
+
+  const teams = event.teams || [];
+
+  if (teams.length < 2) {
+    setMessage("Servono almeno 2 squadre/coppie per iniziare.");
+    return false;
+  }
+
+  for (const team of teams) {
+    const playersCount = Array.isArray(team.players) ? team.players.length : 0;
+
+    if (competitionFormat === "doppio" && playersCount !== 2) {
+      setMessage(`La coppia ${team.name} deve avere esattamente 2 giocatori.`);
+      return false;
+    }
+
+    if (competitionFormat === "squadre" && playersCount < 2) {
+      setMessage(`La squadra ${team.name} deve avere almeno 2 giocatori.`);
+      return false;
+    }
+
+    if (competitionFormat === "squadre" && playersCount > 8) {
+      setMessage(`La squadra ${team.name} supera il massimo di 8 giocatori.`);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 async function generateTournamentBracket() {
   if (!user || !event) return;
 
@@ -537,6 +574,9 @@ async function generateTournamentBracket() {
     setMessage("Servono almeno 2 squadre per generare il tabellone.");
     return;
   }
+  if (!validateTeamsForCompetition()) {
+  return;
+}
 
   setGeneratingBracket(true);
   setMessage("");
@@ -603,6 +643,9 @@ async function generateLeagueSchedule() {
     setMessage("Servono almeno 2 squadre per generare il calendario.");
     return;
   }
+  if (!validateTeamsForCompetition()) {
+  return;
+}
 
   setGeneratingLeague(true);
   setMessage("");
