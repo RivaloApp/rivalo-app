@@ -416,17 +416,39 @@ setTeamStats(teamStatsResult);
       event.competitionFormat ||
       (event.sport === "calcetto" ? "squadre" : "singolo");
 
-    if (competitionFormat === "doppio" && selectedPlayerIds.length !== 2) {
-      setMessage("Nel doppio devi selezionare esattamente 2 giocatori.");
-      return;
-    }
+   if (competitionFormat === "doppio" && selectedPlayerIds.length !== 2) {
+  setMessage("Nel doppio devi selezionare esattamente 2 giocatori.");
+  return;
+}
 
-    if (competitionFormat === "squadre" && selectedPlayerIds.length < 2) {
-      setMessage("Per creare una squadra servono almeno 2 giocatori.");
-      return;
-    }
+if (competitionFormat === "squadre" && selectedPlayerIds.length < 2) {
+  setMessage("Per creare una squadra servono almeno 2 giocatori.");
+  return;
+}
 
-    const currentTeams = event.teams || [];
+if (competitionFormat === "squadre" && selectedPlayerIds.length > 8) {
+  setMessage("Una squadra può avere massimo 8 giocatori.");
+  return;
+}
+
+const currentTeams = event.teams || [];
+
+const alreadyUsedPlayerIds = currentTeams.flatMap((team) =>
+  Array.isArray(team.players) ? team.players.map((player) => player.uid) : []
+);
+
+const duplicatedPlayer = selectedPlayerIds.find((uid) =>
+  alreadyUsedPlayerIds.includes(uid)
+);
+
+if (duplicatedPlayer) {
+  const duplicatedUser = availableUsers.find((u) => u.uid === duplicatedPlayer);
+
+  setMessage(
+    `${duplicatedUser?.name || duplicatedUser?.nickname || "Questo giocatore"} è già in una squadra di questo evento.`
+  );
+  return;
+}
 
     const selectedPlayers: ParticipantInfo[] = selectedPlayerIds.map((uid) => {
       const selectedUser = availableUsers.find((u) => u.uid === uid);
@@ -1212,7 +1234,7 @@ async function generateLeagueSchedule() {
                         </select>
 
                         <div className="mt-2 text-xs text-slate-400">
-                          Tieni premuto CTRL per selezionare più giocatori.
+                         Puoi selezionare solo giocatori già iscritti all'evento. Un giocatore non può stare in due squadre.
                         </div>
                       </div>
 
