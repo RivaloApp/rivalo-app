@@ -1363,7 +1363,7 @@ const canCreateEventMatch =
         </div>
 
         <h2 className="mt-2 text-3xl font-black">
-          Primo turno
+          Tabellone completo
         </h2>
 
         <p className="mt-2 text-sm text-slate-400">
@@ -1373,6 +1373,18 @@ const canCreateEventMatch =
 
       <Trophy className="text-yellow-300" />
     </div>
+
+    {event.status === "torneo completato" && (
+  <div className="mb-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-5">
+    <div className="text-xs font-black uppercase tracking-[0.2em] text-yellow-200">
+      Torneo completato
+    </div>
+
+    <div className="mt-2 text-2xl font-black text-yellow-100">
+      Vincitore: {(event as any).winnerTeamName || "Squadra vincitrice"}
+    </div>
+  </div>
+)}
 
     {!event.bracket || event.bracket.length === 0 ? (
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
