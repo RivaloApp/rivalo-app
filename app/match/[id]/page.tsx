@@ -251,20 +251,30 @@ async function syncEventMatchResult(safeMatch: MatchDoc) {
   }
 
   if (Array.isArray(eventData.leagueFixtures)) {
-    const nextFixtures = eventData.leagueFixtures.map((fixture: any) => {
-      if (fixture.matchId !== matchId) return fixture;
+  const nextFixtures = eventData.leagueFixtures.map((fixture: any) => {
+    if (fixture.matchId !== matchId) return fixture;
 
-      return {
-        ...fixture,
-        homeScore: homeScoreNumber,
-        awayScore: awayScoreNumber,
-        resultStatus: "confermato",
-        status: "completata",
-      };
-    });
+    return {
+      ...fixture,
+      homeScore: homeScoreNumber,
+      awayScore: awayScoreNumber,
+      resultStatus: "confermato",
+      status: "completata",
+    };
+  });
 
-    updatePayload.leagueFixtures = nextFixtures;
+  const allLeagueCompleted =
+    nextFixtures.length > 0 &&
+    nextFixtures.every(
+      (fixture: any) => fixture.resultStatus === "confermato"
+    );
+
+  updatePayload.leagueFixtures = nextFixtures;
+
+  if (allLeagueCompleted) {
+    updatePayload.status = "campionato completato";
   }
+}
 
   await updateDoc(eventRef, updatePayload);
 }
