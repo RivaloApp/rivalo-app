@@ -394,12 +394,18 @@ export default function MatchPage() {
                 <select
                   value={groupId}
                   onChange={(e) => handleGroupChange(e.target.value)}
-                  className="w-full bg-transparent outline-none"
+                  className="w-full bg-[#0b1730] text-white outline-none"
                 >
-                  <option value="">Nessun gruppo / Solo io</option>
+                  <option className="bg-[#020617] text-white" value="">
+                    Nessun gruppo / Solo io
+                  </option>
 
                   {groups.map((group) => (
-                    <option key={group.id} value={group.id}>
+                    <option
+                      className="bg-[#020617] text-white"
+                      key={group.id}
+                      value={group.id}
+                    >
                       {group.name || "Gruppo senza nome"}
                     </option>
                   ))}
@@ -421,11 +427,17 @@ export default function MatchPage() {
                   <select
                     value={sport}
                     onChange={(e) => handleSportChange(e.target.value)}
-                    className="w-full bg-transparent outline-none"
+                    className="w-full bg-[#0b1730] text-white outline-none"
                   >
-                    <option value="calcetto">Calcetto</option>
-                    <option value="padel">Padel</option>
-                    <option value="tennis">Tennis</option>
+                    <option className="bg-[#020617] text-white" value="calcetto">
+                      Calcetto
+                    </option>
+                    <option className="bg-[#020617] text-white" value="padel">
+                      Padel
+                    </option>
+                    <option className="bg-[#020617] text-white" value="tennis">
+                      Tennis
+                    </option>
                   </select>
                 </Field>
 
@@ -433,10 +445,14 @@ export default function MatchPage() {
                   <select
                     value={mode}
                     onChange={(e) => setMode(e.target.value)}
-                    className="w-full bg-transparent outline-none"
+                    className="w-full bg-[#0b1730] text-white outline-none"
                   >
-                    <option value="amichevole">Amichevole</option>
-                    <option value="allenamento">Allenamento</option>
+                    <option className="bg-[#020617] text-white" value="amichevole">
+                      Amichevole
+                    </option>
+                    <option className="bg-[#020617] text-white" value="allenamento">
+                      Allenamento
+                    </option>
                   </select>
                 </Field>
               </div>
@@ -447,16 +463,22 @@ export default function MatchPage() {
                   onChange={(e) =>
                     setCompetitionFormat(e.target.value as CompetitionFormat)
                   }
-                  className="w-full bg-transparent outline-none"
+                  className="w-full bg-[#0b1730] text-white outline-none"
                 >
                   {sport === "calcetto" && (
-                    <option value="squadre">Squadre</option>
+                    <option className="bg-[#020617] text-white" value="squadre">
+                      Squadre
+                    </option>
                   )}
 
                   {(sport === "padel" || sport === "tennis") && (
                     <>
-                      <option value="singolo">Singolo</option>
-                      <option value="doppio">Doppio</option>
+                      <option className="bg-[#020617] text-white" value="singolo">
+                        Singolo
+                      </option>
+                      <option className="bg-[#020617] text-white" value="doppio">
+                        Doppio
+                      </option>
                     </>
                   )}
                 </select>
@@ -718,7 +740,11 @@ function MatchCard({ match }: { match: MatchDoc }) {
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-xl bg-white/5 px-3 py-2 text-slate-300">{children}</div>;
+  return (
+    <div className="rounded-xl bg-white/5 px-3 py-2 text-slate-300">
+      {children}
+    </div>
+  );
 }
 
 function EmptyBox({ text }: { text: string }) {
