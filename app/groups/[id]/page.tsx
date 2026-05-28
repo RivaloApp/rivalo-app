@@ -4,11 +4,18 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
+  arrayUnion,
+  collection,
   doc,
   getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore";
-import { db } from "../../../lib/firebase";
-
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth, db } from "../../../lib/firebase";
 import {
   ArrowLeft,
   CalendarDays,
@@ -31,6 +38,14 @@ type RivaloGroup = {
   members?: string[];
 };
 
+type MemberProfile = {
+  uid: string;
+  name?: string;
+  nickname?: string;
+  email?: string;
+  photoUrl?: string;
+};
+
 export default function GroupDetailsPage() {
   const params = useParams();
 
@@ -42,37 +57,153 @@ const groupId =
     : "";
 
   const [group, setGroup] = useState<RivaloGroup | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+const [memberProfiles, setMemberProfiles] = useState<MemberProfile[]>([]);
+const [memberSearch, setMemberSearch] = useState("");
+const [addingMember, setAddingMember] = useState(false);
+const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    async function loadGroup() {
-      try {
-        const ref = doc(db, "groups", groupId);
-        const snap = await getDoc(ref);
+  const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    if (!currentUser) {
+      window.location.href = "/login";
+      return;
+    }
 
-        if (snap.exists()) {
-          const data = snap.data();
+    setUser(currentUser);
 
-setGroup({
-  name: data.name || "Gruppo Rivalo",
-  city: data.city || "Nessuna città",
-  sport: data.sport || "Sport",
-  mode: data.mode || "Amichevole",
-  privacy: data.privacy || "public",
-  premiumPlan: data.premiumPlan || "free",
-  members: Array.isArray(data.members) ? data.members : [],
-});
+    if (groupId) {
+      await loadGroup();
+    }
+  });
+
+  return () => unsubscribe();
+}, [groupId]);
+
+async function loadGroup() {
+  try {
+    const ref = doc(db, "groups", groupId);
+    const snap = await getDoc(ref);
+
+    if (snap.exists()) {
+      const data = snap.data();
+
+      const members = Array.isArray(data.members) ? data.members : [];
+
+      setGroup({
+        name: data.name || "Gruppo Rivalo",
+        city: data.city || "Nessuna città",
+        sport: data.sport || "Sport",
+        mode: data.mode || "Amichevole",
+        privacy: data.privacy || "public",
+        premiumPlan: data.premiumPlan || "free",
+        members,
+      });
+
+      const profiles: MemberProfile[] = [];
+
+      for (const uid of members) {
+        const userSnap = await getDoc(doc(db, "users", uid));
+
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+
+          profiles.push({
+            uid,
+            name: userData.name || "Rivalo Player",
+            nickname: userData.nickname || "",
+            email: userData.email || "",
+            photoUrl: userData.photoUrl || userData.photoURL || "",
+          });
+        } else {
+          profiles.push({
+            uid,
+            name: "Rivalo Player",
+          });
         }
-      } finally {
-        setLoading(false);
+      }
+
+      setMemberProfiles(profiles);
+    }
+  } finally {
+    setLoading(false);
+  }
+}
+async function addMemberToGroup(e: React.FormEvent) {
+  e.preventDefault();
+
+  if (!user || !group) return;
+
+  const search = memberSearch.trim();
+
+  if (!search) {
+    setMessage("Inserisci email, nickname o nome utente.");
+    return;
+  }
+
+  setAddingMember(true);
+  setMessage("");
+
+  try {
+    const usersRef = collection(db, "users");
+
+    const searchLower = search.toLowerCase();
+
+    const possibleQueries = [
+      query(usersRef, where("email", "==", searchLower)),
+      query(usersRef, where("nickname", "==", search)),
+      query(usersRef, where("name", "==", search)),
+    ];
+
+    let foundUser: MemberProfile | null = null;
+
+    for (const q of possibleQueries) {
+      const snap = await getDocs(q);
+
+      if (!snap.empty) {
+        const docSnap = snap.docs[0];
+        const data = docSnap.data();
+
+        foundUser = {
+          uid: docSnap.id,
+          name: data.name || "Rivalo Player",
+          nickname: data.nickname || "",
+          email: data.email || "",
+          photoUrl: data.photoUrl || data.photoURL || "",
+        };
+
+        break;
       }
     }
 
-    if (groupId) {
-      loadGroup();
+    if (!foundUser) {
+      setMessage("Utente non trovato. Deve avere un account Rivalo.");
+      return;
     }
-  }, [groupId]);
+
+    if (group.members?.includes(foundUser.uid)) {
+      setMessage("Questo utente è già nel gruppo.");
+      return;
+    }
+
+    await updateDoc(doc(db, "groups", groupId), {
+      members: arrayUnion(foundUser.uid),
+      updatedAt: serverTimestamp(),
+    });
+
+    setMemberSearch("");
+    setMessage("Membro aggiunto al gruppo.");
+
+    await loadGroup();
+  } catch (error) {
+    console.error(error);
+    setMessage("Errore durante l'aggiunta del membro.");
+  } finally {
+    setAddingMember(false);
+  }
+}
   useEffect(() => {
   setMounted(true);
 }, []);
@@ -175,6 +306,80 @@ if (!mounted) {
             text="Espandi la community."
           />
         </section>
+        <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
+  <Panel
+    title="Membri del gruppo"
+    subtitle="Solo questi utenti saranno selezionabili nei match privati del gruppo."
+  >
+    <div className="space-y-3">
+      {memberProfiles.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
+          Nessun membro visibile.
+        </div>
+      ) : (
+        memberProfiles.map((member) => (
+          <div
+            key={member.uid}
+            className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#061126]/80 p-4"
+          >
+            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-cyan-400/10">
+              {member.photoUrl ? (
+                <img
+                  src={member.photoUrl}
+                  alt="Membro"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <Users className="text-cyan-200" size={20} />
+              )}
+            </div>
+
+            <div className="min-w-0">
+              <div className="truncate font-black">
+                {member.name || "Rivalo Player"}
+              </div>
+
+              <div className="truncate text-xs text-slate-400">
+                {member.nickname || member.email || "Membro gruppo"}
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </Panel>
+
+  <Panel
+    title="Aggiungi membro"
+    subtitle="Cerca un utente Rivalo tramite email, nickname o nome."
+  >
+    <form onSubmit={addMemberToGroup} className="space-y-4">
+      <div className="rounded-2xl border border-white/10 bg-[#061126]/80 px-4 py-4">
+        <input
+          value={memberSearch}
+          onChange={(e) => setMemberSearch(e.target.value)}
+          placeholder="Email, nickname o nome utente"
+          className="w-full bg-transparent outline-none placeholder:text-slate-500"
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={addingMember}
+        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
+      >
+        {addingMember ? "Aggiunta..." : "Aggiungi al gruppo"}
+        <ChevronRight size={20} />
+      </button>
+
+      {message && (
+        <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200">
+          {message}
+        </div>
+      )}
+    </form>
+  </Panel>
+</section>
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
           <Panel
