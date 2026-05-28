@@ -1378,6 +1378,18 @@ setMessage("");
                 {match.awayName}
               </div>
             </div>
+            {match.matchId ? (
+  <Link
+    href={`/match/${match.matchId}`}
+    className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200"
+  >
+    Apri match
+  </Link>
+) : (
+  <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs font-black text-slate-400">
+    Match non ancora creato
+  </div>
+)}
           </div>
         ))}
       </div>
