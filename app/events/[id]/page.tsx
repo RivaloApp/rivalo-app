@@ -570,6 +570,11 @@ async function generateTournamentBracket() {
     return;
   }
 
+  if (event.bracket && event.bracket.length > 0) {
+  setMessage("Il tabellone è già stato generato.");
+  return;
+}
+
   if (teams.length < 2) {
     setMessage("Servono almeno 2 squadre per generare il tabellone.");
     return;
@@ -638,6 +643,10 @@ async function generateLeagueSchedule() {
     setMessage("Il calendario è disponibile solo per i campionati.");
     return;
   }
+   if (event.leagueFixtures && event.leagueFixtures.length > 0) {
+  setMessage("Il calendario è già stato generato.");
+  return;
+}
 
   if (teams.length < 2) {
     setMessage("Servono almeno 2 squadre per generare il calendario.");
@@ -1582,21 +1591,29 @@ setMessage("");
     {event.type === "torneo" && isTeamCompetition && (
       <button
         onClick={generateTournamentBracket}
-        disabled={generatingBracket}
+        disabled={generatingBracket || Boolean(event.bracket?.length)}
         className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 px-6 py-4 font-black text-yellow-200 transition hover:bg-yellow-400/20 disabled:opacity-60"
       >
         <Trophy size={18} />
-        {generatingBracket ? "Generazione..." : "Genera tabellone"}
+        {generatingBracket
+  ? "Generazione..."
+  : event.bracket?.length
+  ? "Tabellone già generato"
+  : "Genera tabellone"}
       </button>
     )}
     {event.type === "campionato" && isTeamCompetition && (
   <button
     onClick={generateLeagueSchedule}
-    disabled={generatingLeague}
+    disabled={generatingLeague || Boolean(event.leagueFixtures?.length)}
     className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/10 px-6 py-4 font-black text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
   >
     <CalendarDays size={18} />
-    {generatingLeague ? "Generazione..." : "Genera calendario"}
+    {generatingLeague
+  ? "Generazione..."
+  : event.leagueFixtures?.length
+  ? "Calendario già generato"
+  : "Genera calendario"}
   </button>
 )}
   </>
