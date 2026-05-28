@@ -131,7 +131,74 @@ export default function MatchDetailsPage() {
   );
 }
 
-  async function proposeResult(e: React.FormEvent) {
+async function syncEventMatchResult(safeMatch: MatchDoc) {
+  if (!safeMatch.eventId) return;
+
+  const eventRef = doc(db, "events", safeMatch.eventId);
+  const eventSnap = await getDoc(eventRef);
+
+  if (!eventSnap.exists()) return;
+
+  const eventData = eventSnap.data() as any;
+
+  const homeScoreNumber = Number(homeScore || 0);
+  const awayScoreNumber = Number(awayScore || 0);
+
+  const winnerSide =
+    homeScoreNumber > awayScoreNumber
+      ? "home"
+      : homeScoreNumber < awayScoreNumber
+      ? "away"
+      : "draw";
+
+  const updatePayload: any = {
+    updatedAt: serverTimestamp(),
+  };
+
+  if (Array.isArray(eventData.bracket)) {
+    const nextBracket = eventData.bracket.map((bracketMatch: any) => {
+      if (bracketMatch.matchId !== matchId) return bracketMatch;
+
+      const winnerTeamId =
+        winnerSide === "home"
+          ? bracketMatch.homeTeamId || ""
+          : winnerSide === "away"
+          ? bracketMatch.awayTeamId || ""
+          : "";
+
+      return {
+        ...bracketMatch,
+        homeScore: homeScoreNumber,
+        awayScore: awayScoreNumber,
+        resultStatus: "confermato",
+        status: "completato",
+        winnerTeamId,
+      };
+    });
+
+    updatePayload.bracket = nextBracket;
+  }
+
+  if (Array.isArray(eventData.leagueFixtures)) {
+    const nextFixtures = eventData.leagueFixtures.map((fixture: any) => {
+      if (fixture.matchId !== matchId) return fixture;
+
+      return {
+        ...fixture,
+        homeScore: homeScoreNumber,
+        awayScore: awayScoreNumber,
+        resultStatus: "confermato",
+        status: "completata",
+      };
+    });
+
+    updatePayload.leagueFixtures = nextFixtures;
+  }
+
+  await updateDoc(eventRef, updatePayload);
+}
+
+ async function proposeResult(e: React.FormEvent) {
   e.preventDefault();
   if (!user || !match) return;
 
@@ -256,6 +323,8 @@ export default function MatchDetailsPage() {
       homeScore: Number(homeScore || 0),
       awayScore: Number(awayScore || 0),
     });
+
+    await syncEventMatchResult(safeMatch);
 
     await updateDoc(matchRef, {
       statsApplied: true,
