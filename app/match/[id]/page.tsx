@@ -156,7 +156,7 @@ async function syncEventMatchResult(safeMatch: MatchDoc) {
   };
 
   if (Array.isArray(eventData.bracket)) {
-    const nextBracket = eventData.bracket.map((bracketMatch: any) => {
+    let nextBracket = eventData.bracket.map((bracketMatch: any) => {
       if (bracketMatch.matchId !== matchId) return bracketMatch;
 
       const winnerTeamId =
@@ -175,6 +175,77 @@ async function syncEventMatchResult(safeMatch: MatchDoc) {
         winnerTeamId,
       };
     });
+
+    const currentMatch = nextBracket.find(
+      (bracketMatch: any) => bracketMatch.matchId === matchId
+    );
+
+    const currentRound = Number(currentMatch?.round || 1);
+
+    const roundMatches = nextBracket.filter(
+      (bracketMatch: any) => Number(bracketMatch.round || 1) === currentRound
+    );
+
+    const allRoundCompleted =
+      roundMatches.length > 0 &&
+      roundMatches.every(
+        (bracketMatch: any) =>
+          bracketMatch.resultStatus === "confermato" &&
+          Boolean(bracketMatch.winnerTeamId)
+      );
+
+    const nextRoundAlreadyExists = nextBracket.some(
+      (bracketMatch: any) => Number(bracketMatch.round || 1) === currentRound + 1
+    );
+
+    if (allRoundCompleted && !nextRoundAlreadyExists) {
+      const winners = roundMatches
+        .map((bracketMatch: any) => ({
+          teamId: bracketMatch.winnerTeamId,
+          name:
+            bracketMatch.winnerTeamId === bracketMatch.homeTeamId
+              ? bracketMatch.homeName
+              : bracketMatch.awayName,
+        }))
+        .filter((winner: any) => Boolean(winner.teamId));
+
+      if (winners.length === 1) {
+        updatePayload.status = "torneo completato";
+        updatePayload.winnerTeamId = winners[0].teamId;
+        updatePayload.winnerTeamName = winners[0].name;
+      }
+
+      if (winners.length > 1) {
+        const nextRoundMatches: any[] = [];
+
+        for (let i = 0; i < winners.length; i += 2) {
+          const homeWinner = winners[i];
+          const awayWinner = winners[i + 1];
+
+          nextRoundMatches.push({
+            round: currentRound + 1,
+            matchNumber: nextBracket.length + nextRoundMatches.length + 1,
+            homeTeamId: homeWinner?.teamId || "",
+            awayTeamId: awayWinner?.teamId || "",
+            homeName: homeWinner?.name || "Da definire",
+            awayName: awayWinner?.name || "Riposo",
+            winnerTeamId: awayWinner ? "" : homeWinner?.teamId || "",
+            matchId: "",
+            status: awayWinner ? "programmato" : "riposo",
+            resultStatus: awayWinner ? "da_creare" : "confermato",
+            homeScore: null,
+            awayScore: null,
+          });
+        }
+
+        nextBracket = [...nextBracket, ...nextRoundMatches];
+
+        updatePayload.status =
+          winners.length === 2
+            ? "finale generata"
+            : `round ${currentRound + 1} generato`;
+      }
+    }
 
     updatePayload.bracket = nextBracket;
   }
