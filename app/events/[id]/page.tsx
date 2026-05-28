@@ -1475,6 +1475,18 @@ const canCreateEventMatch =
 
       <CalendarDays className="text-lime-300" />
     </div>
+    
+    {event.status === "campionato completato" && (
+  <div className="mb-5 rounded-2xl border border-lime-300/20 bg-lime-400/10 p-5">
+    <div className="text-xs font-black uppercase tracking-[0.2em] text-lime-200">
+      Campionato completato
+    </div>
+
+    <div className="mt-2 text-2xl font-black text-lime-100">
+      Tutte le giornate sono state completate.
+    </div>
+  </div>
+)}
 
     {!event.leagueFixtures || event.leagueFixtures.length === 0 ? (
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
