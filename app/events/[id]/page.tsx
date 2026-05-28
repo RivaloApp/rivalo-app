@@ -1584,6 +1584,9 @@ function TeamCard({ team }: { team: TeamInfo }) {
       <div className="text-xl font-black uppercase text-cyan-200">
         {team.name}
       </div>
+      <div className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+  {team.players.length} giocatori
+</div>
 
       <div className="mt-3 space-y-2">
         {team.players.map((player) => (
