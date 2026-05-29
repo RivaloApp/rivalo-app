@@ -430,12 +430,12 @@ if (!mounted) {
       </p>
     </div>
 
-    <Link
-      href="/match"
-      className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-200"
-    >
-      Crea match
-    </Link>
+  <Link
+  href={`/match?groupId=${groupId}`}
+  className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-200"
+>
+  Crea match gruppo
+</Link>
   </div>
 
   {groupMatches.length === 0 ? (
