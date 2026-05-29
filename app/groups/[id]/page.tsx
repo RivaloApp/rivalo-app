@@ -46,6 +46,20 @@ type MemberProfile = {
   photoUrl?: string;
 };
 
+type GroupMatch = {
+  id: string;
+  name?: string;
+  sport?: string;
+  city?: string;
+  field?: string;
+  date?: string;
+  time?: string;
+  status?: string;
+  resultStatus?: string;
+  homeScore?: number | null;
+  awayScore?: number | null;
+};
+
 export default function GroupDetailsPage() {
   const params = useParams();
 
@@ -64,6 +78,7 @@ const [addingMember, setAddingMember] = useState(false);
 const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [groupMatches, setGroupMatches] = useState<GroupMatch[]>([]);
 
   useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -126,6 +141,25 @@ async function loadGroup() {
       }
 
       setMemberProfiles(profiles);
+      const matchesQuery = query(
+  collection(db, "matches"),
+  where("groupId", "==", groupId)
+);
+
+const matchesSnap = await getDocs(matchesQuery);
+
+const matchesResult = matchesSnap.docs
+  .map((docSnap) => ({
+    id: docSnap.id,
+    ...(docSnap.data() as Omit<GroupMatch, "id">),
+  }))
+  .sort((a, b) => {
+    const dateA = `${a.date || ""} ${a.time || ""}`;
+    const dateB = `${b.date || ""} ${b.time || ""}`;
+    return dateB.localeCompare(dateA);
+  });
+
+setGroupMatches(matchesResult);
     }
   } finally {
     setLoading(false);
@@ -380,7 +414,73 @@ if (!mounted) {
     </form>
   </Panel>
 </section>
+<section className="mt-8 rounded-[2rem] border border-white/10 bg-white/[.04] p-6 shadow-2xl backdrop-blur">
+  <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div>
+      <div className="text-sm font-black uppercase tracking-[.25em] text-cyan-300">
+        Match gruppo
+      </div>
 
+      <h2 className="mt-2 text-3xl font-black">
+        Partite collegate
+      </h2>
+
+      <p className="mt-2 text-sm text-slate-400">
+        Qui trovi solo i match collegati a questo gruppo.
+      </p>
+    </div>
+
+    <Link
+      href="/match"
+      className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-200"
+    >
+      Crea match
+    </Link>
+  </div>
+
+  {groupMatches.length === 0 ? (
+    <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
+      Nessun match collegato a questo gruppo.
+    </div>
+  ) : (
+    <div className="grid gap-4 lg:grid-cols-2">
+      {groupMatches.map((match) => (
+        <Link
+          key={match.id}
+          href={`/match/${match.id}`}
+          className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 transition hover:border-cyan-400/30"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="truncate text-xl font-black">
+                {match.name || "Match Rivalo"}
+              </div>
+
+              <div className="mt-2 text-sm text-slate-400">
+                {match.city || "Città non inserita"} · {match.field || "Campo non inserito"}
+              </div>
+
+              <div className="mt-1 text-xs text-slate-500">
+                {match.date || "Data"} · {match.time || "Ora"}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200">
+              {match.resultStatus || match.status || "programmata"}
+            </div>
+          </div>
+
+          {typeof match.homeScore === "number" &&
+            typeof match.awayScore === "number" && (
+              <div className="mt-4 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-sm font-black text-lime-200">
+                Risultato: {match.homeScore} - {match.awayScore}
+              </div>
+            )}
+        </Link>
+      ))}
+    </div>
+  )}
+</section>
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
           <Panel
             title="Campionato del gruppo"
