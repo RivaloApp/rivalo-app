@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import {
   addDoc,
@@ -44,6 +45,9 @@ type UserOption = {
 
 type MatchDoc = {
   id: string;
+  groupId?: string;
+  eventId?: string;
+  eventTitle?: string;
   name?: string;
   sport?: string;
   city?: string;
@@ -60,12 +64,12 @@ type MatchDoc = {
   statsApplying?: boolean;
   homeScore?: number | null;
   awayScore?: number | null;
-  groupId?: string;
-  eventId?: string;
-  eventTitle?: string;
 };
 
 export default function MatchPage() {
+  const searchParams = useSearchParams();
+  const requestedGroupId = searchParams.get("groupId") || "";
+
   const [user, setUser] = useState<User | null>(null);
   const [groups, setGroups] = useState<GroupDoc[]>([]);
   const [matches, setMatches] = useState<MatchDoc[]>([]);
@@ -87,10 +91,9 @@ export default function MatchPage() {
   const [saving, setSaving] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [message, setMessage] = useState("");
-
   const [matchFilter, setMatchFilter] = useState<
-  "tutti" | "ufficiali" | "da_confermare" | "contestati"
->("tutti");
+    "tutti" | "ufficiali" | "da_confermare" | "contestati"
+  >("tutti");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -100,16 +103,22 @@ export default function MatchPage() {
       }
 
       setUser(currentUser);
+
       await loadData(
         currentUser.uid,
-        currentUser.displayName || "Rivalo Player"
+        currentUser.displayName || "Rivalo Player",
+        requestedGroupId
       );
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [requestedGroupId]);
 
-  async function loadData(uid: string, fallbackName?: string) {
+  async function loadData(
+    uid: string,
+    fallbackName?: string,
+    preferredGroupId?: string
+  ) {
     setLoadingData(true);
 
     try {
@@ -134,16 +143,18 @@ export default function MatchPage() {
       setGroups(loadedGroups);
 
       if (loadedGroups.length > 0) {
-        const firstGroup = loadedGroups[0];
+        const selectedGroup =
+          loadedGroups.find((group) => group.id === preferredGroupId) ||
+          loadedGroups[0];
 
-        setGroupId(firstGroup.id);
-        setSport(firstGroup.sport || "calcetto");
-        setCity(firstGroup.city || "");
+        setGroupId(selectedGroup.id);
+        setSport(selectedGroup.sport || "calcetto");
+        setCity(selectedGroup.city || "");
 
-        if (firstGroup.sport === "padel") {
+        if (selectedGroup.sport === "padel") {
           setCompetitionFormat("doppio");
           setSlots("4");
-        } else if (firstGroup.sport === "tennis") {
+        } else if (selectedGroup.sport === "tennis") {
           setCompetitionFormat("singolo");
           setSlots("2");
         } else {
@@ -151,50 +162,51 @@ export default function MatchPage() {
           setSlots("10");
         }
 
-        await loadGroupMembers(firstGroup.id, uid, fallbackName);
+        await loadGroupMembers(selectedGroup.id, uid, fallbackName);
       } else {
         await loadGroupMembers("", uid, fallbackName);
       }
-const createdMatchesQuery = query(
-  collection(db, "matches"),
-  where("createdBy", "==", uid)
-);
 
-const participantMatchesQuery = query(
-  collection(db, "matches"),
-  where("participants", "array-contains", uid)
-);
+      const createdMatchesQuery = query(
+        collection(db, "matches"),
+        where("createdBy", "==", uid)
+      );
 
-const [createdMatchesSnapshot, participantMatchesSnapshot] =
-  await Promise.all([
-    getDocs(createdMatchesQuery),
-    getDocs(participantMatchesQuery),
-  ]);
+      const participantMatchesQuery = query(
+        collection(db, "matches"),
+        where("participants", "array-contains", uid)
+      );
 
-const matchesMap = new Map<string, MatchDoc>();
+      const [createdMatchesSnapshot, participantMatchesSnapshot] =
+        await Promise.all([
+          getDocs(createdMatchesQuery),
+          getDocs(participantMatchesQuery),
+        ]);
 
-createdMatchesSnapshot.docs.forEach((d) => {
-  matchesMap.set(d.id, {
-    id: d.id,
-    ...(d.data() as Omit<MatchDoc, "id">),
-  });
-});
+      const matchesMap = new Map<string, MatchDoc>();
 
-participantMatchesSnapshot.docs.forEach((d) => {
-  matchesMap.set(d.id, {
-    id: d.id,
-    ...(d.data() as Omit<MatchDoc, "id">),
-  });
-});
+      createdMatchesSnapshot.docs.forEach((d) => {
+        matchesMap.set(d.id, {
+          id: d.id,
+          ...(d.data() as Omit<MatchDoc, "id">),
+        });
+      });
 
-const sortedMatches = Array.from(matchesMap.values()).sort((a, b) => {
-  const dateA = `${a.date || ""} ${a.time || ""}`;
-  const dateB = `${b.date || ""} ${b.time || ""}`;
+      participantMatchesSnapshot.docs.forEach((d) => {
+        matchesMap.set(d.id, {
+          id: d.id,
+          ...(d.data() as Omit<MatchDoc, "id">),
+        });
+      });
 
-  return dateB.localeCompare(dateA);
-});
+      const sortedMatches = Array.from(matchesMap.values()).sort((a, b) => {
+        const dateA = `${a.date || ""} ${a.time || ""}`;
+        const dateB = `${b.date || ""} ${b.time || ""}`;
 
-setMatches(sortedMatches);
+        return dateB.localeCompare(dateA);
+      });
+
+      setMatches(sortedMatches);
     } catch {
       setMessage("Errore nel caricamento dei match.");
     } finally {
@@ -395,7 +407,7 @@ setMatches(sortedMatches);
       }
 
       setMessage("Match rapido creato correttamente.");
-      await loadData(user.uid, user.displayName || "Rivalo Player");
+      await loadData(user.uid, user.displayName || "Rivalo Player", groupId);
     } catch (error) {
       console.error(error);
       setMessage("Errore durante la creazione della partita.");
@@ -403,38 +415,42 @@ setMatches(sortedMatches);
       setSaving(false);
     }
   }
-const totalMatches = matches.length;
 
-const officialMatches = matches.filter(
-  (match) => match.status === "ufficiale" || match.resultStatus === "confermato"
-).length;
+  const totalMatches = matches.length;
 
-const pendingMatches = matches.filter(
-  (match) =>
-    match.status === "in_attesa_conferma" ||
-    match.resultStatus === "proposto"
-).length;
+  const officialMatches = matches.filter(
+    (match) =>
+      match.status === "ufficiale" || match.resultStatus === "confermato"
+  ).length;
 
-const disputedMatches = matches.filter(
-  (match) => match.status === "contestato" || match.resultStatus === "contestato"
-).length;
+  const pendingMatches = matches.filter(
+    (match) =>
+      match.status === "in_attesa_conferma" ||
+      match.resultStatus === "proposto"
+  ).length;
 
-const filteredMatches = matches.filter((match) => {
-  const isOfficial =
-    match.status === "ufficiale" || match.resultStatus === "confermato";
+  const disputedMatches = matches.filter(
+    (match) =>
+      match.status === "contestato" || match.resultStatus === "contestato"
+  ).length;
 
-  const isPending =
-    match.status === "in_attesa_conferma" || match.resultStatus === "proposto";
+  const filteredMatches = matches.filter((match) => {
+    const isOfficial =
+      match.status === "ufficiale" || match.resultStatus === "confermato";
 
-  const isDisputed =
-    match.status === "contestato" || match.resultStatus === "contestato";
+    const isPending =
+      match.status === "in_attesa_conferma" ||
+      match.resultStatus === "proposto";
 
-  if (matchFilter === "ufficiali") return isOfficial;
-  if (matchFilter === "da_confermare") return isPending;
-  if (matchFilter === "contestati") return isDisputed;
+    const isDisputed =
+      match.status === "contestato" || match.resultStatus === "contestato";
 
-  return true;
-});
+    if (matchFilter === "ufficiali") return isOfficial;
+    if (matchFilter === "da_confermare") return isPending;
+    if (matchFilter === "contestati") return isDisputed;
+
+    return true;
+  });
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
@@ -507,17 +523,12 @@ const filteredMatches = matches.filter((match) => {
                     onChange={(e) => handleSportChange(e.target.value)}
                     className="w-full bg-[#0b1730] text-white outline-none"
                   >
-                    <option
-                      className="bg-[#020617] text-white"
-                      value="calcetto"
-                    >
+                    <option className="bg-[#020617] text-white" value="calcetto">
                       Calcetto
                     </option>
-
                     <option className="bg-[#020617] text-white" value="padel">
                       Padel
                     </option>
-
                     <option className="bg-[#020617] text-white" value="tennis">
                       Tennis
                     </option>
@@ -530,17 +541,10 @@ const filteredMatches = matches.filter((match) => {
                     onChange={(e) => setMode(e.target.value)}
                     className="w-full bg-[#0b1730] text-white outline-none"
                   >
-                    <option
-                      className="bg-[#020617] text-white"
-                      value="amichevole"
-                    >
+                    <option className="bg-[#020617] text-white" value="amichevole">
                       Amichevole
                     </option>
-
-                    <option
-                      className="bg-[#020617] text-white"
-                      value="allenamento"
-                    >
+                    <option className="bg-[#020617] text-white" value="allenamento">
                       Allenamento
                     </option>
                   </select>
@@ -556,27 +560,17 @@ const filteredMatches = matches.filter((match) => {
                   className="w-full bg-[#0b1730] text-white outline-none"
                 >
                   {sport === "calcetto" && (
-                    <option
-                      className="bg-[#020617] text-white"
-                      value="squadre"
-                    >
+                    <option className="bg-[#020617] text-white" value="squadre">
                       Squadre
                     </option>
                   )}
 
                   {(sport === "padel" || sport === "tennis") && (
                     <>
-                      <option
-                        className="bg-[#020617] text-white"
-                        value="singolo"
-                      >
+                      <option className="bg-[#020617] text-white" value="singolo">
                         Singolo
                       </option>
-
-                      <option
-                        className="bg-[#020617] text-white"
-                        value="doppio"
-                      >
+                      <option className="bg-[#020617] text-white" value="doppio">
                         Doppio
                       </option>
                     </>
@@ -738,11 +732,16 @@ const filteredMatches = matches.filter((match) => {
 
         <section className="mt-8 rounded-[2rem] border border-white/10 bg-[#071126]/75 p-7 shadow-2xl backdrop-blur">
           <div className="mb-6 grid gap-4 md:grid-cols-4">
-  <MatchSummaryBox label="Totali" value={totalMatches} tone="cyan" />
-  <MatchSummaryBox label="Ufficiali" value={officialMatches} tone="lime" />
-  <MatchSummaryBox label="Da confermare" value={pendingMatches} tone="yellow" />
-  <MatchSummaryBox label="Contestati" value={disputedMatches} tone="red" />
-</div>
+            <MatchSummaryBox label="Totali" value={totalMatches} tone="cyan" />
+            <MatchSummaryBox label="Ufficiali" value={officialMatches} tone="lime" />
+            <MatchSummaryBox
+              label="Da confermare"
+              value={pendingMatches}
+              tone="yellow"
+            />
+            <MatchSummaryBox label="Contestati" value={disputedMatches} tone="red" />
+          </div>
+
           <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <div className="text-sm font-black uppercase tracking-[.28em] text-cyan-300">
@@ -753,44 +752,44 @@ const filteredMatches = matches.filter((match) => {
             </div>
 
             <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-black text-cyan-300">
-              {matches.length} match
+              {filteredMatches.length} / {matches.length} match
             </div>
           </div>
 
           <div className="mb-6 flex flex-wrap gap-3">
-  <FilterButton
-    active={matchFilter === "tutti"}
-    onClick={() => setMatchFilter("tutti")}
-  >
-    Tutti
-  </FilterButton>
+            <FilterButton
+              active={matchFilter === "tutti"}
+              onClick={() => setMatchFilter("tutti")}
+            >
+              Tutti
+            </FilterButton>
 
-  <FilterButton
-    active={matchFilter === "ufficiali"}
-    onClick={() => setMatchFilter("ufficiali")}
-  >
-    Ufficiali
-  </FilterButton>
+            <FilterButton
+              active={matchFilter === "ufficiali"}
+              onClick={() => setMatchFilter("ufficiali")}
+            >
+              Ufficiali
+            </FilterButton>
 
-  <FilterButton
-    active={matchFilter === "da_confermare"}
-    onClick={() => setMatchFilter("da_confermare")}
-  >
-    Da confermare
-  </FilterButton>
+            <FilterButton
+              active={matchFilter === "da_confermare"}
+              onClick={() => setMatchFilter("da_confermare")}
+            >
+              Da confermare
+            </FilterButton>
 
-  <FilterButton
-    active={matchFilter === "contestati"}
-    onClick={() => setMatchFilter("contestati")}
-  >
-    Contestati
-  </FilterButton>
-</div>
+            <FilterButton
+              active={matchFilter === "contestati"}
+              onClick={() => setMatchFilter("contestati")}
+            >
+              Contestati
+            </FilterButton>
+          </div>
 
           {loadingData ? (
             <EmptyBox text="Caricamento partite..." />
           ) : filteredMatches.length === 0 ? (
-            <EmptyBox text="Nessuna partita creata. Crea il primo match Rivalo." />
+            <EmptyBox text="Nessun match trovato con questo filtro." />
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
               {filteredMatches.map((match) => (
@@ -892,8 +891,8 @@ function MatchCard({ match }: { match: MatchDoc }) {
     : "border-white/10 bg-white/[.04] text-slate-300";
 
   return (
-    <Link href={`/match/${match.id}`}>
-      <div className="rounded-[1.7rem] border border-white/10 bg-[#0b1730] p-5 transition hover:scale-[1.02] hover:border-cyan-400/30 hover:bg-[#112041]">
+    <div className="rounded-[1.7rem] border border-white/10 bg-[#0b1730] p-5 transition hover:scale-[1.02] hover:border-cyan-400/30 hover:bg-[#112041]">
+      <Link href={`/match/${match.id}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="truncate text-2xl font-black">
@@ -907,19 +906,20 @@ function MatchCard({ match }: { match: MatchDoc }) {
             <div className="mt-1 text-sm text-slate-500">
               {match.field || "Campo non inserito"}
             </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-  {match.groupId && match.groupId !== "nessun-gruppo" && (
-    <span className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 font-black text-cyan-200">
-      Gruppo
-    </span>
-  )}
 
-  {match.eventId && (
-    <span className="rounded-lg border border-fuchsia-400/20 bg-fuchsia-400/10 px-2 py-1 font-black text-fuchsia-200">
-      {match.eventTitle || "Evento"}
-    </span>
-  )}
-</div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              {match.groupId && match.groupId !== "nessun-gruppo" && (
+                <span className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 font-black text-cyan-200">
+                  Gruppo
+                </span>
+              )}
+
+              {match.eventId && (
+                <span className="rounded-lg border border-fuchsia-400/20 bg-fuchsia-400/10 px-2 py-1 font-black text-fuchsia-200">
+                  {match.eventTitle || "Evento"}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-black uppercase text-cyan-300">
@@ -954,29 +954,28 @@ function MatchCard({ match }: { match: MatchDoc }) {
             {statsLabel}
           </div>
         </div>
-        <div className="mt-5 flex flex-wrap gap-3">
-  {match.groupId && match.groupId !== "nessun-gruppo" && (
-    <Link
-      href={`/groups/${match.groupId}`}
-      onClick={(e) => e.stopPropagation()}
-      className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs font-black text-cyan-200"
-    >
-      Apri gruppo
-    </Link>
-  )}
+      </Link>
 
-  {match.eventId && (
-    <Link
-      href={`/events/${match.eventId}`}
-      onClick={(e) => e.stopPropagation()}
-      className="rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-2 text-xs font-black text-fuchsia-200"
-    >
-      Apri evento
-    </Link>
-  )}
-</div>
+      <div className="mt-5 flex flex-wrap gap-3">
+        {match.groupId && match.groupId !== "nessun-gruppo" && (
+          <Link
+            href={`/groups/${match.groupId}`}
+            className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs font-black text-cyan-200"
+          >
+            Apri gruppo
+          </Link>
+        )}
+
+        {match.eventId && (
+          <Link
+            href={`/events/${match.eventId}`}
+            className="rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-2 text-xs font-black text-fuchsia-200"
+          >
+            Apri evento
+          </Link>
+        )}
       </div>
-    </Link>
+    </div>
   );
 }
 
