@@ -54,6 +54,12 @@ type MatchDoc = {
   competitionFormat?: CompetitionFormat;
   slots?: number;
   status?: string;
+  resultStatus?: string;
+  fairPlayStatus?: string;
+  statsApplied?: boolean;
+  statsApplying?: boolean;
+  homeScore?: number | null;
+  awayScore?: number | null;
 };
 
 export default function MatchPage() {
@@ -87,7 +93,10 @@ export default function MatchPage() {
       }
 
       setUser(currentUser);
-      await loadData(currentUser.uid, currentUser.displayName || "Rivalo Player");
+      await loadData(
+        currentUser.uid,
+        currentUser.displayName || "Rivalo Player"
+      );
     });
 
     return () => unsubscribe();
@@ -192,7 +201,9 @@ export default function MatchPage() {
       }
 
       const groupData = groupSnap.data() as GroupDoc;
-      const memberIds = Array.isArray(groupData.members) ? groupData.members : [];
+      const memberIds = Array.isArray(groupData.members)
+        ? groupData.members
+        : [];
 
       const usersResult: UserOption[] = [];
 
@@ -275,7 +286,9 @@ export default function MatchPage() {
       sport === "calcetto" ? 2 : competitionFormat === "doppio" ? 4 : 2;
 
     if (selectedUsers.length < minimumPlayers) {
-      setMessage(`Servono almeno ${minimumPlayers} giocatori per questo formato.`);
+      setMessage(
+        `Servono almeno ${minimumPlayers} giocatori per questo formato.`
+      );
       return;
     }
 
@@ -429,12 +442,17 @@ export default function MatchPage() {
                     onChange={(e) => handleSportChange(e.target.value)}
                     className="w-full bg-[#0b1730] text-white outline-none"
                   >
-                    <option className="bg-[#020617] text-white" value="calcetto">
+                    <option
+                      className="bg-[#020617] text-white"
+                      value="calcetto"
+                    >
                       Calcetto
                     </option>
+
                     <option className="bg-[#020617] text-white" value="padel">
                       Padel
                     </option>
+
                     <option className="bg-[#020617] text-white" value="tennis">
                       Tennis
                     </option>
@@ -447,10 +465,17 @@ export default function MatchPage() {
                     onChange={(e) => setMode(e.target.value)}
                     className="w-full bg-[#0b1730] text-white outline-none"
                   >
-                    <option className="bg-[#020617] text-white" value="amichevole">
+                    <option
+                      className="bg-[#020617] text-white"
+                      value="amichevole"
+                    >
                       Amichevole
                     </option>
-                    <option className="bg-[#020617] text-white" value="allenamento">
+
+                    <option
+                      className="bg-[#020617] text-white"
+                      value="allenamento"
+                    >
                       Allenamento
                     </option>
                   </select>
@@ -466,17 +491,27 @@ export default function MatchPage() {
                   className="w-full bg-[#0b1730] text-white outline-none"
                 >
                   {sport === "calcetto" && (
-                    <option className="bg-[#020617] text-white" value="squadre">
+                    <option
+                      className="bg-[#020617] text-white"
+                      value="squadre"
+                    >
                       Squadre
                     </option>
                   )}
 
                   {(sport === "padel" || sport === "tennis") && (
                     <>
-                      <option className="bg-[#020617] text-white" value="singolo">
+                      <option
+                        className="bg-[#020617] text-white"
+                        value="singolo"
+                      >
                         Singolo
                       </option>
-                      <option className="bg-[#020617] text-white" value="doppio">
+
+                      <option
+                        className="bg-[#020617] text-white"
+                        value="doppio"
+                      >
                         Doppio
                       </option>
                     </>
@@ -492,7 +527,9 @@ export default function MatchPage() {
                     </div>
                   ) : (
                     availableUsers.map((availableUser) => {
-                      const checked = selectedPlayerIds.includes(availableUser.uid);
+                      const checked = selectedPlayerIds.includes(
+                        availableUser.uid
+                      );
 
                       return (
                         <label
@@ -517,11 +554,15 @@ export default function MatchPage() {
                             onChange={(e) => {
                               if (e.target.checked) {
                                 setSelectedPlayerIds((current) =>
-                                  Array.from(new Set([...current, availableUser.uid]))
+                                  Array.from(
+                                    new Set([...current, availableUser.uid])
+                                  )
                                 );
                               } else {
                                 setSelectedPlayerIds((current) =>
-                                  current.filter((uid) => uid !== availableUser.uid)
+                                  current.filter(
+                                    (uid) => uid !== availableUser.uid
+                                  )
                                 );
                               }
                             }}
@@ -708,30 +749,95 @@ function InfoCard({
 }
 
 function MatchCard({ match }: { match: MatchDoc }) {
+  const isOfficial =
+    match.status === "ufficiale" || match.resultStatus === "confermato";
+
+  const isDisputed =
+    match.status === "contestato" || match.resultStatus === "contestato";
+
+  const isProposed =
+    match.status === "in_attesa_conferma" ||
+    match.resultStatus === "proposto";
+
+  const scoreIsVisible =
+    typeof match.homeScore === "number" && typeof match.awayScore === "number";
+
+  const statusLabel = isOfficial
+    ? "Ufficiale"
+    : isDisputed
+    ? "Contestato"
+    : isProposed
+    ? "Da confermare"
+    : "Programmato";
+
+  const statusClass = isOfficial
+    ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
+    : isDisputed
+    ? "border-red-400/20 bg-red-500/10 text-red-200"
+    : isProposed
+    ? "border-yellow-400/20 bg-yellow-400/10 text-yellow-200"
+    : "border-cyan-400/20 bg-cyan-400/10 text-cyan-200";
+
+  const statsLabel = match.statsApplied
+    ? "Stats applicate"
+    : match.statsApplying
+    ? "Stats in corso"
+    : "Stats da applicare";
+
+  const statsClass = match.statsApplied
+    ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
+    : match.statsApplying
+    ? "border-yellow-400/20 bg-yellow-400/10 text-yellow-200"
+    : "border-white/10 bg-white/[.04] text-slate-300";
+
   return (
     <Link href={`/match/${match.id}`}>
       <div className="rounded-[1.7rem] border border-white/10 bg-[#0b1730] p-5 transition hover:scale-[1.02] hover:border-cyan-400/30 hover:bg-[#112041]">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="text-2xl font-black">{match.name}</div>
-            <div className="mt-2 text-slate-400">{match.city}</div>
-            <div className="mt-1 text-sm text-slate-500">{match.field}</div>
+          <div className="min-w-0">
+            <div className="truncate text-2xl font-black">
+              {match.name || "Match Rivalo"}
+            </div>
+
+            <div className="mt-2 text-slate-400">
+              {match.city || "Città non inserita"}
+            </div>
+
+            <div className="mt-1 text-sm text-slate-500">
+              {match.field || "Campo non inserito"}
+            </div>
           </div>
 
-          <div className="rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-black text-cyan-300">
-            {match.sport}
+          <div className="rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-black uppercase text-cyan-300">
+            {match.sport || "sport"}
           </div>
         </div>
+
+        {scoreIsVisible && (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4 text-center">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+              Risultato
+            </div>
+
+            <div className="mt-1 text-4xl font-black text-white">
+              {match.homeScore} - {match.awayScore}
+            </div>
+          </div>
+        )}
 
         <div className="mt-5 flex flex-wrap gap-3 text-sm">
           <Badge>{match.date || "Data"}</Badge>
           <Badge>{match.time || "Ora"}</Badge>
           <Badge>{match.slots || 0} slot</Badge>
-          <Badge>{match.mode}</Badge>
+          <Badge>{match.mode || "modalità"}</Badge>
           <Badge>{match.competitionFormat || "formato"}</Badge>
 
-          <div className="rounded-xl bg-lime-400/10 px-3 py-2 font-black text-lime-300">
-            {match.status || "programmata"}
+          <div className={`rounded-xl border px-3 py-2 font-black ${statusClass}`}>
+            {statusLabel}
+          </div>
+
+          <div className={`rounded-xl border px-3 py-2 font-black ${statsClass}`}>
+            {statsLabel}
           </div>
         </div>
       </div>
