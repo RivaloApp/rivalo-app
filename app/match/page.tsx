@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -67,6 +67,20 @@ type MatchDoc = {
 };
 
 export default function MatchPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
+          Caricamento match...
+        </main>
+      }
+    >
+      <MatchPageContent />
+    </Suspense>
+  );
+}
+
+function MatchPageContent() {
   const searchParams = useSearchParams();
   const requestedGroupId = searchParams.get("groupId") || "";
 
