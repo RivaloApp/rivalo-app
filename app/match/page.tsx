@@ -148,20 +148,39 @@ export default function MatchPage() {
       } else {
         await loadGroupMembers("", uid, fallbackName);
       }
+const createdMatchesQuery = query(
+  collection(db, "matches"),
+  where("createdBy", "==", uid)
+);
 
-      const matchesQuery = query(
-        collection(db, "matches"),
-        where("createdBy", "==", uid)
-      );
+const participantMatchesQuery = query(
+  collection(db, "matches"),
+  where("participants", "array-contains", uid)
+);
 
-      const matchesSnapshot = await getDocs(matchesQuery);
+const [createdMatchesSnapshot, participantMatchesSnapshot] =
+  await Promise.all([
+    getDocs(createdMatchesQuery),
+    getDocs(participantMatchesQuery),
+  ]);
 
-      setMatches(
-        matchesSnapshot.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<MatchDoc, "id">),
-        }))
-      );
+const matchesMap = new Map<string, MatchDoc>();
+
+createdMatchesSnapshot.docs.forEach((d) => {
+  matchesMap.set(d.id, {
+    id: d.id,
+    ...(d.data() as Omit<MatchDoc, "id">),
+  });
+});
+
+participantMatchesSnapshot.docs.forEach((d) => {
+  matchesMap.set(d.id, {
+    id: d.id,
+    ...(d.data() as Omit<MatchDoc, "id">),
+  });
+});
+
+setMatches(Array.from(matchesMap.values()));
     } catch {
       setMessage("Errore nel caricamento dei match.");
     } finally {
