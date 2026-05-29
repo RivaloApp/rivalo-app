@@ -60,6 +60,9 @@ type MatchDoc = {
   statsApplying?: boolean;
   homeScore?: number | null;
   awayScore?: number | null;
+  groupId?: string;
+  eventId?: string;
+  eventTitle?: string;
 };
 
 export default function MatchPage() {
@@ -904,6 +907,19 @@ function MatchCard({ match }: { match: MatchDoc }) {
             <div className="mt-1 text-sm text-slate-500">
               {match.field || "Campo non inserito"}
             </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+  {match.groupId && match.groupId !== "nessun-gruppo" && (
+    <span className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 font-black text-cyan-200">
+      Gruppo
+    </span>
+  )}
+
+  {match.eventId && (
+    <span className="rounded-lg border border-fuchsia-400/20 bg-fuchsia-400/10 px-2 py-1 font-black text-fuchsia-200">
+      {match.eventTitle || "Evento"}
+    </span>
+  )}
+</div>
           </div>
 
           <div className="rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-black uppercase text-cyan-300">
@@ -938,6 +954,27 @@ function MatchCard({ match }: { match: MatchDoc }) {
             {statsLabel}
           </div>
         </div>
+        <div className="mt-5 flex flex-wrap gap-3">
+  {match.groupId && match.groupId !== "nessun-gruppo" && (
+    <Link
+      href={`/groups/${match.groupId}`}
+      onClick={(e) => e.stopPropagation()}
+      className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs font-black text-cyan-200"
+    >
+      Apri gruppo
+    </Link>
+  )}
+
+  {match.eventId && (
+    <Link
+      href={`/events/${match.eventId}`}
+      onClick={(e) => e.stopPropagation()}
+      className="rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-2 text-xs font-black text-fuchsia-200"
+    >
+      Apri evento
+    </Link>
+  )}
+</div>
       </div>
     </Link>
   );
