@@ -1122,6 +1122,10 @@ const validTeamsCount = teams.filter((team) => {
 
 const hasEnoughValidTeams = isTeamCompetition && validTeamsCount >= 2;
 
+const invalidTeamsCount = isTeamCompetition
+  ? Math.max(0, teams.length - validTeamsCount)
+  : 0;
+
     const totalTournamentMatches = Array.isArray(event.bracket)
   ? event.bracket.filter((match) => Boolean(match.awayTeamId)).length
   : 0;
@@ -1323,37 +1327,53 @@ const pendingCompetitionMatches = Math.max(
       </p>
     </div>
 
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-      <SummaryBox
-        label={isTeamCompetition ? "Squadre" : "Partecipanti"}
-        value={isTeamCompetition ? teams.length : participants.length}
-        tone="cyan"
-      />
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+  <SummaryBox
+    label={isTeamCompetition ? "Squadre" : "Partecipanti"}
+    value={isTeamCompetition ? teams.length : participants.length}
+    tone="cyan"
+  />
 
+  {isTeamCompetition && (
+    <>
       <SummaryBox
-        label="Match totali"
-        value={totalCompetitionMatches}
-        tone="yellow"
-      />
-
-      <SummaryBox
-        label="Match creati"
-        value={createdCompetitionMatches}
-        tone="lime"
-      />
-
-      <SummaryBox
-        label="Completati"
-        value={completedCompetitionMatches}
+        label="Squadre valide"
+        value={validTeamsCount}
         tone="green"
       />
 
       <SummaryBox
-        label="Da giocare"
-        value={pendingCompetitionMatches}
+        label="Da sistemare"
+        value={invalidTeamsCount}
         tone="orange"
       />
-    </div>
+    </>
+  )}
+
+  <SummaryBox
+    label="Match totali"
+    value={totalCompetitionMatches}
+    tone="yellow"
+  />
+
+  <SummaryBox
+    label="Match creati"
+    value={createdCompetitionMatches}
+    tone="lime"
+  />
+
+  <SummaryBox
+    label="Completati"
+    value={completedCompetitionMatches}
+    tone="green"
+  />
+
+  <SummaryBox
+    label="Da giocare"
+    value={pendingCompetitionMatches}
+    tone="orange"
+  />
+</div>
   </section>
 )}
 
