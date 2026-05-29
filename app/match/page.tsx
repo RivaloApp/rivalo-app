@@ -370,6 +370,21 @@ export default function MatchPage() {
       setSaving(false);
     }
   }
+const totalMatches = matches.length;
+
+const officialMatches = matches.filter(
+  (match) => match.status === "ufficiale" || match.resultStatus === "confermato"
+).length;
+
+const pendingMatches = matches.filter(
+  (match) =>
+    match.status === "in_attesa_conferma" ||
+    match.resultStatus === "proposto"
+).length;
+
+const disputedMatches = matches.filter(
+  (match) => match.status === "contestato" || match.resultStatus === "contestato"
+).length;
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
@@ -672,6 +687,12 @@ export default function MatchPage() {
         </div>
 
         <section className="mt-8 rounded-[2rem] border border-white/10 bg-[#071126]/75 p-7 shadow-2xl backdrop-blur">
+          <div className="mb-6 grid gap-4 md:grid-cols-4">
+  <MatchSummaryBox label="Totali" value={totalMatches} tone="cyan" />
+  <MatchSummaryBox label="Ufficiali" value={officialMatches} tone="lime" />
+  <MatchSummaryBox label="Da confermare" value={pendingMatches} tone="yellow" />
+  <MatchSummaryBox label="Contestati" value={disputedMatches} tone="red" />
+</div>
           <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <div className="text-sm font-black uppercase tracking-[.28em] text-cyan-300">
@@ -842,6 +863,35 @@ function MatchCard({ match }: { match: MatchDoc }) {
         </div>
       </div>
     </Link>
+  );
+}
+
+function MatchSummaryBox({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "cyan" | "lime" | "yellow" | "red";
+}) {
+  const toneClass =
+    tone === "lime"
+      ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
+      : tone === "yellow"
+      ? "border-yellow-400/20 bg-yellow-400/10 text-yellow-200"
+      : tone === "red"
+      ? "border-red-400/20 bg-red-500/10 text-red-200"
+      : "border-cyan-400/20 bg-cyan-400/10 text-cyan-200";
+
+  return (
+    <div className={`rounded-2xl border p-5 text-center ${toneClass}`}>
+      <div className="text-3xl font-black">{value}</div>
+
+      <div className="mt-2 text-xs font-black uppercase tracking-[0.16em]">
+        {label}
+      </div>
+    </div>
   );
 }
 
