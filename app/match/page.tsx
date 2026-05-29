@@ -85,6 +85,10 @@ export default function MatchPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [message, setMessage] = useState("");
 
+  const [matchFilter, setMatchFilter] = useState<
+  "tutti" | "ufficiali" | "da_confermare" | "contestati"
+>("tutti");
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
@@ -412,6 +416,23 @@ const disputedMatches = matches.filter(
   (match) => match.status === "contestato" || match.resultStatus === "contestato"
 ).length;
 
+const filteredMatches = matches.filter((match) => {
+  const isOfficial =
+    match.status === "ufficiale" || match.resultStatus === "confermato";
+
+  const isPending =
+    match.status === "in_attesa_conferma" || match.resultStatus === "proposto";
+
+  const isDisputed =
+    match.status === "contestato" || match.resultStatus === "contestato";
+
+  if (matchFilter === "ufficiali") return isOfficial;
+  if (matchFilter === "da_confermare") return isPending;
+  if (matchFilter === "contestati") return isDisputed;
+
+  return true;
+});
+
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_6%,rgba(34,211,238,.17),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(217,70,239,.15),transparent_32%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
@@ -733,13 +754,43 @@ const disputedMatches = matches.filter(
             </div>
           </div>
 
+          <div className="mb-6 flex flex-wrap gap-3">
+  <FilterButton
+    active={matchFilter === "tutti"}
+    onClick={() => setMatchFilter("tutti")}
+  >
+    Tutti
+  </FilterButton>
+
+  <FilterButton
+    active={matchFilter === "ufficiali"}
+    onClick={() => setMatchFilter("ufficiali")}
+  >
+    Ufficiali
+  </FilterButton>
+
+  <FilterButton
+    active={matchFilter === "da_confermare"}
+    onClick={() => setMatchFilter("da_confermare")}
+  >
+    Da confermare
+  </FilterButton>
+
+  <FilterButton
+    active={matchFilter === "contestati"}
+    onClick={() => setMatchFilter("contestati")}
+  >
+    Contestati
+  </FilterButton>
+</div>
+
           {loadingData ? (
             <EmptyBox text="Caricamento partite..." />
-          ) : matches.length === 0 ? (
+          ) : filteredMatches.length === 0 ? (
             <EmptyBox text="Nessuna partita creata. Crea il primo match Rivalo." />
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
-              {matches.map((match) => (
+              {filteredMatches.map((match) => (
                 <MatchCard key={match.id} match={match} />
               ))}
             </div>
@@ -889,6 +940,30 @@ function MatchCard({ match }: { match: MatchDoc }) {
         </div>
       </div>
     </Link>
+  );
+}
+
+function FilterButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-2xl border px-4 py-3 text-sm font-black transition ${
+        active
+          ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-200"
+          : "border-white/10 bg-white/[.03] text-slate-300 hover:border-cyan-400/20 hover:text-white"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
