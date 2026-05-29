@@ -1107,6 +1107,46 @@ const canCreateEventMatch =
     ? hasPendingLeagueMatch
     : true;
 
+    const totalTournamentMatches = Array.isArray(event.bracket)
+  ? event.bracket.filter((match) => Boolean(match.awayTeamId)).length
+  : 0;
+
+const createdTournamentMatches = Array.isArray(event.bracket)
+  ? event.bracket.filter((match) => Boolean(match.matchId)).length
+  : 0;
+
+const completedTournamentMatches = Array.isArray(event.bracket)
+  ? event.bracket.filter((match) => match.resultStatus === "confermato").length
+  : 0;
+
+const totalLeagueMatches = Array.isArray(event.leagueFixtures)
+  ? event.leagueFixtures.length
+  : 0;
+
+const createdLeagueMatches = Array.isArray(event.leagueFixtures)
+  ? event.leagueFixtures.filter((fixture) => Boolean(fixture.matchId)).length
+  : 0;
+
+const completedLeagueMatches = Array.isArray(event.leagueFixtures)
+  ? event.leagueFixtures.filter(
+      (fixture) => fixture.resultStatus === "confermato"
+    ).length
+  : 0;
+
+const totalCompetitionMatches =
+  event.type === "torneo" ? totalTournamentMatches : totalLeagueMatches;
+
+const createdCompetitionMatches =
+  event.type === "torneo" ? createdTournamentMatches : createdLeagueMatches;
+
+const completedCompetitionMatches =
+  event.type === "torneo" ? completedTournamentMatches : completedLeagueMatches;
+
+const pendingCompetitionMatches = Math.max(
+  0,
+  totalCompetitionMatches - completedCompetitionMatches
+);
+
   const rankedEventStats =
     eventStats.length > 0
       ? [...eventStats].sort(
@@ -1251,6 +1291,56 @@ const canCreateEventMatch =
                   />
                 </div>
               )}
+
+              {(event.type === "torneo" || event.type === "campionato") && (
+  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
+    <div className="mb-5">
+      <div className="text-sm font-black uppercase tracking-[0.25em] text-cyan-300">
+        Riepilogo competizione
+      </div>
+
+      <h2 className="mt-2 text-3xl font-black">
+        Stato torneo / campionato
+      </h2>
+
+      <p className="mt-2 text-sm text-slate-400">
+        Controllo rapido su squadre, match creati e match completati.
+      </p>
+    </div>
+
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <SummaryBox
+        label={isTeamCompetition ? "Squadre" : "Partecipanti"}
+        value={isTeamCompetition ? teams.length : participants.length}
+        tone="cyan"
+      />
+
+      <SummaryBox
+        label="Match totali"
+        value={totalCompetitionMatches}
+        tone="yellow"
+      />
+
+      <SummaryBox
+        label="Match creati"
+        value={createdCompetitionMatches}
+        tone="lime"
+      />
+
+      <SummaryBox
+        label="Completati"
+        value={completedCompetitionMatches}
+        tone="green"
+      />
+
+      <SummaryBox
+        label="Da giocare"
+        value={pendingCompetitionMatches}
+        tone="orange"
+      />
+    </div>
+  </section>
+)}
 
               {event.prize && (
                 <div className="rounded-[2rem] border border-yellow-300/20 bg-yellow-400/10 p-6">
@@ -2015,6 +2105,37 @@ function Field({
         {children}
       </div>
     </label>
+  );
+}
+
+function SummaryBox({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "cyan" | "yellow" | "lime" | "green" | "orange";
+}) {
+  const toneClass =
+    tone === "yellow"
+      ? "border-yellow-300/20 bg-yellow-400/10 text-yellow-200"
+      : tone === "lime"
+      ? "border-lime-300/20 bg-lime-400/10 text-lime-200"
+      : tone === "green"
+      ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
+      : tone === "orange"
+      ? "border-orange-300/20 bg-orange-400/10 text-orange-200"
+      : "border-cyan-300/20 bg-cyan-400/10 text-cyan-200";
+
+  return (
+    <div className={`rounded-2xl border p-5 text-center ${toneClass}`}>
+      <div className="text-3xl font-black">{value}</div>
+
+      <div className="mt-2 text-xs font-black uppercase tracking-[0.16em]">
+        {label}
+      </div>
+    </div>
   );
 }
 
