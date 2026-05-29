@@ -180,7 +180,14 @@ participantMatchesSnapshot.docs.forEach((d) => {
   });
 });
 
-setMatches(Array.from(matchesMap.values()));
+const sortedMatches = Array.from(matchesMap.values()).sort((a, b) => {
+  const dateA = `${a.date || ""} ${a.time || ""}`;
+  const dateB = `${b.date || ""} ${b.time || ""}`;
+
+  return dateB.localeCompare(dateA);
+});
+
+setMatches(sortedMatches);
     } catch {
       setMessage("Errore nel caricamento dei match.");
     } finally {
