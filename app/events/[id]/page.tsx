@@ -1106,6 +1106,21 @@ const canCreateEventMatch =
     : event.type === "campionato"
     ? hasPendingLeagueMatch
     : true;
+const validTeamsCount = teams.filter((team) => {
+  const playersCount = Array.isArray(team.players) ? team.players.length : 0;
+
+  if (competitionFormat === "doppio") {
+    return playersCount === 2;
+  }
+
+  if (competitionFormat === "squadre") {
+    return playersCount >= 2 && playersCount <= 8;
+  }
+
+  return true;
+}).length;
+
+const hasEnoughValidTeams = isTeamCompetition && validTeamsCount >= 2;
 
     const totalTournamentMatches = Array.isArray(event.bracket)
   ? event.bracket.filter((match) => Boolean(match.awayTeamId)).length
@@ -1800,7 +1815,11 @@ const pendingCompetitionMatches = Math.max(
     {event.type === "torneo" && isTeamCompetition && (
       <button
         onClick={generateTournamentBracket}
-        disabled={generatingBracket || Boolean(event.bracket?.length)}
+        disabled={
+  generatingBracket ||
+  Boolean(event.bracket?.length) ||
+  !hasEnoughValidTeams
+}
         className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 px-6 py-4 font-black text-yellow-200 transition hover:bg-yellow-400/20 disabled:opacity-60"
       >
         <Trophy size={18} />
@@ -1808,20 +1827,28 @@ const pendingCompetitionMatches = Math.max(
   ? "Generazione..."
   : event.bracket?.length
   ? "Tabellone già generato"
+  : !hasEnoughValidTeams
+  ? "Servono squadre valide"
   : "Genera tabellone"}
       </button>
     )}
     {event.type === "campionato" && isTeamCompetition && (
   <button
     onClick={generateLeagueSchedule}
-    disabled={generatingLeague || Boolean(event.leagueFixtures?.length)}
+    disabled={
+  generatingLeague ||
+  Boolean(event.leagueFixtures?.length) ||
+  !hasEnoughValidTeams
+}
     className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/10 px-6 py-4 font-black text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
   >
     <CalendarDays size={18} />
-    {generatingLeague
+ {generatingLeague
   ? "Generazione..."
   : event.leagueFixtures?.length
   ? "Calendario già generato"
+  : !hasEnoughValidTeams
+  ? "Servono squadre valide"
   : "Genera calendario"}
   </button>
 )}
