@@ -316,11 +316,12 @@ if (!mounted) {
         </section>
 
         <section className="mt-8 grid gap-5 lg:grid-cols-4">
-          <ActionCard
-            icon={<CalendarDays />}
-            title="Crea partita"
-            text="Organizza match del gruppo."
-          />
+         <ActionCard
+  href={`/match?groupId=${groupId}`}
+  icon={<CalendarDays />}
+  title="Crea partita"
+  text="Organizza match del gruppo."
+/>
 
           <ActionCard
             icon={<Trophy />}
@@ -554,21 +555,43 @@ function Stat({ value, label }: { value: string; label: string }) {
 }
 
 function ActionCard({
+  href,
   icon,
   title,
   text,
 }: {
+  href?: string;
   icon: React.ReactNode;
   title: string;
   text: string;
 }) {
-  return (
-    <button className="rounded-[1.8rem] border border-white/10 bg-white/[.04] p-6 text-left transition hover:-translate-y-1 hover:border-cyan-300/30">
+  const content = (
+    <>
       <div className="text-cyan-300">{icon}</div>
 
       <h3 className="mt-5 text-2xl font-black">{title}</h3>
 
       <p className="mt-3 leading-7 text-slate-300">{text}</p>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="rounded-[1.8rem] border border-white/10 bg-white/[.04] p-6 text-left transition hover:-translate-y-1 hover:border-cyan-300/30"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="rounded-[1.8rem] border border-white/10 bg-white/[.04] p-6 text-left transition hover:-translate-y-1 hover:border-cyan-300/30"
+    >
+      {content}
     </button>
   );
 }
