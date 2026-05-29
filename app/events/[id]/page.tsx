@@ -1478,7 +1478,13 @@ const pendingCompetitionMatches = Math.max(
                         Nessuna squadra creata.
                       </div>
                     ) : (
-                      teams.map((team) => <TeamCard key={team.id} team={team} />)
+                      teams.map((team) => (
+  <TeamCard
+    key={team.id}
+    team={team}
+    competitionFormat={competitionFormat}
+  />
+))
                     )}
                   </div>
                 </section>
@@ -1916,15 +1922,62 @@ const pendingCompetitionMatches = Math.max(
   );
 }
 
-function TeamCard({ team }: { team: TeamInfo }) {
+function TeamCard({
+  team,
+  competitionFormat,
+}: {
+  team: TeamInfo;
+  competitionFormat: CompetitionFormat;
+}) {
+  const playersCount = Array.isArray(team.players) ? team.players.length : 0;
+
+  const isValid =
+    competitionFormat === "doppio"
+      ? playersCount === 2
+      : competitionFormat === "squadre"
+      ? playersCount >= 2 && playersCount <= 8
+      : true;
+
+  const isTooLarge = competitionFormat === "squadre" && playersCount > 8;
+
+  const statusLabel = isTooLarge
+    ? "Troppi giocatori"
+    : isValid
+    ? "Valida"
+    : "Incompleta";
+
+  const statusClass = isTooLarge
+    ? "border-red-400/20 bg-red-500/10 text-red-200"
+    : isValid
+    ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
+    : "border-yellow-400/20 bg-yellow-400/10 text-yellow-200";
+
+  const limitText =
+    competitionFormat === "doppio"
+      ? `${playersCount} / 2 giocatori`
+      : competitionFormat === "squadre"
+      ? `${playersCount} / 8 giocatori`
+      : `${playersCount} giocatori`;
+
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[.03] p-4">
-      <div className="text-xl font-black uppercase text-cyan-200">
-        {team.name}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-xl font-black uppercase text-cyan-200">
+            {team.name}
+          </div>
+
+          <div className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+            {limitText}
+          </div>
+        </div>
+
+        <div
+          className={`rounded-xl border px-3 py-2 text-xs font-black uppercase ${statusClass}`}
+        >
+          {statusLabel}
+        </div>
       </div>
-      <div className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-  {team.players.length} giocatori
-</div>
 
       <div className="mt-3 space-y-2">
         {team.players.map((player) => (
@@ -1981,13 +2034,13 @@ function TeamRankRow({
       </div>
 
       <RankStat label="PT" value={team.points || 0} />
-<RankStat label="G" value={team.matchesPlayed || 0} />
-<RankStat label="V" value={team.wins || 0} />
-<RankStat label="N" value={team.draws || 0} />
-<RankStat label="P" value={team.losses || 0} />
-<RankStat label="GF" value={team.goalsFor || 0} />
-<RankStat label="GS" value={team.goalsAgainst || 0} />
-<RankStat label="DR" value={goalDifference} />
+      <RankStat label="G" value={team.matchesPlayed || 0} />
+      <RankStat label="V" value={team.wins || 0} />
+      <RankStat label="N" value={team.draws || 0} />
+      <RankStat label="P" value={team.losses || 0} />
+      <RankStat label="GF" value={team.goalsFor || 0} />
+      <RankStat label="GS" value={team.goalsAgainst || 0} />
+      <RankStat label="DR" value={goalDifference} />
     </div>
   );
 }
