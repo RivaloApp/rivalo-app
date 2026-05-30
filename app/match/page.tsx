@@ -98,6 +98,8 @@ function MatchPageContent() {
   const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [groupTeams, setGroupTeams] = useState<GroupTeam[]>([]);
+  const [homeTeamId, setHomeTeamId] = useState("");
+const [awayTeamId, setAwayTeamId] = useState("");
 
   const [groupId, setGroupId] = useState("");
   const [matchName, setMatchName] = useState("");
@@ -354,6 +356,8 @@ async function loadGroupTeams(nextGroupId: string) {
 
   async function handleGroupChange(nextGroupId: string) {
     setGroupId(nextGroupId);
+    setHomeTeamId("");
+setAwayTeamId("");
 
     const selectedGroup = groups.find((group) => group.id === nextGroupId);
 
@@ -374,30 +378,87 @@ async function loadGroupTeams(nextGroupId: string) {
 
     if (!user) return;
 
-    const selectedUsers = availableUsers.filter((availableUser) =>
-      selectedPlayerIds.includes(availableUser.uid)
-    );
+   const selectedHomeTeam = groupTeams.find((team) => team.id === homeTeamId);
+const selectedAwayTeam = groupTeams.find((team) => team.id === awayTeamId);
 
-    const minimumPlayers =
-      sport === "calcetto" ? 2 : competitionFormat === "doppio" ? 4 : 2;
+let matchPlayers: {
+  uid: string;
+  name: string;
+  team: "home" | "away";
+  goals: number;
+  assists: number;
+  isMvp: boolean;
+}[] = [];
 
-    if (selectedUsers.length < minimumPlayers) {
-      setMessage(
-        `Servono almeno ${minimumPlayers} giocatori per questo formato.`
-      );
-      return;
-    }
+let homeTeamName = sport === "calcetto" ? "Squadra 1" : "Player/Coppia 1";
+let awayTeamName = sport === "calcetto" ? "Squadra 2" : "Player/Coppia 2";
 
-    const half = Math.ceil(selectedUsers.length / 2);
+if (sport === "calcetto" && selectedHomeTeam && selectedAwayTeam) {
+  if (selectedHomeTeam.id === selectedAwayTeam.id) {
+    setMessage("Seleziona due squadre diverse.");
+    return;
+  }
 
-    const matchPlayers = selectedUsers.map((selectedUser, index) => ({
+  const homeMembers = availableUsers.filter((availableUser) =>
+    selectedHomeTeam.members?.includes(availableUser.uid)
+  );
+
+  const awayMembers = availableUsers.filter((availableUser) =>
+    selectedAwayTeam.members?.includes(availableUser.uid)
+  );
+
+  if (homeMembers.length < 1 || awayMembers.length < 1) {
+    setMessage("Entrambe le squadre devono avere almeno un giocatore.");
+    return;
+  }
+
+  homeTeamName = selectedHomeTeam.name || "Squadra 1";
+  awayTeamName = selectedAwayTeam.name || "Squadra 2";
+
+  matchPlayers = [
+    ...homeMembers.map((selectedUser) => ({
       uid: selectedUser.uid,
       name: selectedUser.name || selectedUser.nickname || "Rivalo Player",
-      team: index < half ? "home" : "away",
+      team: "home" as const,
       goals: 0,
       assists: 0,
       isMvp: false,
-    }));
+    })),
+    ...awayMembers.map((selectedUser) => ({
+      uid: selectedUser.uid,
+      name: selectedUser.name || selectedUser.nickname || "Rivalo Player",
+      team: "away" as const,
+      goals: 0,
+      assists: 0,
+      isMvp: false,
+    })),
+  ];
+} else {
+  const selectedUsers = availableUsers.filter((availableUser) =>
+    selectedPlayerIds.includes(availableUser.uid)
+  );
+
+  const minimumPlayers =
+    sport === "calcetto" ? 2 : competitionFormat === "doppio" ? 4 : 2;
+
+  if (selectedUsers.length < minimumPlayers) {
+    setMessage(
+      `Servono almeno ${minimumPlayers} giocatori per questo formato.`
+    );
+    return;
+  }
+
+  const half = Math.ceil(selectedUsers.length / 2);
+
+  matchPlayers = selectedUsers.map((selectedUser, index) => ({
+    uid: selectedUser.uid,
+    name: selectedUser.name || selectedUser.nickname || "Rivalo Player",
+    team: index < half ? "home" : "away",
+    goals: 0,
+    assists: 0,
+    isMvp: false,
+  }));
+}
 
     setSaving(true);
     setMessage("");
@@ -425,8 +486,8 @@ async function loadGroupTeams(nextGroupId: string) {
         resultStatus: "non_inserito",
         fairPlayStatus: "in_attesa",
 
-        homeTeam: sport === "calcetto" ? "Squadra 1" : "Player/Coppia 1",
-        awayTeam: sport === "calcetto" ? "Squadra 2" : "Player/Coppia 2",
+        homeTeam: homeTeamName,
+awayTeam: awayTeamName,
         homeScore: null,
         awayScore: null,
 
@@ -629,9 +690,69 @@ async function loadGroupTeams(nextGroupId: string) {
                 </select>
               </Field>
 
-              {groupTeams.length > 0 && (
-  <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200">
-    {groupTeams.length} squadre trovate in questo gruppo. Nel prossimo step le useremo per creare match Squadra 1 vs Squadra 2.
+              {groupTeams.length > 0 && sport === "calcetto" && (
+  <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4">
+    <div className="text-sm font-black text-cyan-200">
+      {groupTeams.length} squadre trovate in questo gruppo.
+    </div>
+
+    <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <div>
+        <div className="mb-2 text-sm font-black text-slate-300">
+          Squadra 1
+        </div>
+
+        <select
+          value={homeTeamId}
+          onChange={(e) => setHomeTeamId(e.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
+        >
+          <option value="" className="bg-[#020617] text-white">
+            Seleziona squadra
+          </option>
+
+          {groupTeams.map((team) => (
+            <option
+              key={team.id}
+              value={team.id}
+              className="bg-[#020617] text-white"
+            >
+              {team.name || "Squadra Rivalo"} · {team.members?.length || 0} membri
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <div className="mb-2 text-sm font-black text-slate-300">
+          Squadra 2
+        </div>
+
+        <select
+          value={awayTeamId}
+          onChange={(e) => setAwayTeamId(e.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
+        >
+          <option value="" className="bg-[#020617] text-white">
+            Seleziona squadra
+          </option>
+
+          {groupTeams.map((team) => (
+            <option
+              key={team.id}
+              value={team.id}
+              className="bg-[#020617] text-white"
+            >
+              {team.name || "Squadra Rivalo"} · {team.members?.length || 0} membri
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    <div className="mt-3 text-xs text-slate-300">
+      Se scegli due squadre, Rivalo userà automaticamente i giocatori presenti nelle rose.
+    </div>
   </div>
 )}
 
