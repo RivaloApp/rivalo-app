@@ -7,6 +7,7 @@ import {
   arrayUnion,
   doc,
   getDoc,
+  increment,
   runTransaction,
   serverTimestamp,
   updateDoc,
@@ -51,6 +52,9 @@ type MatchDoc = {
   fairPlayStatus?: string;
   homeTeam?: string;
   awayTeam?: string;
+  homeTeamId?: string;
+awayTeamId?: string;
+sourceType?: string;
   homeScore?: number | null;
   awayScore?: number | null;
   mvpName?: string;
@@ -297,6 +301,41 @@ export default function MatchDetailsPage() {
 
     await updateDoc(eventRef, updatePayload);
   }
+  
+  async function updateGroupTeamStats(safeMatch: MatchDoc) {
+  if (safeMatch.sourceType !== "groupTeams") return;
+  if (!safeMatch.homeTeamId || !safeMatch.awayTeamId) return;
+
+  const homeScoreNumber = Number(homeScore || 0);
+  const awayScoreNumber = Number(awayScore || 0);
+
+  const homeWin = homeScoreNumber > awayScoreNumber;
+  const awayWin = awayScoreNumber > homeScoreNumber;
+  const draw = homeScoreNumber === awayScoreNumber;
+
+  const homeTeamRef = doc(db, "groupTeams", safeMatch.homeTeamId);
+  const awayTeamRef = doc(db, "groupTeams", safeMatch.awayTeamId);
+
+  await updateDoc(homeTeamRef, {
+    matchesPlayed: increment(1),
+    wins: increment(homeWin ? 1 : 0),
+    draws: increment(draw ? 1 : 0),
+    losses: increment(awayWin ? 1 : 0),
+    goalsFor: increment(homeScoreNumber),
+    goalsAgainst: increment(awayScoreNumber),
+    updatedAt: serverTimestamp(),
+  });
+
+  await updateDoc(awayTeamRef, {
+    matchesPlayed: increment(1),
+    wins: increment(awayWin ? 1 : 0),
+    draws: increment(draw ? 1 : 0),
+    losses: increment(homeWin ? 1 : 0),
+    goalsFor: increment(awayScoreNumber),
+    goalsAgainst: increment(homeScoreNumber),
+    updatedAt: serverTimestamp(),
+  });
+}
 
   async function proposeResult(e: React.FormEvent) {
     e.preventDefault();
@@ -417,17 +456,19 @@ export default function MatchDetailsPage() {
         });
       }
 
-      await updateTeamEventStats({
-        eventId: safeMatch.eventId,
-        homeTeam,
-        awayTeam,
-        homeScore: Number(homeScore || 0),
-        awayScore: Number(awayScore || 0),
-      });
+     await updateTeamEventStats({
+  eventId: safeMatch.eventId,
+  homeTeam,
+  awayTeam,
+  homeScore: Number(homeScore || 0),
+  awayScore: Number(awayScore || 0),
+});
 
-      await syncEventMatchResult(safeMatch);
+await updateGroupTeamStats(safeMatch);
 
-      await updateDoc(matchRef, {
+await syncEventMatchResult(safeMatch);
+
+await updateDoc(matchRef, {
         statsApplied: true,
         statsApplying: false,
         statsAppliedAt: serverTimestamp(),
