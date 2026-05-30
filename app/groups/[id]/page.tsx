@@ -20,12 +20,10 @@ import {
   ArrowLeft,
   CalendarDays,
   ChevronRight,
-  Crown,
   MapPin,
   ShieldCheck,
   Trophy,
   Users,
-  Zap,
 } from "lucide-react";
 
 type RivaloGroup = {
@@ -63,48 +61,57 @@ type GroupMatch = {
 export default function GroupDetailsPage() {
   const params = useParams();
 
-const groupId =
-  typeof params?.id === "string"
-    ? params.id
-    : Array.isArray(params?.id)
-    ? params.id[0]
-    : "";
+  const groupId =
+    typeof params?.id === "string"
+      ? params.id
+      : Array.isArray(params?.id)
+      ? params.id[0]
+      : "";
 
   const [group, setGroup] = useState<RivaloGroup | null>(null);
   const [user, setUser] = useState<User | null>(null);
-const [memberProfiles, setMemberProfiles] = useState<MemberProfile[]>([]);
-const [memberSearch, setMemberSearch] = useState("");
-const [addingMember, setAddingMember] = useState(false);
-const [message, setMessage] = useState("");
+  const [memberProfiles, setMemberProfiles] = useState<MemberProfile[]>([]);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [addingMember, setAddingMember] = useState(false);
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [groupMatches, setGroupMatches] = useState<GroupMatch[]>([]);
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-    if (!currentUser) {
-      window.location.href = "/login";
-      return;
-    }
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        window.location.href = "/login";
+        return;
+      }
 
-    setUser(currentUser);
+      setUser(currentUser);
 
-    if (groupId) {
-      await loadGroup();
-    }
-  });
+      if (groupId) {
+        await loadGroup();
+      }
+    });
 
-  return () => unsubscribe();
-}, [groupId]);
+    return () => unsubscribe();
+  }, [groupId]);
 
-async function loadGroup() {
-  try {
-    const ref = doc(db, "groups", groupId);
-    const snap = await getDoc(ref);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-    if (snap.exists()) {
+  async function loadGroup() {
+    setLoading(true);
+
+    try {
+      const ref = doc(db, "groups", groupId);
+      const snap = await getDoc(ref);
+
+      if (!snap.exists()) {
+        setGroup(null);
+        return;
+      }
+
       const data = snap.data();
-
       const members = Array.isArray(data.members) ? data.members : [];
 
       setGroup({
@@ -141,109 +148,108 @@ async function loadGroup() {
       }
 
       setMemberProfiles(profiles);
+
       const matchesQuery = query(
-  collection(db, "matches"),
-  where("groupId", "==", groupId)
-);
+        collection(db, "matches"),
+        where("groupId", "==", groupId)
+      );
 
-const matchesSnap = await getDocs(matchesQuery);
+      const matchesSnap = await getDocs(matchesQuery);
 
-const matchesResult = matchesSnap.docs
-  .map((docSnap) => ({
-    id: docSnap.id,
-    ...(docSnap.data() as Omit<GroupMatch, "id">),
-  }))
-  .sort((a, b) => {
-    const dateA = `${a.date || ""} ${a.time || ""}`;
-    const dateB = `${b.date || ""} ${b.time || ""}`;
-    return dateB.localeCompare(dateA);
-  });
+      const matchesResult = matchesSnap.docs
+        .map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<GroupMatch, "id">),
+        }))
+        .sort((a, b) => {
+          const dateA = `${a.date || ""} ${a.time || ""}`;
+          const dateB = `${b.date || ""} ${b.time || ""}`;
+          return dateB.localeCompare(dateA);
+        });
 
-setGroupMatches(matchesResult);
+      setGroupMatches(matchesResult);
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-}
-async function addMemberToGroup(e: React.FormEvent) {
-  e.preventDefault();
-
-  if (!user || !group) return;
-
-  const search = memberSearch.trim();
-
-  if (!search) {
-    setMessage("Inserisci email, nickname o nome utente.");
-    return;
   }
 
-  setAddingMember(true);
-  setMessage("");
+  async function addMemberToGroup(e: React.FormEvent) {
+    e.preventDefault();
 
-  try {
-    const usersRef = collection(db, "users");
+    if (!user || !group) return;
 
-    const searchLower = search.toLowerCase();
+    const search = memberSearch.trim();
 
-    const possibleQueries = [
-      query(usersRef, where("email", "==", searchLower)),
-      query(usersRef, where("nickname", "==", search)),
-      query(usersRef, where("name", "==", search)),
-    ];
+    if (!search) {
+      setMessage("Inserisci email, nickname o nome utente.");
+      return;
+    }
 
-    let foundUser: MemberProfile | null = null;
+    setAddingMember(true);
+    setMessage("");
 
-    for (const q of possibleQueries) {
-      const snap = await getDocs(q);
+    try {
+      const usersRef = collection(db, "users");
+      const searchLower = search.toLowerCase();
 
-      if (!snap.empty) {
-        const docSnap = snap.docs[0];
-        const data = docSnap.data();
+      const possibleQueries = [
+        query(usersRef, where("email", "==", searchLower)),
+        query(usersRef, where("nickname", "==", search)),
+        query(usersRef, where("name", "==", search)),
+      ];
 
-        foundUser = {
-          uid: docSnap.id,
-          name: data.name || "Rivalo Player",
-          nickname: data.nickname || "",
-          email: data.email || "",
-          photoUrl: data.photoUrl || data.photoURL || "",
-        };
+      let foundUser: MemberProfile | null = null;
 
-        break;
+      for (const q of possibleQueries) {
+        const snap = await getDocs(q);
+
+        if (!snap.empty) {
+          const docSnap = snap.docs[0];
+          const data = docSnap.data();
+
+          foundUser = {
+            uid: docSnap.id,
+            name: data.name || "Rivalo Player",
+            nickname: data.nickname || "",
+            email: data.email || "",
+            photoUrl: data.photoUrl || data.photoURL || "",
+          };
+
+          break;
+        }
       }
+
+      if (!foundUser) {
+        setMessage("Utente non trovato. Deve avere un account Rivalo.");
+        return;
+      }
+
+      if (group.members?.includes(foundUser.uid)) {
+        setMessage("Questo utente è già nel gruppo.");
+        return;
+      }
+
+      await updateDoc(doc(db, "groups", groupId), {
+        members: arrayUnion(foundUser.uid),
+        updatedAt: serverTimestamp(),
+      });
+
+      setMemberSearch("");
+      setMessage("Membro aggiunto al gruppo.");
+
+      await loadGroup();
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante l'aggiunta del membro.");
+    } finally {
+      setAddingMember(false);
     }
-
-    if (!foundUser) {
-      setMessage("Utente non trovato. Deve avere un account Rivalo.");
-      return;
-    }
-
-    if (group.members?.includes(foundUser.uid)) {
-      setMessage("Questo utente è già nel gruppo.");
-      return;
-    }
-
-    await updateDoc(doc(db, "groups", groupId), {
-      members: arrayUnion(foundUser.uid),
-      updatedAt: serverTimestamp(),
-    });
-
-    setMemberSearch("");
-    setMessage("Membro aggiunto al gruppo.");
-
-    await loadGroup();
-  } catch (error) {
-    console.error(error);
-    setMessage("Errore durante l'aggiunta del membro.");
-  } finally {
-    setAddingMember(false);
   }
-}
-  useEffect(() => {
-  setMounted(true);
-}, []);
-if (!mounted) {
-  return null;
-}
+
+  if (!mounted) {
+    return null;
+  }
+
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
@@ -269,7 +275,10 @@ if (!mounted) {
       <Background />
 
       <section className="relative z-10 mx-auto max-w-7xl px-5 py-8">
-        <Link href="/groups" className="inline-flex items-center gap-2 text-sm font-black text-cyan-300">
+        <Link
+          href="/groups"
+          className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
+        >
           <ArrowLeft size={17} />
           Torna ai gruppi
         </Link>
@@ -306,8 +315,8 @@ if (!mounted) {
               </div>
 
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <Stat value={String(group.members?.length || 1)} label="Membri" />
-                <Stat value="0" label="Partite" />
+                <Stat value={String(group.members?.length || 0)} label="Membri" />
+                <Stat value={String(groupMatches.length)} label="Partite" />
                 <Stat value="0" label="Eventi" />
                 <Stat value={group.premiumPlan || "free"} label="Piano" />
               </div>
@@ -316,172 +325,184 @@ if (!mounted) {
         </section>
 
         <section className="mt-8 grid gap-5 lg:grid-cols-4">
-         <ActionCard
-  href={`/match?groupId=${groupId}`}
-  icon={<CalendarDays />}
-  title="Crea partita"
-  text="Organizza match del gruppo."
-/>
+          <ActionCard
+            href={`/match?groupId=${groupId}`}
+            icon={<CalendarDays />}
+            title="Crea partita"
+            text="Organizza match del gruppo."
+          />
 
           <ActionCard
+            href="#classifica-gruppo"
             icon={<Trophy />}
             title="Classifica"
             text="Ranking squadre e singoli."
           />
 
           <ActionCard
+            href="#match-gruppo"
             icon={<ShieldCheck />}
             title="FairPlay"
             text="Conferma risultati ufficiali."
           />
 
           <ActionCard
+            href="#aggiungi-membro"
             icon={<Users />}
             title="Invita amici"
             text="Espandi la community."
           />
         </section>
+
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
-  <Panel
-    title="Membri del gruppo"
-    subtitle="Solo questi utenti saranno selezionabili nei match privati del gruppo."
-  >
-    <div className="space-y-3">
-      {memberProfiles.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
-          Nessun membro visibile.
-        </div>
-      ) : (
-        memberProfiles.map((member) => (
-          <div
-            key={member.uid}
-            className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#061126]/80 p-4"
-          >
-            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-cyan-400/10">
-              {member.photoUrl ? (
-                <img
-                  src={member.photoUrl}
-                  alt="Membro"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <Users className="text-cyan-200" size={20} />
-              )}
-            </div>
+          <div id="classifica-gruppo">
+            <Panel
+              title="Membri del gruppo"
+              subtitle="Solo questi utenti saranno selezionabili nei match privati del gruppo."
+            >
+              <div className="space-y-3">
+                {memberProfiles.length === 0 ? (
+                  <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
+                    Nessun membro visibile.
+                  </div>
+                ) : (
+                  memberProfiles.map((member) => (
+                    <div
+                      key={member.uid}
+                      className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#061126]/80 p-4"
+                    >
+                      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-cyan-400/10">
+                        {member.photoUrl ? (
+                          <img
+                            src={member.photoUrl}
+                            alt="Membro"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <Users className="text-cyan-200" size={20} />
+                        )}
+                      </div>
 
-            <div className="min-w-0">
-              <div className="truncate font-black">
-                {member.name || "Rivalo Player"}
-              </div>
+                      <div className="min-w-0">
+                        <div className="truncate font-black">
+                          {member.name || "Rivalo Player"}
+                        </div>
 
-              <div className="truncate text-xs text-slate-400">
-                {member.nickname || member.email || "Membro gruppo"}
+                        <div className="truncate text-xs text-slate-400">
+                          {member.nickname || member.email || "Membro gruppo"}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-            </div>
+            </Panel>
           </div>
-        ))
-      )}
-    </div>
-  </Panel>
 
-  <Panel
-    title="Aggiungi membro"
-    subtitle="Cerca un utente Rivalo tramite email, nickname o nome."
-  >
-    <form onSubmit={addMemberToGroup} className="space-y-4">
-      <div className="rounded-2xl border border-white/10 bg-[#061126]/80 px-4 py-4">
-        <input
-          value={memberSearch}
-          onChange={(e) => setMemberSearch(e.target.value)}
-          placeholder="Email, nickname o nome utente"
-          className="w-full bg-transparent outline-none placeholder:text-slate-500"
-        />
-      </div>
+          <div id="aggiungi-membro">
+            <Panel
+              title="Aggiungi membro"
+              subtitle="Cerca un utente Rivalo tramite email, nickname o nome."
+            >
+              <form onSubmit={addMemberToGroup} className="space-y-4">
+                <div className="rounded-2xl border border-white/10 bg-[#061126]/80 px-4 py-4">
+                  <input
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    placeholder="Email, nickname o nome utente"
+                    className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                  />
+                </div>
 
-      <button
-        type="submit"
-        disabled={addingMember}
-        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
-      >
-        {addingMember ? "Aggiunta..." : "Aggiungi al gruppo"}
-        <ChevronRight size={20} />
-      </button>
+                <button
+                  type="submit"
+                  disabled={addingMember}
+                  className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
+                >
+                  {addingMember ? "Aggiunta..." : "Aggiungi al gruppo"}
+                  <ChevronRight size={20} />
+                </button>
 
-      {message && (
-        <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200">
-          {message}
-        </div>
-      )}
-    </form>
-  </Panel>
-</section>
-<section className="mt-8 rounded-[2rem] border border-white/10 bg-white/[.04] p-6 shadow-2xl backdrop-blur">
-  <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-    <div>
-      <div className="text-sm font-black uppercase tracking-[.25em] text-cyan-300">
-        Match gruppo
-      </div>
+                {message && (
+                  <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200">
+                    {message}
+                  </div>
+                )}
+              </form>
+            </Panel>
+          </div>
+        </section>
 
-      <h2 className="mt-2 text-3xl font-black">
-        Partite collegate
-      </h2>
-
-      <p className="mt-2 text-sm text-slate-400">
-        Qui trovi solo i match collegati a questo gruppo.
-      </p>
-    </div>
-
-  <Link
-  href={`/match?groupId=${groupId}`}
-  className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-200"
->
-  Crea match gruppo
-</Link>
-  </div>
-
-  {groupMatches.length === 0 ? (
-    <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
-      Nessun match collegato a questo gruppo.
-    </div>
-  ) : (
-    <div className="grid gap-4 lg:grid-cols-2">
-      {groupMatches.map((match) => (
-        <Link
-          key={match.id}
-          href={`/match/${match.id}`}
-          className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 transition hover:border-cyan-400/30"
+        <section
+          id="match-gruppo"
+          className="mt-8 rounded-[2rem] border border-white/10 bg-white/[.04] p-6 shadow-2xl backdrop-blur"
         >
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="truncate text-xl font-black">
-                {match.name || "Match Rivalo"}
+          <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <div className="text-sm font-black uppercase tracking-[.25em] text-cyan-300">
+                Match gruppo
               </div>
 
-              <div className="mt-2 text-sm text-slate-400">
-                {match.city || "Città non inserita"} · {match.field || "Campo non inserito"}
-              </div>
+              <h2 className="mt-2 text-3xl font-black">Partite collegate</h2>
 
-              <div className="mt-1 text-xs text-slate-500">
-                {match.date || "Data"} · {match.time || "Ora"}
-              </div>
+              <p className="mt-2 text-sm text-slate-400">
+                Qui trovi solo i match collegati a questo gruppo.
+              </p>
             </div>
 
-            <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200">
-              {match.resultStatus || match.status || "programmata"}
-            </div>
+            <Link
+              href={`/match?groupId=${groupId}`}
+              className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-200"
+            >
+              Crea match gruppo
+            </Link>
           </div>
 
-          {typeof match.homeScore === "number" &&
-            typeof match.awayScore === "number" && (
-              <div className="mt-4 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-sm font-black text-lime-200">
-                Risultato: {match.homeScore} - {match.awayScore}
-              </div>
-            )}
-        </Link>
-      ))}
-    </div>
-  )}
-</section>
+          {groupMatches.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
+              Nessun match collegato a questo gruppo.
+            </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {groupMatches.map((match) => (
+                <Link
+                  key={match.id}
+                  href={`/match/${match.id}`}
+                  className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 transition hover:border-cyan-400/30"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="truncate text-xl font-black">
+                        {match.name || "Match Rivalo"}
+                      </div>
+
+                      <div className="mt-2 text-sm text-slate-400">
+                        {match.city || "Città non inserita"} ·{" "}
+                        {match.field || "Campo non inserito"}
+                      </div>
+
+                      <div className="mt-1 text-xs text-slate-500">
+                        {match.date || "Data"} · {match.time || "Ora"}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200">
+                      {match.resultStatus || match.status || "programmata"}
+                    </div>
+                  </div>
+
+                  {typeof match.homeScore === "number" &&
+                    typeof match.awayScore === "number" && (
+                      <div className="mt-4 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-sm font-black text-lime-200">
+                        Risultato: {match.homeScore} - {match.awayScore}
+                      </div>
+                    )}
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
           <Panel
             title="Campionato del gruppo"
@@ -492,13 +513,11 @@ if (!mounted) {
                 Season futura
               </div>
 
-              <h3 className="mt-3 text-3xl font-black">
-                Campionato Rivalo
-              </h3>
+              <h3 className="mt-3 text-3xl font-black">Campionato Rivalo</h3>
 
               <p className="mt-3 max-w-2xl leading-7 text-slate-300">
-                Classifiche live, premi finali, badge, MVP, top scorer,
-                tornei e gestione quote evento.
+                Classifiche live, premi finali, badge, MVP, top scorer, tornei
+                e gestione quote evento.
               </p>
 
               <button className="mt-5 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black">
@@ -508,19 +527,24 @@ if (!mounted) {
             </div>
           </Panel>
 
-          <Panel
-            title="Attività gruppo"
-            subtitle="Partite, risultati e notifiche."
-          >
+          <Panel title="Attività gruppo" subtitle="Partite, risultati e notifiche.">
             <div className="space-y-4">
               <Activity
-                title="Nessuna partita ancora"
-                text="Crea il primo match del gruppo."
+                title={
+                  groupMatches.length === 0
+                    ? "Nessuna partita ancora"
+                    : `${groupMatches.length} partite collegate`
+                }
+                text={
+                  groupMatches.length === 0
+                    ? "Crea il primo match del gruppo."
+                    : "I match del gruppo sono visibili nella sezione dedicata."
+                }
               />
 
               <Activity
                 title="Classifica pronta"
-                text="Il ranking inizierà dopo le prime partite."
+                text="Il ranking inizierà dopo le prime partite confermate."
               />
 
               <Activity
@@ -547,6 +571,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div className="rounded-[1.5rem] border border-white/10 bg-white/[.04] p-5 text-center">
       <div className="text-3xl font-black text-cyan-300">{value}</div>
+
       <div className="mt-2 text-xs font-black uppercase tracking-[.18em] text-slate-400">
         {label}
       </div>
@@ -617,13 +642,7 @@ function Panel({
   );
 }
 
-function Activity({
-  title,
-  text,
-}: {
-  title: string;
-  text: string;
-}) {
+function Activity({ title, text }: { title: string; text: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5">
       <div className="font-black">{title}</div>
