@@ -56,6 +56,9 @@ type MatchDoc = {
   groupId?: string;
   eventId?: string;
   eventTitle?: string;
+  homeTeamId?: string;
+awayTeamId?: string;
+sourceType?: string;
   name?: string;
   sport?: string;
   city?: string;
@@ -392,6 +395,9 @@ let matchPlayers: {
 
 let homeTeamName = sport === "calcetto" ? "Squadra 1" : "Player/Coppia 1";
 let awayTeamName = sport === "calcetto" ? "Squadra 2" : "Player/Coppia 2";
+let matchHomeTeamId = "";
+let matchAwayTeamId = "";
+let sourceType = "manual";
 
 if (sport === "calcetto" && selectedHomeTeam && selectedAwayTeam) {
   if (selectedHomeTeam.id === selectedAwayTeam.id) {
@@ -414,6 +420,9 @@ if (sport === "calcetto" && selectedHomeTeam && selectedAwayTeam) {
 
   homeTeamName = selectedHomeTeam.name || "Squadra 1";
   awayTeamName = selectedAwayTeam.name || "Squadra 2";
+  matchHomeTeamId = selectedHomeTeam.id;
+matchAwayTeamId = selectedAwayTeam.id;
+sourceType = "groupTeams";
 
   matchPlayers = [
     ...homeMembers.map((selectedUser) => ({
@@ -486,10 +495,13 @@ if (sport === "calcetto" && selectedHomeTeam && selectedAwayTeam) {
         resultStatus: "non_inserito",
         fairPlayStatus: "in_attesa",
 
-        homeTeam: homeTeamName,
+     homeTeam: homeTeamName,
 awayTeam: awayTeamName,
-        homeScore: null,
-        awayScore: null,
+homeTeamId: matchHomeTeamId,
+awayTeamId: matchAwayTeamId,
+sourceType,
+homeScore: null,
+awayScore: null,
 
         mvpName: "",
         notes: "",
