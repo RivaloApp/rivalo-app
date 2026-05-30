@@ -35,6 +35,7 @@ import {
   Flame,
   Swords,
   Radio,
+  Search,
 } from "lucide-react";
 
 type UserProfile = {
@@ -237,6 +238,15 @@ export default function DashboardPage() {
                 title="Gruppi"
                 text="Amici e classifiche gruppo"
               />
+              
+              <QuickAction
+  href="/opponents"
+  tone="green"
+  icon={<Search />}
+  title="Cerca avversari"
+  text="Gruppi pubblici vicini"
+/>
+              
 
               <QuickAction
                 href="/events"
