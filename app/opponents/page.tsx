@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  query,
+  serverTimestamp,
+  where,
+} from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import {
   ArrowLeft,
@@ -24,6 +31,7 @@ type OpponentGroup = {
   privacy?: string;
   members?: string[];
   premiumPlan?: string;
+  ownerId?: string;
 };
 
 export default function OpponentsPage() {
@@ -33,6 +41,8 @@ export default function OpponentsPage() {
 
   const [sportFilter, setSportFilter] = useState("tutti");
   const [cityFilter, setCityFilter] = useState("");
+  const [message, setMessage] = useState("");
+const [requestingGroupId, setRequestingGroupId] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -73,6 +83,31 @@ export default function OpponentsPage() {
     }
   }
 
+  async function requestJoinGroup(group: OpponentGroup) {
+  if (!user) return;
+
+  setRequestingGroupId(group.id);
+  setMessage("");
+
+  try {
+    await addDoc(collection(db, "groupJoinRequests"), {
+      groupId: group.id,
+      groupName: group.name || "Gruppo Rivalo",
+      groupOwnerId: group.ownerId || "",
+      fromUid: user.uid,
+      fromName: user.displayName || "Rivalo Player",
+      status: "pending",
+      createdAt: serverTimestamp(),
+    });
+
+    setMessage("Richiesta inviata al gruppo.");
+  } catch (error) {
+    console.error(error);
+    setMessage("Errore durante l'invio della richiesta.");
+  } finally {
+    setRequestingGroupId("");
+  }
+}
   const filteredGroups = useMemo(() => {
     const cleanCity = cityFilter.trim().toLowerCase();
 
@@ -171,6 +206,12 @@ export default function OpponentsPage() {
           </div>
         </section>
 
+        {message && (
+  <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200">
+    {message}
+  </div>
+)}
+
         <section className="mt-8">
           {loading ? (
             <EmptyBox text="Caricamento avversari..." />
@@ -179,7 +220,12 @@ export default function OpponentsPage() {
           ) : (
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {filteredGroups.map((group) => (
-                <OpponentCard key={group.id} group={group} />
+                <OpponentCard
+  key={group.id}
+  group={group}
+  onRequestJoin={requestJoinGroup}
+  requesting={requestingGroupId === group.id}
+/>
               ))}
             </div>
           )}
@@ -189,7 +235,15 @@ export default function OpponentsPage() {
   );
 }
 
-function OpponentCard({ group }: { group: OpponentGroup }) {
+function OpponentCard({
+  group,
+  onRequestJoin,
+  requesting,
+}: {
+  group: OpponentGroup;
+  onRequestJoin: (group: OpponentGroup) => void;
+  requesting: boolean;
+}) {
   return (
     <div className="rounded-[2rem] border border-white/10 bg-[#061126]/80 p-6 shadow-2xl transition hover:-translate-y-1 hover:border-cyan-400/30">
       <div className="mb-5 flex items-center justify-between gap-3">
@@ -223,6 +277,14 @@ function OpponentCard({ group }: { group: OpponentGroup }) {
           Apri gruppo
           <ChevronRight size={18} />
         </Link>
+        <button
+  type="button"
+  onClick={() => onRequestJoin(group)}
+  disabled={requesting}
+  className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-3 font-black text-white disabled:opacity-60"
+>
+  {requesting ? "Invio richiesta..." : "Richiedi ingresso"}
+</button>
       </div>
     </div>
   );
