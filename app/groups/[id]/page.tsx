@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
+  addDoc,
   arrayUnion,
   collection,
   doc,
@@ -64,6 +65,15 @@ type GroupMatch = {
   awayScore?: number | null;
 };
 
+type GroupTeam = {
+  id: string;
+  name?: string;
+  city?: string;
+  sport?: string;
+  createdBy?: string;
+  members?: string[];
+};
+
 export default function GroupDetailsPage() {
   const params = useParams();
 
@@ -83,6 +93,9 @@ export default function GroupDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [groupMatches, setGroupMatches] = useState<GroupMatch[]>([]);
+  const [groupTeams, setGroupTeams] = useState<GroupTeam[]>([]);
+const [teamName, setTeamName] = useState("");
+const [creatingTeam, setCreatingTeam] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -186,6 +199,19 @@ export default function GroupDetailsPage() {
         });
 
       setGroupMatches(matchesResult);
+      const teamsQuery = query(
+  collection(db, "groupTeams"),
+  where("groupId", "==", groupId)
+);
+
+const teamsSnap = await getDocs(teamsQuery);
+
+const teamsResult = teamsSnap.docs.map((docSnap) => ({
+  id: docSnap.id,
+  ...(docSnap.data() as Omit<GroupTeam, "id">),
+}));
+
+setGroupTeams(teamsResult);
     } finally {
       setLoading(false);
     }
@@ -263,6 +289,50 @@ export default function GroupDetailsPage() {
       setAddingMember(false);
     }
   }
+  async function createGroupTeam(e: React.FormEvent) {
+  e.preventDefault();
+
+  if (!user || !group) return;
+
+  const cleanName = teamName.trim();
+
+  if (!cleanName) {
+    setMessage("Inserisci il nome della squadra.");
+    return;
+  }
+
+  setCreatingTeam(true);
+  setMessage("");
+
+  try {
+    await addDoc(collection(db, "groupTeams"), {
+      groupId,
+      name: cleanName,
+      city: group.city || "",
+      sport: group.sport || "calcetto",
+      createdBy: user.uid,
+      members: [],
+      wins: 0,
+      losses: 0,
+      draws: 0,
+      matchesPlayed: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    setTeamName("");
+    setMessage("Squadra creata nel gruppo.");
+
+    await loadGroup();
+  } catch (error) {
+    console.error(error);
+    setMessage("Errore durante la creazione della squadra.");
+  } finally {
+    setCreatingTeam(false);
+  }
+}
 
   if (!mounted) {
     return null;
@@ -554,6 +624,61 @@ const pendingGroupMatches = groupMatches.filter(
             </div>
           )}
         </section>
+
+        <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
+  <Panel
+    title="Squadre del gruppo"
+    subtitle="Crea squadre stabili da usare nei match, tornei e campionati."
+  >
+    <div className="space-y-3">
+      {groupTeams.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
+          Nessuna squadra creata.
+        </div>
+      ) : (
+        groupTeams.map((team) => (
+          <div
+            key={team.id}
+            className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5"
+          >
+            <div className="text-xl font-black">
+              {team.name || "Squadra Rivalo"}
+            </div>
+
+            <div className="mt-2 text-sm text-slate-400">
+              {team.sport || group.sport} · {team.members?.length || 0} membri
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </Panel>
+
+  <Panel
+    title="Crea squadra"
+    subtitle="Aggiungi una squadra stabile al gruppo."
+  >
+    <form onSubmit={createGroupTeam} className="space-y-4">
+      <div className="rounded-2xl border border-white/10 bg-[#061126]/80 px-4 py-4">
+        <input
+          value={teamName}
+          onChange={(e) => setTeamName(e.target.value)}
+          placeholder="Nome squadra"
+          className="w-full bg-transparent outline-none placeholder:text-slate-500"
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={creatingTeam}
+        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
+      >
+        {creatingTeam ? "Creazione..." : "Crea squadra"}
+        <ChevronRight size={20} />
+      </button>
+    </form>
+  </Panel>
+</section>
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
           <Panel
