@@ -296,6 +296,17 @@ export default function GroupDetailsPage() {
   );
 });
 
+const officialGroupMatches = groupMatches.filter(
+  (match) =>
+    match.status === "ufficiale" || match.resultStatus === "confermato"
+).length;
+
+const pendingGroupMatches = groupMatches.filter(
+  (match) =>
+    match.status === "in_attesa_conferma" ||
+    match.resultStatus === "proposto"
+).length;
+
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <Background />
@@ -341,11 +352,11 @@ export default function GroupDetailsPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <Stat value={String(group.members?.length || 0)} label="Membri" />
-                <Stat value={String(groupMatches.length)} label="Partite" />
-                <Stat value="0" label="Eventi" />
-                <Stat value={group.premiumPlan || "free"} label="Piano" />
-              </div>
+  <Stat value={String(group.members?.length || 0)} label="Membri" />
+  <Stat value={String(groupMatches.length)} label="Partite" />
+  <Stat value={String(officialGroupMatches)} label="Ufficiali" />
+  <Stat value={String(pendingGroupMatches)} label="Da confermare" />
+</div>
             </div>
           </div>
         </section>
