@@ -35,6 +35,14 @@ type GroupDoc = {
   members?: string[];
 };
 
+type GroupTeam = {
+  id: string;
+  groupId?: string;
+  name?: string;
+  sport?: string;
+  members?: string[];
+};
+
 type UserOption = {
   uid: string;
   name?: string;
@@ -89,6 +97,7 @@ function MatchPageContent() {
   const [matches, setMatches] = useState<MatchDoc[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [groupTeams, setGroupTeams] = useState<GroupTeam[]>([]);
 
   const [groupId, setGroupId] = useState("");
   const [matchName, setMatchName] = useState("");
@@ -177,8 +186,10 @@ function MatchPageContent() {
         }
 
         await loadGroupMembers(selectedGroup.id, uid, fallbackName);
+        await loadGroupTeams(selectedGroup.id);
       } else {
         await loadGroupMembers("", uid, fallbackName);
+        await loadGroupTeams("");
       }
 
       const createdMatchesQuery = query(
@@ -294,6 +305,31 @@ function MatchPageContent() {
       setSelectedPlayerIds([]);
     }
   }
+async function loadGroupTeams(nextGroupId: string) {
+  if (!nextGroupId) {
+    setGroupTeams([]);
+    return;
+  }
+
+  try {
+    const teamsQuery = query(
+      collection(db, "groupTeams"),
+      where("groupId", "==", nextGroupId)
+    );
+
+    const teamsSnap = await getDocs(teamsQuery);
+
+    const teamsResult = teamsSnap.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...(docSnap.data() as Omit<GroupTeam, "id">),
+    }));
+
+    setGroupTeams(teamsResult);
+  } catch (error) {
+    console.error(error);
+    setGroupTeams([]);
+  }
+}
 
   function handleSportChange(nextSport: string) {
     setSport(nextSport);
@@ -330,6 +366,7 @@ function MatchPageContent() {
     }
 
     await loadGroupMembers(nextGroupId);
+    await loadGroupTeams(nextGroupId);
   }
 
   async function createMatch(e: React.FormEvent) {
@@ -591,6 +628,12 @@ function MatchPageContent() {
                   )}
                 </select>
               </Field>
+
+              {groupTeams.length > 0 && (
+  <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200">
+    {groupTeams.length} squadre trovate in questo gruppo. Nel prossimo step le useremo per creare match Squadra 1 vs Squadra 2.
+  </div>
+)}
 
               <Field label="Giocatori del gruppo">
                 <div className="space-y-3">
