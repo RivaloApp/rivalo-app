@@ -42,6 +42,12 @@ type MemberProfile = {
   nickname?: string;
   email?: string;
   photoUrl?: string;
+  rivalScore?: number;
+  wins?: number;
+  mvp?: number;
+  matchesPlayed?: number;
+  goals?: number;
+  assists?: number;
 };
 
 type GroupMatch = {
@@ -133,17 +139,29 @@ export default function GroupDetailsPage() {
           const userData = userSnap.data();
 
           profiles.push({
-            uid,
-            name: userData.name || "Rivalo Player",
-            nickname: userData.nickname || "",
-            email: userData.email || "",
-            photoUrl: userData.photoUrl || userData.photoURL || "",
-          });
+  uid,
+  name: userData.name || "Rivalo Player",
+  nickname: userData.nickname || "",
+  email: userData.email || "",
+  photoUrl: userData.photoUrl || userData.photoURL || "",
+  rivalScore: Number(userData.rivalScore || 1000),
+  wins: Number(userData.wins || 0),
+  mvp: Number(userData.mvp || 0),
+  matchesPlayed: Number(userData.matchesPlayed || 0),
+  goals: Number(userData.goals || 0),
+  assists: Number(userData.assists || 0),
+});
         } else {
           profiles.push({
-            uid,
-            name: "Rivalo Player",
-          });
+  uid,
+  name: "Rivalo Player",
+  rivalScore: 1000,
+  wins: 0,
+  mvp: 0,
+  matchesPlayed: 0,
+  goals: 0,
+  assists: 0,
+});
         }
       }
 
@@ -270,6 +288,14 @@ export default function GroupDetailsPage() {
     );
   }
 
+  const rankedMembers = [...memberProfiles].sort((a, b) => {
+  return (
+    Number(b.rivalScore || 1000) - Number(a.rivalScore || 1000) ||
+    Number(b.wins || 0) - Number(a.wins || 0) ||
+    Number(b.mvp || 0) - Number(a.mvp || 0)
+  );
+});
+
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <Background />
@@ -356,48 +382,63 @@ export default function GroupDetailsPage() {
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
           <div id="classifica-gruppo">
-            <Panel
-              title="Membri del gruppo"
-              subtitle="Solo questi utenti saranno selezionabili nei match privati del gruppo."
-            >
-              <div className="space-y-3">
-                {memberProfiles.length === 0 ? (
-                  <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
-                    Nessun membro visibile.
-                  </div>
+  <Panel
+    title="Classifica gruppo"
+    subtitle="Ranking interno dei membri basato su RivalScore, vittorie e MVP."
+  >
+    <div className="space-y-3">
+      {rankedMembers.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
+          Nessun membro visibile.
+        </div>
+      ) : (
+        rankedMembers.map((member, index) => (
+          <div
+            key={member.uid}
+            className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-[#061126]/80 p-4 xl:flex-row xl:items-center"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-sm font-black text-cyan-200">
+                #{index + 1}
+              </div>
+
+              <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-cyan-400/10">
+                {member.photoUrl ? (
+                  <img
+                    src={member.photoUrl}
+                    alt="Membro"
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
-                  memberProfiles.map((member) => (
-                    <div
-                      key={member.uid}
-                      className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#061126]/80 p-4"
-                    >
-                      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-cyan-400/10">
-                        {member.photoUrl ? (
-                          <img
-                            src={member.photoUrl}
-                            alt="Membro"
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <Users className="text-cyan-200" size={20} />
-                        )}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="truncate font-black">
-                          {member.name || "Rivalo Player"}
-                        </div>
-
-                        <div className="truncate text-xs text-slate-400">
-                          {member.nickname || member.email || "Membro gruppo"}
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                  <Users className="text-cyan-200" size={20} />
                 )}
               </div>
-            </Panel>
+
+              <div className="min-w-0">
+                <div className="truncate font-black">
+                  {member.name || "Rivalo Player"}
+                </div>
+
+                <div className="truncate text-xs text-slate-400">
+                  {member.nickname || member.email || "Membro gruppo"}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center text-xs sm:grid-cols-6 xl:ml-auto">
+              <MiniRankStat label="RS" value={member.rivalScore || 1000} />
+              <MiniRankStat label="V" value={member.wins || 0} />
+              <MiniRankStat label="MVP" value={member.mvp || 0} />
+              <MiniRankStat label="G" value={member.matchesPlayed || 0} />
+              <MiniRankStat label="Gol" value={member.goals || 0} />
+              <MiniRankStat label="Ast" value={member.assists || 0} />
+            </div>
           </div>
+        ))
+      )}
+    </div>
+  </Panel>
+</div>
 
           <div id="aggiungi-membro">
             <Panel
@@ -638,6 +679,22 @@ function Panel({
       </div>
 
       {children}
+    </div>
+  );
+}
+function MiniRankStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/20 px-2 py-2">
+      <div className="font-black text-cyan-200">{value}</div>
+      <div className="mt-1 text-[10px] font-black uppercase text-slate-500">
+        {label}
+      </div>
     </div>
   );
 }
