@@ -7,6 +7,7 @@ import {
   addDoc,
   arrayUnion,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -35,6 +36,8 @@ type RivaloGroup = {
   privacy: string;
   premiumPlan?: string;
   members?: string[];
+  ownerId?: string;
+  admins?: string[];
 };
 
 type MemberProfile = {
@@ -80,6 +83,16 @@ type GroupTeam = {
   goalsAgainst?: number;
 };
 
+type JoinRequest = {
+  id: string;
+  groupId?: string;
+  groupName?: string;
+  groupOwnerId?: string;
+  fromUid?: string;
+  fromName?: string;
+  status?: string;
+};
+
 export default function GroupDetailsPage() {
   const params = useParams();
 
@@ -102,7 +115,7 @@ export default function GroupDetailsPage() {
   const [groupTeams, setGroupTeams] = useState<GroupTeam[]>([]);
   const [teamName, setTeamName] = useState("");
   const [creatingTeam, setCreatingTeam] = useState(false);
-
+const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
@@ -140,14 +153,16 @@ export default function GroupDetailsPage() {
       const members = Array.isArray(data.members) ? data.members : [];
 
       setGroup({
-        name: data.name || "Gruppo Rivalo",
-        city: data.city || "Nessuna città",
-        sport: data.sport || "Sport",
-        mode: data.mode || "Amichevole",
-        privacy: data.privacy || "public",
-        premiumPlan: data.premiumPlan || "free",
-        members,
-      });
+  name: data.name || "Gruppo Rivalo",
+  city: data.city || "Nessuna città",
+  sport: data.sport || "Sport",
+  mode: data.mode || "Amichevole",
+  privacy: data.privacy || "public",
+  premiumPlan: data.premiumPlan || "free",
+  members,
+  ownerId: data.ownerId || "",
+  admins: Array.isArray(data.admins) ? data.admins : [],
+});
 
       const profiles: MemberProfile[] = [];
 
@@ -219,6 +234,20 @@ export default function GroupDetailsPage() {
       }));
 
       setGroupTeams(teamsResult);
+      const requestsQuery = query(
+  collection(db, "groupJoinRequests"),
+  where("groupId", "==", groupId),
+  where("status", "==", "pending")
+);
+
+const requestsSnap = await getDocs(requestsQuery);
+
+const requestsResult = requestsSnap.docs.map((docSnap) => ({
+  id: docSnap.id,
+  ...(docSnap.data() as Omit<JoinRequest, "id">),
+}));
+
+setJoinRequests(requestsResult);
     } finally {
       setLoading(false);
     }
@@ -367,6 +396,54 @@ export default function GroupDetailsPage() {
     }
   }
 
+  async function acceptJoinRequest(request: JoinRequest) {
+  if (!request.fromUid) {
+    setMessage("Richiesta non valida.");
+    return;
+  }
+
+  setMessage("");
+
+  try {
+    await updateDoc(doc(db, "groups", groupId), {
+      members: arrayUnion(request.fromUid),
+      updatedAt: serverTimestamp(),
+    });
+
+    await updateDoc(doc(db, "groupJoinRequests", request.id), {
+      status: "accepted",
+      acceptedAt: serverTimestamp(),
+      acceptedBy: user?.uid || "",
+    });
+
+    setMessage("Richiesta accettata. Membro aggiunto al gruppo.");
+
+    await loadGroup();
+  } catch (error) {
+    console.error(error);
+    setMessage("Errore durante l'accettazione della richiesta.");
+  }
+}
+
+async function rejectJoinRequest(request: JoinRequest) {
+  setMessage("");
+
+  try {
+    await updateDoc(doc(db, "groupJoinRequests", request.id), {
+      status: "rejected",
+      rejectedAt: serverTimestamp(),
+      rejectedBy: user?.uid || "",
+    });
+
+    setMessage("Richiesta rifiutata.");
+
+    await loadGroup();
+  } catch (error) {
+    console.error(error);
+    setMessage("Errore durante il rifiuto della richiesta.");
+  }
+}
+
   if (!mounted) {
     return null;
   }
@@ -424,6 +501,8 @@ export default function GroupDetailsPage() {
       match.status === "in_attesa_conferma" ||
       match.resultStatus === "proposto"
   ).length;
+  const canManageGroup =
+  user?.uid === group.ownerId || Boolean(group.admins?.includes(user?.uid || ""));
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
@@ -602,6 +681,67 @@ export default function GroupDetailsPage() {
             </Panel>
           </div>
         </section>
+
+        {canManageGroup && (
+  <section className="mt-8 rounded-[2rem] border border-white/10 bg-white/[.04] p-6 shadow-2xl backdrop-blur">
+    <div className="mb-5">
+      <div className="text-sm font-black uppercase tracking-[.25em] text-cyan-300">
+        Richieste ingresso
+      </div>
+
+      <h2 className="mt-2 text-3xl font-black">
+        Utenti in attesa
+      </h2>
+
+      <p className="mt-2 text-sm text-slate-400">
+        Accetta o rifiuta le richieste inviate dai gruppi pubblici.
+      </p>
+    </div>
+
+    {joinRequests.length === 0 ? (
+      <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
+        Nessuna richiesta in attesa.
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {joinRequests.map((request) => (
+          <div
+            key={request.id}
+            className="flex flex-col justify-between gap-4 rounded-2xl border border-white/10 bg-[#061126]/80 p-5 sm:flex-row sm:items-center"
+          >
+            <div>
+              <div className="text-xl font-black">
+                {request.fromName || "Rivalo Player"}
+              </div>
+
+              <div className="mt-1 text-sm text-slate-400">
+                Vuole entrare nel gruppo.
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => acceptJoinRequest(request)}
+                className="rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-sm font-black text-lime-200"
+              >
+                Accetta
+              </button>
+
+              <button
+                type="button"
+                onClick={() => rejectJoinRequest(request)}
+                className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-sm font-black text-red-200"
+              >
+                Rifiuta
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
+)}
 
         <section
           id="match-gruppo"
