@@ -100,8 +100,8 @@ export default function GroupDetailsPage() {
   const [mounted, setMounted] = useState(false);
   const [groupMatches, setGroupMatches] = useState<GroupMatch[]>([]);
   const [groupTeams, setGroupTeams] = useState<GroupTeam[]>([]);
-const [teamName, setTeamName] = useState("");
-const [creatingTeam, setCreatingTeam] = useState(false);
+  const [teamName, setTeamName] = useState("");
+  const [creatingTeam, setCreatingTeam] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -158,29 +158,29 @@ const [creatingTeam, setCreatingTeam] = useState(false);
           const userData = userSnap.data();
 
           profiles.push({
-  uid,
-  name: userData.name || "Rivalo Player",
-  nickname: userData.nickname || "",
-  email: userData.email || "",
-  photoUrl: userData.photoUrl || userData.photoURL || "",
-  rivalScore: Number(userData.rivalScore || 1000),
-  wins: Number(userData.wins || 0),
-  mvp: Number(userData.mvp || 0),
-  matchesPlayed: Number(userData.matchesPlayed || 0),
-  goals: Number(userData.goals || 0),
-  assists: Number(userData.assists || 0),
-});
+            uid,
+            name: userData.name || "Rivalo Player",
+            nickname: userData.nickname || "",
+            email: userData.email || "",
+            photoUrl: userData.photoUrl || userData.photoURL || "",
+            rivalScore: Number(userData.rivalScore || 1000),
+            wins: Number(userData.wins || 0),
+            mvp: Number(userData.mvp || 0),
+            matchesPlayed: Number(userData.matchesPlayed || 0),
+            goals: Number(userData.goals || 0),
+            assists: Number(userData.assists || 0),
+          });
         } else {
           profiles.push({
-  uid,
-  name: "Rivalo Player",
-  rivalScore: 1000,
-  wins: 0,
-  mvp: 0,
-  matchesPlayed: 0,
-  goals: 0,
-  assists: 0,
-});
+            uid,
+            name: "Rivalo Player",
+            rivalScore: 1000,
+            wins: 0,
+            mvp: 0,
+            matchesPlayed: 0,
+            goals: 0,
+            assists: 0,
+          });
         }
       }
 
@@ -205,19 +205,20 @@ const [creatingTeam, setCreatingTeam] = useState(false);
         });
 
       setGroupMatches(matchesResult);
+
       const teamsQuery = query(
-  collection(db, "groupTeams"),
-  where("groupId", "==", groupId)
-);
+        collection(db, "groupTeams"),
+        where("groupId", "==", groupId)
+      );
 
-const teamsSnap = await getDocs(teamsQuery);
+      const teamsSnap = await getDocs(teamsQuery);
 
-const teamsResult = teamsSnap.docs.map((docSnap) => ({
-  id: docSnap.id,
-  ...(docSnap.data() as Omit<GroupTeam, "id">),
-}));
+      const teamsResult = teamsSnap.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<GroupTeam, "id">),
+      }));
 
-setGroupTeams(teamsResult);
+      setGroupTeams(teamsResult);
     } finally {
       setLoading(false);
     }
@@ -295,75 +296,77 @@ setGroupTeams(teamsResult);
       setAddingMember(false);
     }
   }
+
   async function createGroupTeam(e: React.FormEvent) {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!user || !group) return;
+    if (!user || !group) return;
 
-  const cleanName = teamName.trim();
+    const cleanName = teamName.trim();
 
-  if (!cleanName) {
-    setMessage("Inserisci il nome della squadra.");
-    return;
+    if (!cleanName) {
+      setMessage("Inserisci il nome della squadra.");
+      return;
+    }
+
+    setCreatingTeam(true);
+    setMessage("");
+
+    try {
+      await addDoc(collection(db, "groupTeams"), {
+        groupId,
+        name: cleanName,
+        city: group.city || "",
+        sport: group.sport || "calcetto",
+        createdBy: user.uid,
+        members: [],
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        matchesPlayed: 0,
+        goalsFor: 0,
+        goalsAgainst: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      setTeamName("");
+      setMessage("Squadra creata nel gruppo.");
+
+      await loadGroup();
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante la creazione della squadra.");
+    } finally {
+      setCreatingTeam(false);
+    }
   }
 
-  setCreatingTeam(true);
-  setMessage("");
+  async function addMemberToTeam(teamId: string, memberUid: string) {
+    if (!memberUid) {
+      setMessage("Seleziona un membro da aggiungere alla squadra.");
+      return;
+    }
 
-  try {
-    await addDoc(collection(db, "groupTeams"), {
-      groupId,
-      name: cleanName,
-      city: group.city || "",
-      sport: group.sport || "calcetto",
-      createdBy: user.uid,
-      members: [],
-      wins: 0,
-      losses: 0,
-      draws: 0,
-      matchesPlayed: 0,
-      goalsFor: 0,
-      goalsAgainst: 0,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+    setMessage("");
 
-    setTeamName("");
-    setMessage("Squadra creata nel gruppo.");
+    try {
+      const teamRef = doc(db, "groupTeams", teamId);
 
-    await loadGroup();
-  } catch (error) {
-    console.error(error);
-    setMessage("Errore durante la creazione della squadra.");
-  } finally {
-    setCreatingTeam(false);
-  }
-}
+      await updateDoc(teamRef, {
+        members: arrayUnion(memberUid),
+        updatedAt: serverTimestamp(),
+      });
 
-async function addMemberToTeam(teamId: string, memberUid: string) {
-  if (!memberUid) {
-    setMessage("Seleziona un membro da aggiungere alla squadra.");
-    return;
+      setMessage("Membro aggiunto alla squadra.");
+
+      await loadGroup();
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante l'aggiunta del membro alla squadra.");
+    }
   }
 
-  setMessage("");
-
-  try {
-    const teamRef = doc(db, "groupTeams", teamId);
-
-    await updateDoc(teamRef, {
-      members: arrayUnion(memberUid),
-      updatedAt: serverTimestamp(),
-    });
-
-    setMessage("Membro aggiunto alla squadra.");
-
-    await loadGroup();
-  } catch (error) {
-    console.error(error);
-    setMessage("Errore durante l'aggiunta del membro alla squadra.");
-  }
-}
   if (!mounted) {
     return null;
   }
@@ -389,23 +392,38 @@ async function addMemberToTeam(teamId: string, memberUid: string) {
   }
 
   const rankedMembers = [...memberProfiles].sort((a, b) => {
-  return (
-    Number(b.rivalScore || 1000) - Number(a.rivalScore || 1000) ||
-    Number(b.wins || 0) - Number(a.wins || 0) ||
-    Number(b.mvp || 0) - Number(a.mvp || 0)
-  );
-});
+    return (
+      Number(b.rivalScore || 1000) - Number(a.rivalScore || 1000) ||
+      Number(b.wins || 0) - Number(a.wins || 0) ||
+      Number(b.mvp || 0) - Number(a.mvp || 0)
+    );
+  });
 
-const officialGroupMatches = groupMatches.filter(
-  (match) =>
-    match.status === "ufficiale" || match.resultStatus === "confermato"
-).length;
+  const rankedGroupTeams = [...groupTeams].sort((a, b) => {
+    const pointsA = Number(a.wins || 0) * 3 + Number(a.draws || 0);
+    const pointsB = Number(b.wins || 0) * 3 + Number(b.draws || 0);
 
-const pendingGroupMatches = groupMatches.filter(
-  (match) =>
-    match.status === "in_attesa_conferma" ||
-    match.resultStatus === "proposto"
-).length;
+    const goalDiffA = Number(a.goalsFor || 0) - Number(a.goalsAgainst || 0);
+    const goalDiffB = Number(b.goalsFor || 0) - Number(b.goalsAgainst || 0);
+
+    return (
+      pointsB - pointsA ||
+      goalDiffB - goalDiffA ||
+      Number(b.goalsFor || 0) - Number(a.goalsFor || 0) ||
+      Number(b.wins || 0) - Number(a.wins || 0)
+    );
+  });
+
+  const officialGroupMatches = groupMatches.filter(
+    (match) =>
+      match.status === "ufficiale" || match.resultStatus === "confermato"
+  ).length;
+
+  const pendingGroupMatches = groupMatches.filter(
+    (match) =>
+      match.status === "in_attesa_conferma" ||
+      match.resultStatus === "proposto"
+  ).length;
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
@@ -452,11 +470,11 @@ const pendingGroupMatches = groupMatches.filter(
               </div>
 
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-  <Stat value={String(group.members?.length || 0)} label="Membri" />
-  <Stat value={String(groupMatches.length)} label="Partite" />
-  <Stat value={String(officialGroupMatches)} label="Ufficiali" />
-  <Stat value={String(pendingGroupMatches)} label="Da confermare" />
-</div>
+                <Stat value={String(group.members?.length || 0)} label="Membri" />
+                <Stat value={String(groupMatches.length)} label="Partite" />
+                <Stat value={String(officialGroupMatches)} label="Ufficiali" />
+                <Stat value={String(pendingGroupMatches)} label="Da confermare" />
+              </div>
             </div>
           </div>
         </section>
@@ -493,63 +511,63 @@ const pendingGroupMatches = groupMatches.filter(
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
           <div id="classifica-gruppo">
-  <Panel
-    title="Classifica gruppo"
-    subtitle="Ranking interno dei membri basato su RivalScore, vittorie e MVP."
-  >
-    <div className="space-y-3">
-      {rankedMembers.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
-          Nessun membro visibile.
-        </div>
-      ) : (
-        rankedMembers.map((member, index) => (
-          <div
-            key={member.uid}
-            className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-[#061126]/80 p-4 xl:flex-row xl:items-center"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-sm font-black text-cyan-200">
-                #{index + 1}
-              </div>
-
-              <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-cyan-400/10">
-                {member.photoUrl ? (
-                  <img
-                    src={member.photoUrl}
-                    alt="Membro"
-                    className="h-full w-full object-cover"
-                  />
+            <Panel
+              title="Classifica gruppo"
+              subtitle="Ranking interno dei membri basato su RivalScore, vittorie e MVP."
+            >
+              <div className="space-y-3">
+                {rankedMembers.length === 0 ? (
+                  <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
+                    Nessun membro visibile.
+                  </div>
                 ) : (
-                  <Users className="text-cyan-200" size={20} />
+                  rankedMembers.map((member, index) => (
+                    <div
+                      key={member.uid}
+                      className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-[#061126]/80 p-4 xl:flex-row xl:items-center"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-sm font-black text-cyan-200">
+                          #{index + 1}
+                        </div>
+
+                        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-cyan-400/10">
+                          {member.photoUrl ? (
+                            <img
+                              src={member.photoUrl}
+                              alt="Membro"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <Users className="text-cyan-200" size={20} />
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="truncate font-black">
+                            {member.name || "Rivalo Player"}
+                          </div>
+
+                          <div className="truncate text-xs text-slate-400">
+                            {member.nickname || member.email || "Membro gruppo"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs sm:grid-cols-6 xl:ml-auto">
+                        <MiniRankStat label="RS" value={member.rivalScore || 1000} />
+                        <MiniRankStat label="V" value={member.wins || 0} />
+                        <MiniRankStat label="MVP" value={member.mvp || 0} />
+                        <MiniRankStat label="G" value={member.matchesPlayed || 0} />
+                        <MiniRankStat label="Gol" value={member.goals || 0} />
+                        <MiniRankStat label="Ast" value={member.assists || 0} />
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
-
-              <div className="min-w-0">
-                <div className="truncate font-black">
-                  {member.name || "Rivalo Player"}
-                </div>
-
-                <div className="truncate text-xs text-slate-400">
-                  {member.nickname || member.email || "Membro gruppo"}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center text-xs sm:grid-cols-6 xl:ml-auto">
-              <MiniRankStat label="RS" value={member.rivalScore || 1000} />
-              <MiniRankStat label="V" value={member.wins || 0} />
-              <MiniRankStat label="MVP" value={member.mvp || 0} />
-              <MiniRankStat label="G" value={member.matchesPlayed || 0} />
-              <MiniRankStat label="Gol" value={member.goals || 0} />
-              <MiniRankStat label="Ast" value={member.assists || 0} />
-            </div>
+            </Panel>
           </div>
-        ))
-      )}
-    </div>
-  </Panel>
-</div>
 
           <div id="aggiungi-membro">
             <Panel
@@ -656,144 +674,159 @@ const pendingGroupMatches = groupMatches.filter(
         </section>
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
-  <Panel
-    title="Squadre del gruppo"
-    subtitle="Crea squadre stabili da usare nei match, tornei e campionati."
-  >
-    <div className="space-y-3">
-      {groupTeams.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
-          Nessuna squadra creata.
-        </div>
-      ) : (
-       groupTeams.map((team) => {
-  const teamMembers = memberProfiles.filter((member) =>
-    team.members?.includes(member.uid)
-  );
-
-  const availableTeamMembers = memberProfiles.filter(
-    (member) => !team.members?.includes(member.uid)
-  );
-
-  return (
-    <div
-      key={team.id}
-      className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5"
-    >
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
-          <div className="text-xl font-black">
-            {team.name || "Squadra Rivalo"}
-          </div>
-
-          <div className="mt-2 text-sm text-slate-400">
-            {team.sport || group.sport} · {team.members?.length || 0} membri
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200">
-          {team.matchesPlayed || 0} match
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs sm:grid-cols-6">
-        <MiniRankStat label="G" value={team.matchesPlayed || 0} />
-        <MiniRankStat label="V" value={team.wins || 0} />
-        <MiniRankStat label="N" value={team.draws || 0} />
-        <MiniRankStat label="P" value={team.losses || 0} />
-        <MiniRankStat label="GF" value={team.goalsFor || 0} />
-        <MiniRankStat label="GS" value={team.goalsAgainst || 0} />
-      </div>
-
-      <div className="mt-5 space-y-2">
-        <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-          Rosa squadra
-        </div>
-
-        {teamMembers.length === 0 ? (
-          <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-400">
-            Nessun membro nella squadra.
-          </div>
-        ) : (
-          teamMembers.map((member) => (
-            <div
-              key={member.uid}
-              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-bold"
-            >
-              {member.name || member.nickname || "Rivalo Player"}
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="mt-5">
-        <div className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
-          Aggiungi membro
-        </div>
-
-        {availableTeamMembers.length === 0 ? (
-          <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-400">
-            Tutti i membri del gruppo sono già in questa squadra.
-          </div>
-        ) : (
-          <select
-            defaultValue=""
-            onChange={(e) => {
-              if (e.target.value) {
-                addMemberToTeam(team.id, e.target.value);
-                e.target.value = "";
-              }
-            }}
-            className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
+          <Panel
+            title="Squadre del gruppo"
+            subtitle="Crea squadre stabili da usare nei match, tornei e campionati."
           >
-            <option value="" className="bg-[#020617] text-white">
-              Seleziona membro
-            </option>
+            <div className="space-y-3">
+              {rankedGroupTeams.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5 text-slate-300">
+                  Nessuna squadra creata.
+                </div>
+              ) : (
+                rankedGroupTeams.map((team, index) => {
+                  const teamMembers = memberProfiles.filter((member) =>
+                    team.members?.includes(member.uid)
+                  );
 
-            {availableTeamMembers.map((member) => (
-              <option
-                key={member.uid}
-                value={member.uid}
-                className="bg-[#020617] text-white"
+                  const availableTeamMembers = memberProfiles.filter(
+                    (member) => !team.members?.includes(member.uid)
+                  );
+
+                  const points =
+                    Number(team.wins || 0) * 3 + Number(team.draws || 0);
+
+                  const goalDifference =
+                    Number(team.goalsFor || 0) -
+                    Number(team.goalsAgainst || 0);
+
+                  return (
+                    <div
+                      key={team.id}
+                      className="rounded-2xl border border-white/10 bg-[#061126]/80 p-5"
+                    >
+                      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-lime-400/20 bg-lime-400/10 text-sm font-black text-lime-200">
+                              #{index + 1}
+                            </div>
+
+                            <div className="text-xl font-black">
+                              {team.name || "Squadra Rivalo"}
+                            </div>
+                          </div>
+
+                          <div className="mt-2 text-sm text-slate-400">
+                            {team.sport || group.sport} ·{" "}
+                            {team.members?.length || 0} membri · {points} punti
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200">
+                          {team.matchesPlayed || 0} match
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs sm:grid-cols-7">
+                        <MiniRankStat label="G" value={team.matchesPlayed || 0} />
+                        <MiniRankStat label="V" value={team.wins || 0} />
+                        <MiniRankStat label="N" value={team.draws || 0} />
+                        <MiniRankStat label="P" value={team.losses || 0} />
+                        <MiniRankStat label="GF" value={team.goalsFor || 0} />
+                        <MiniRankStat label="GS" value={team.goalsAgainst || 0} />
+                        <MiniRankStat label="DR" value={goalDifference} />
+                      </div>
+
+                      <div className="mt-5 space-y-2">
+                        <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+                          Rosa squadra
+                        </div>
+
+                        {teamMembers.length === 0 ? (
+                          <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-400">
+                            Nessun membro nella squadra.
+                          </div>
+                        ) : (
+                          teamMembers.map((member) => (
+                            <div
+                              key={member.uid}
+                              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-bold"
+                            >
+                              {member.name || member.nickname || "Rivalo Player"}
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      <div className="mt-5">
+                        <div className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
+                          Aggiungi membro
+                        </div>
+
+                        {availableTeamMembers.length === 0 ? (
+                          <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-400">
+                            Tutti i membri del gruppo sono già in questa squadra.
+                          </div>
+                        ) : (
+                          <select
+                            defaultValue=""
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                addMemberToTeam(team.id, e.target.value);
+                                e.target.value = "";
+                              }
+                            }}
+                            className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
+                          >
+                            <option value="" className="bg-[#020617] text-white">
+                              Seleziona membro
+                            </option>
+
+                            {availableTeamMembers.map((member) => (
+                              <option
+                                key={member.uid}
+                                value={member.uid}
+                                className="bg-[#020617] text-white"
+                              >
+                                {member.name || member.nickname || "Rivalo Player"}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </Panel>
+
+          <Panel
+            title="Crea squadra"
+            subtitle="Aggiungi una squadra stabile al gruppo."
+          >
+            <form onSubmit={createGroupTeam} className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-[#061126]/80 px-4 py-4">
+                <input
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  placeholder="Nome squadra"
+                  className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={creatingTeam}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
               >
-                {member.name || member.nickname || "Rivalo Player"}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-    </div>
-  );
-})
-      )}
-    </div>
-  </Panel>
-
-  <Panel
-    title="Crea squadra"
-    subtitle="Aggiungi una squadra stabile al gruppo."
-  >
-    <form onSubmit={createGroupTeam} className="space-y-4">
-      <div className="rounded-2xl border border-white/10 bg-[#061126]/80 px-4 py-4">
-        <input
-          value={teamName}
-          onChange={(e) => setTeamName(e.target.value)}
-          placeholder="Nome squadra"
-          className="w-full bg-transparent outline-none placeholder:text-slate-500"
-        />
-      </div>
-
-      <button
-        type="submit"
-        disabled={creatingTeam}
-        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
-      >
-        {creatingTeam ? "Creazione..." : "Crea squadra"}
-        <ChevronRight size={20} />
-      </button>
-    </form>
-  </Panel>
-</section>
+                {creatingTeam ? "Creazione..." : "Crea squadra"}
+                <ChevronRight size={20} />
+              </button>
+            </form>
+          </Panel>
+        </section>
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
           <Panel
@@ -933,6 +966,7 @@ function Panel({
     </div>
   );
 }
+
 function MiniRankStat({
   label,
   value,
