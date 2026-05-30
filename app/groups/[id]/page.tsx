@@ -468,13 +468,23 @@ async function rejectJoinRequest(request: JoinRequest) {
     );
   }
 
-  const rankedMembers = [...memberProfiles].sort((a, b) => {
-    return (
-      Number(b.rivalScore || 1000) - Number(a.rivalScore || 1000) ||
-      Number(b.wins || 0) - Number(a.wins || 0) ||
-      Number(b.mvp || 0) - Number(a.mvp || 0)
-    );
-  });
+ const rankedMembers = [...memberProfiles].sort((a, b) => {
+  const matchesA = Number(a.matchesPlayed || 0);
+  const matchesB = Number(b.matchesPlayed || 0);
+
+  const hasPlayedA = matchesA > 0 ? 1 : 0;
+  const hasPlayedB = matchesB > 0 ? 1 : 0;
+
+  return (
+    hasPlayedB - hasPlayedA ||
+    Number(b.rivalScore || 1000) - Number(a.rivalScore || 1000) ||
+    Number(b.wins || 0) - Number(a.wins || 0) ||
+    Number(b.mvp || 0) - Number(a.mvp || 0) ||
+    matchesB - matchesA ||
+    Number(b.goals || 0) - Number(a.goals || 0) ||
+    Number(b.assists || 0) - Number(a.assists || 0)
+  );
+});
 
   const rankedGroupTeams = [...groupTeams].sort((a, b) => {
     const pointsA = Number(a.wins || 0) * 3 + Number(a.draws || 0);
