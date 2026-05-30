@@ -647,7 +647,7 @@ async function rejectJoinRequest(request: JoinRequest) {
               </div>
             </Panel>
           </div>
-
+          { canManageGroup && (
           <div id="aggiungi-membro">
             <Panel
               title="Aggiungi membro"
@@ -678,8 +678,9 @@ async function rejectJoinRequest(request: JoinRequest) {
                   </div>
                 )}
               </form>
-            </Panel>
-          </div>
+          </Panel>
+  </div>
+)}
         </section>
 
         {canManageGroup && (
@@ -899,42 +900,44 @@ async function rejectJoinRequest(request: JoinRequest) {
                         )}
                       </div>
 
-                      <div className="mt-5">
-                        <div className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
-                          Aggiungi membro
-                        </div>
+                      {canManageGroup && (
+  <div className="mt-5">
+    <div className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
+      Aggiungi membro
+    </div>
 
-                        {availableTeamMembers.length === 0 ? (
-                          <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-400">
-                            Tutti i membri del gruppo sono già in questa squadra.
-                          </div>
-                        ) : (
-                          <select
-                            defaultValue=""
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                addMemberToTeam(team.id, e.target.value);
-                                e.target.value = "";
-                              }
-                            }}
-                            className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
-                          >
-                            <option value="" className="bg-[#020617] text-white">
-                              Seleziona membro
-                            </option>
+    {availableTeamMembers.length === 0 ? (
+      <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-400">
+        Tutti i membri del gruppo sono già in questa squadra.
+      </div>
+    ) : (
+      <select
+        defaultValue=""
+        onChange={(e) => {
+          if (e.target.value) {
+            addMemberToTeam(team.id, e.target.value);
+            e.target.value = "";
+          }
+        }}
+        className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
+      >
+        <option value="" className="bg-[#020617] text-white">
+          Seleziona membro
+        </option>
 
-                            {availableTeamMembers.map((member) => (
-                              <option
-                                key={member.uid}
-                                value={member.uid}
-                                className="bg-[#020617] text-white"
-                              >
-                                {member.name || member.nickname || "Rivalo Player"}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
+        {availableTeamMembers.map((member) => (
+          <option
+            key={member.uid}
+            value={member.uid}
+            className="bg-[#020617] text-white"
+          >
+            {member.name || member.nickname || "Rivalo Player"}
+          </option>
+        ))}
+      </select>
+    )}
+  </div>
+)}
                     </div>
                   );
                 })
@@ -942,10 +945,11 @@ async function rejectJoinRequest(request: JoinRequest) {
             </div>
           </Panel>
 
-          <Panel
-            title="Crea squadra"
-            subtitle="Aggiungi una squadra stabile al gruppo."
-          >
+          {canManageGroup && (
+  <Panel
+    title="Crea squadra"
+    subtitle="Aggiungi una squadra stabile al gruppo."
+  >
             <form onSubmit={createGroupTeam} className="space-y-4">
               <div className="rounded-2xl border border-white/10 bg-[#061126]/80 px-4 py-4">
                 <input
@@ -966,6 +970,7 @@ async function rejectJoinRequest(request: JoinRequest) {
               </button>
             </form>
           </Panel>
+)}
         </section>
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
