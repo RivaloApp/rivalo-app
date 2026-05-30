@@ -34,6 +34,13 @@ type OpponentGroup = {
   ownerId?: string;
 };
 
+type JoinRequest = {
+  id: string;
+  groupId?: string;
+  fromUid?: string;
+  status?: string;
+};
+
 export default function OpponentsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [groups, setGroups] = useState<OpponentGroup[]>([]);
@@ -43,6 +50,7 @@ export default function OpponentsPage() {
   const [cityFilter, setCityFilter] = useState("");
   const [message, setMessage] = useState("");
 const [requestingGroupId, setRequestingGroupId] = useState("");
+const [sentRequests, setSentRequests] = useState<JoinRequest[]>([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -52,7 +60,8 @@ const [requestingGroupId, setRequestingGroupId] = useState("");
       }
 
       setUser(currentUser);
-      await loadPublicGroups();
+await loadPublicGroups();
+await loadSentRequests(currentUser.uid);
     });
 
     return () => unsubscribe();
@@ -83,8 +92,39 @@ const [requestingGroupId, setRequestingGroupId] = useState("");
     }
   }
 
+  async function loadSentRequests(uid: string) {
+  try {
+    const requestsQuery = query(
+      collection(db, "groupJoinRequests"),
+      where("fromUid", "==", uid),
+      where("status", "==", "pending")
+    );
+
+    const snap = await getDocs(requestsQuery);
+
+    const result = snap.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...(docSnap.data() as Omit<JoinRequest, "id">),
+    }));
+
+    setSentRequests(result);
+  } catch (error) {
+    console.error(error);
+    setSentRequests([]);
+  }
+}
+
   async function requestJoinGroup(group: OpponentGroup) {
   if (!user) return;
+
+  const alreadyRequested = sentRequests.some(
+  (request) => request.groupId === group.id
+);
+
+if (alreadyRequested) {
+  setMessage("Hai già inviato una richiesta per questo gruppo.");
+  return;
+}
 
   setRequestingGroupId(group.id);
   setMessage("");
@@ -101,6 +141,7 @@ const [requestingGroupId, setRequestingGroupId] = useState("");
     });
 
     setMessage("Richiesta inviata al gruppo.");
+    await loadSentRequests(user.uid);
   } catch (error) {
     console.error(error);
     setMessage("Errore durante l'invio della richiesta.");
@@ -225,6 +266,9 @@ const [requestingGroupId, setRequestingGroupId] = useState("");
   group={group}
   onRequestJoin={requestJoinGroup}
   requesting={requestingGroupId === group.id}
+  alreadyRequested={sentRequests.some(
+    (request) => request.groupId === group.id
+  )}
 />
               ))}
             </div>
@@ -239,11 +283,14 @@ function OpponentCard({
   group,
   onRequestJoin,
   requesting,
+  alreadyRequested,
 }: {
   group: OpponentGroup;
   onRequestJoin: (group: OpponentGroup) => void;
   requesting: boolean;
+  alreadyRequested: boolean;
 }) {
+
   return (
     <div className="rounded-[2rem] border border-white/10 bg-[#061126]/80 p-6 shadow-2xl transition hover:-translate-y-1 hover:border-cyan-400/30">
       <div className="mb-5 flex items-center justify-between gap-3">
@@ -280,10 +327,14 @@ function OpponentCard({
         <button
   type="button"
   onClick={() => onRequestJoin(group)}
-  disabled={requesting}
+ disabled={requesting || alreadyRequested}
   className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-3 font-black text-white disabled:opacity-60"
 >
-  {requesting ? "Invio richiesta..." : "Richiedi ingresso"}
+ {alreadyRequested
+  ? "Richiesta già inviata"
+  : requesting
+  ? "Invio richiesta..."
+  : "Richiedi ingresso"}
 </button>
       </div>
     </div>
