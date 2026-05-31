@@ -1657,16 +1657,16 @@ const pendingCompetitionMatches = Math.max(
     </div>
 
     {event.status === "torneo completato" && (
-  <div className="mb-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-5">
-    <div className="text-xs font-black uppercase tracking-[0.2em] text-yellow-200">
-      Torneo completato
-    </div>
+      <div className="mb-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-5">
+        <div className="text-xs font-black uppercase tracking-[0.2em] text-yellow-200">
+          Torneo completato
+        </div>
 
-    <div className="mt-2 text-2xl font-black text-yellow-100">
-      Vincitore: {(event as any).winnerTeamName || "Squadra vincitrice"}
-    </div>
-  </div>
-)}
+        <div className="mt-2 text-2xl font-black text-yellow-100">
+          Vincitore: {(event as any).winnerTeamName || "Squadra vincitrice"}
+        </div>
+      </div>
+    )}
 
     {!event.bracket || event.bracket.length === 0 ? (
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
@@ -1680,26 +1680,37 @@ const pendingCompetitionMatches = Math.max(
             className="rounded-2xl border border-white/10 bg-white/[.03] p-4"
           >
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-    Round {match.round} · Match {match.matchNumber}
-  </div>
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                Round {match.round} · Match {match.matchNumber}
+              </div>
 
-  <div
-    className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
-      match.resultStatus === "confermato"
-        ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
-        : match.matchId
-        ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
-        : "border-white/10 bg-white/[.03] text-slate-400"
-    }`}
-  >
-    {match.resultStatus === "confermato"
-      ? "Completato"
-      : match.matchId
-      ? "Match creato"
-      : "Da creare"}
-  </div>
-</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div
+                  className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
+                    match.resultStatus === "confermato"
+                      ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
+                      : match.matchId
+                      ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+                      : "border-white/10 bg-white/[.03] text-slate-400"
+                  }`}
+                >
+                  {match.resultStatus === "confermato"
+                    ? "Completato"
+                    : match.matchId
+                    ? "Match creato"
+                    : "Da creare"}
+                </div>
+
+                {match.matchId && (
+                  <Link
+                    href={"/match/" + match.matchId}
+                    className="inline-flex items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/20"
+                  >
+                    Apri match
+                  </Link>
+                )}
+              </div>
+            </div>
 
             <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
               <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 font-black text-cyan-100">
@@ -1710,35 +1721,30 @@ const pendingCompetitionMatches = Math.max(
                 VS
               </div>
 
-              {typeof match.homeScore === "number" &&
-  typeof match.awayScore === "number" && (
-    <div className="mt-3 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200">
-      Risultato: {match.homeScore} - {match.awayScore}
-    </div>
-  )}
-
               <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-4 font-black text-fuchsia-100">
                 {match.awayName}
               </div>
             </div>
-            {match.matchId ? (
-  <Link
-    href={`/match/${match.matchId}`}
-    className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200"
-  >
-    Apri match
-  </Link>
-) : (
-  <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs font-black text-slate-400">
-    Match non ancora creato
-  </div>
-)}
+
+            {typeof match.homeScore === "number" &&
+              typeof match.awayScore === "number" && (
+                <div className="mt-3 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200">
+                  Risultato: {match.homeScore} - {match.awayScore}
+                </div>
+              )}
+
+            {!match.matchId && (
+              <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 text-xs text-white/60">
+                Match non ancora creato
+              </div>
+            )}
           </div>
         ))}
       </div>
     )}
   </section>
-)}{event.type === "campionato" && isTeamCompetition && (
+)}
+{event.type === "campionato" && isTeamCompetition && (
   <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
@@ -1759,16 +1765,16 @@ const pendingCompetitionMatches = Math.max(
     </div>
 
     {event.status === "campionato completato" && (
-  <div className="mb-5 rounded-2xl border border-lime-300/20 bg-lime-400/10 p-5">
-    <div className="text-xs font-black uppercase tracking-[0.2em] text-lime-200">
-      Campionato completato
-    </div>
+      <div className="mb-5 rounded-2xl border border-lime-300/20 bg-lime-400/10 p-5">
+        <div className="text-xs font-black uppercase tracking-[0.2em] text-lime-200">
+          Campionato completato
+        </div>
 
-    <div className="mt-2 text-2xl font-black text-lime-100">
-      Tutte le giornate sono state completate.
-    </div>
-  </div>
-)}
+        <div className="mt-2 text-2xl font-black text-lime-100">
+          Tutte le giornate sono state completate.
+        </div>
+      </div>
+    )}
 
     {!event.leagueFixtures || event.leagueFixtures.length === 0 ? (
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
@@ -1782,26 +1788,37 @@ const pendingCompetitionMatches = Math.max(
             className="rounded-2xl border border-white/10 bg-white/[.03] p-4"
           >
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-    Giornata {fixture.round} · Match {fixture.matchNumber}
-  </div>
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                Giornata {fixture.round} · Match {fixture.matchNumber}
+              </div>
 
-  <div
-    className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
-      fixture.resultStatus === "confermato"
-        ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
-        : fixture.matchId
-        ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
-        : "border-white/10 bg-white/[.03] text-slate-400"
-    }`}
-  >
-    {fixture.resultStatus === "confermato"
-      ? "Completata"
-      : fixture.matchId
-      ? "Match creato"
-      : "Da creare"}
-  </div>
-</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div
+                  className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
+                    fixture.resultStatus === "confermato"
+                      ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
+                      : fixture.matchId
+                      ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+                      : "border-white/10 bg-white/[.03] text-slate-400"
+                  }`}
+                >
+                  {fixture.resultStatus === "confermato"
+                    ? "Completata"
+                    : fixture.matchId
+                    ? "Match creato"
+                    : "Da creare"}
+                </div>
+
+                {fixture.matchId && (
+                  <Link
+                    href={"/match/" + fixture.matchId}
+                    className="inline-flex items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/20"
+                  >
+                    Apri match
+                  </Link>
+                )}
+              </div>
+            </div>
 
             <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
               <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 font-black text-cyan-100">
@@ -1816,20 +1833,18 @@ const pendingCompetitionMatches = Math.max(
                 {fixture.awayName}
               </div>
             </div>
-            {typeof fixture.homeScore === "number" &&
-  typeof fixture.awayScore === "number" && (
-    <div className="mt-3 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200">
-      Risultato: {fixture.homeScore} - {fixture.awayScore}
-    </div>
-  )}
 
-            {fixture.matchId && (
-              <Link
-                href={`/match/${fixture.matchId}`}
-                className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200"
-              >
-                Apri match
-              </Link>
+            {typeof fixture.homeScore === "number" &&
+              typeof fixture.awayScore === "number" && (
+                <div className="mt-3 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200">
+                  Risultato: {fixture.homeScore} - {fixture.awayScore}
+                </div>
+              )}
+
+            {!fixture.matchId && (
+              <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 text-xs text-white/60">
+                Match non ancora creato
+              </div>
             )}
           </div>
         ))}
