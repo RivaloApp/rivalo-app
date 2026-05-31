@@ -1231,6 +1231,10 @@ setMessage("");
       ? "Squadre"
       : "Singolo";
 
+      const invalidEventTeams = getInvalidEventTeams();
+const validEventTeamsCount = teams.length - invalidEventTeams.length;
+const invalidEventTeamsCount = invalidEventTeams.length;
+
       const rankedTeamStats = [...teamStats].sort((a, b) => {
   const goalDiffA = Number(a.goalsFor || 0) - Number(a.goalsAgainst || 0);
   const goalDiffB = Number(b.goalsFor || 0) - Number(b.goalsAgainst || 0);
@@ -1563,6 +1567,34 @@ const pendingCompetitionMatches = Math.max(
                     <p className="mt-2 text-sm text-slate-400">
                       Crea le squadre o le coppie che parteciperanno alla competizione.
                     </p>
+                    <div className="mt-5 grid gap-3 sm:grid-cols-3">
+  <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-center">
+    <div className="text-2xl font-black text-cyan-200">
+      {teams.length}
+    </div>
+    <div className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+      Team totali
+    </div>
+  </div>
+
+  <div className="rounded-2xl border border-lime-400/20 bg-lime-400/10 p-4 text-center">
+    <div className="text-2xl font-black text-lime-200">
+      {validEventTeamsCount}
+    </div>
+    <div className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+      Validi
+    </div>
+  </div>
+
+  <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-center">
+    <div className="text-2xl font-black text-red-200">
+      {invalidEventTeamsCount}
+    </div>
+    <div className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+      Da sistemare
+    </div>
+  </div>
+</div>
                   </div>
 
                   {isCreator && (
