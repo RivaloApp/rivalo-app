@@ -326,6 +326,19 @@ setTeamStats(teamStatsResult);
   async function joinEvent() {
     if (!user || !event) return;
 
+    const competitionStarted =
+  Boolean(event.bracket && event.bracket.length > 0) ||
+  Boolean(event.leagueFixtures && event.leagueFixtures.length > 0) ||
+  event.status === "tabellone creato" ||
+  event.status === "calendario creato" ||
+  event.status === "torneo completato" ||
+  event.status === "campionato completato";
+
+if (competitionStarted) {
+  setMessage("Le iscrizioni sono chiuse perché la competizione è già iniziata.");
+  return;
+}
+
     const participants = event.participants || [];
 
     if (participants.includes(user.uid)) {
