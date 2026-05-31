@@ -422,12 +422,18 @@ setTeamStats(teamStatsResult);
     const competitionFormat =
       event.competitionFormat ||
       (event.sport === "calcetto" ? "squadre" : "singolo");
-      const eventParticipants = event.participants || [];
+    const eventParticipants = event.participants || [];
 
 if (eventParticipants.length === 0) {
   setMessage("Prima devono esserci partecipanti iscritti all'evento.");
   return;
 }
+
+if (competitionFormat === "singolo" && eventParticipants.length < 1) {
+  setMessage("Per il singolo serve almeno 1 iscritto all'evento.");
+  return;
+}
+
 if (competitionFormat === "doppio" && eventParticipants.length < 2) {
   setMessage("Per creare una coppia servono almeno 2 iscritti all'evento.");
   return;
@@ -438,21 +444,37 @@ if (competitionFormat === "squadre" && eventParticipants.length < 2) {
   return;
 }
 
-   if (competitionFormat === "doppio" && selectedPlayerIds.length !== 2) {
-    const invalidSelection = selectedPlayerIds.some(
+if (competitionFormat === "singolo" && selectedPlayerIds.length !== 1) {
+  setMessage("Nel singolo devi selezionare esattamente 1 giocatore.");
+  return;
+}
+
+if (competitionFormat === "doppio" && selectedPlayerIds.length !== 2) {
+  setMessage("Nel doppio devi selezionare esattamente 2 giocatori.");
+  return;
+}
+
+if (competitionFormat === "squadre") {
+  const minPlayers = event.sport === "calcetto" ? 5 : 2;
+  const maxPlayers = event.sport === "calcetto" ? 8 : 2;
+
+  if (selectedPlayerIds.length < minPlayers) {
+    setMessage(`Per questa squadra servono almeno ${minPlayers} giocatori.`);
+    return;
+  }
+
+  if (selectedPlayerIds.length > maxPlayers) {
+    setMessage(`Per questa squadra puoi selezionare massimo ${maxPlayers} giocatori.`);
+    return;
+  }
+}
+
+const invalidSelection = selectedPlayerIds.some(
   (uid) => !eventParticipants.includes(uid)
 );
 
 if (invalidSelection) {
   setMessage("Puoi selezionare solo giocatori iscritti a questo evento.");
-  return;
-}
-  setMessage("Nel doppio devi selezionare esattamente 2 giocatori.");
-  return;
-}
-
-if (competitionFormat === "squadre" && selectedPlayerIds.length < 2) {
-  setMessage("Per creare una squadra servono almeno 2 giocatori.");
   return;
 }
 
