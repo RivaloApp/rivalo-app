@@ -411,237 +411,157 @@ setTeamStats(teamStatsResult);
     setJoining(false);
   }
 
-  async function createTeam() {
-    if (!user || !event) return;
+ async function createTeam() {
+  if (!user || !event) return;
 
-    if (!teamName.trim()) {
-      setMessage("Inserisci il nome della squadra.");
-      return;
-    }
-    const cleanTeamName = teamName.trim();
-
-const duplicatedTeamName = (event.teams || []).some(
-  (team) => team.name?.toLowerCase().trim() === cleanTeamName.toLowerCase()
-);
-
-if (duplicatedTeamName) {
-  setMessage("Esiste già una squadra/coppia con questo nome nell'evento.");
-  return;
-}
-
-    const competitionFormat =
-      event.competitionFormat ||
-      (event.sport === "calcetto" ? "squadre" : "singolo");
-      const isTeamCompetition =
-  competitionFormat === "squadre" || competitionFormat === "doppio";
-
-if (isTeamCompetition) {
-  const invalidTeams = getInvalidEventTeams();
-
-  if (invalidTeams.length > 0) {
-    setMessage(
-      "Ci sono squadre/coppie non valide. Controlla le rose prima di creare il match."
-    );
-    return;
-  }
-}
-    const eventParticipants = event.participants || [];
-
-if (eventParticipants.length === 0) {
-  setMessage("Prima devono esserci partecipanti iscritti all'evento.");
-  return;
-}
-
-if (competitionFormat === "singolo" && eventParticipants.length < 1) {
-  setMessage("Per il singolo serve almeno 1 iscritto all'evento.");
-  return;
-}
-
-if (competitionFormat === "doppio" && eventParticipants.length < 2) {
-  setMessage("Per creare una coppia servono almeno 2 iscritti all'evento.");
-  return;
-}
-
-if (competitionFormat === "squadre" && eventParticipants.length < 2) {
-  setMessage("Per creare squadre servono almeno 2 iscritti all'evento.");
-  return;
-}
-
-if (competitionFormat === "singolo" && selectedPlayerIds.length !== 1) {
-  setMessage("Nel singolo devi selezionare esattamente 1 giocatore.");
-  return;
-}
-
-if (competitionFormat === "doppio" && selectedPlayerIds.length !== 2) {
-  setMessage("Nel doppio devi selezionare esattamente 2 giocatori.");
-  return;
-}
-
-if (competitionFormat === "squadre") {
-  const minPlayers = event.sport === "calcetto" ? 5 : 2;
-  const maxPlayers = event.sport === "calcetto" ? 8 : 2;
-
-  if (selectedPlayerIds.length < minPlayers) {
-    setMessage(`Per questa squadra servono almeno ${minPlayers} giocatori.`);
+  if (!teamName.trim()) {
+    setMessage("Inserisci il nome della squadra.");
     return;
   }
 
-  if (selectedPlayerIds.length > maxPlayers) {
-    setMessage(`Per questa squadra puoi selezionare massimo ${maxPlayers} giocatori.`);
-    return;
-  }
-}
+  const cleanTeamName = teamName.trim();
 
-const invalidSelection = selectedPlayerIds.some(
-  (uid) => !eventParticipants.includes(uid)
-);
-
-if (invalidSelection) {
-  setMessage("Puoi selezionare solo giocatori iscritti a questo evento.");
-  return;
-}
-
-const currentTeams = event.teams || [];
-
-const alreadyInTeam = currentTeams.some((team) =>
-  team.players?.some((player) => selectedPlayerIds.includes(player.uid))
-);
-
-if (alreadyInTeam) {
-  setMessage("Uno o più giocatori selezionati sono già presenti in un'altra squadra/coppia dell'evento.");
-  return;
-}
-
-if (competitionFormat === "squadre" && selectedPlayerIds.length > 8) {
-  setMessage("Una squadra può avere massimo 8 giocatori.");
-  return;
-}
-
-const alreadyUsedPlayerIds = currentTeams.flatMap((team) =>
-  Array.isArray(team.players) ? team.players.map((player) => player.uid) : []
-);
-
-const duplicatedPlayer = selectedPlayerIds.find((uid) =>
-  alreadyUsedPlayerIds.includes(uid)
-);
-
-if (duplicatedPlayer) {
-  const duplicatedUser = availableUsers.find((u) => u.uid === duplicatedPlayer);
-
-  setMessage(
-    `${duplicatedUser?.name || duplicatedUser?.nickname || "Questo giocatore"} è già in una squadra di questo evento.`
+  const duplicatedTeamName = (event.teams || []).some(
+    (team) => team.name?.toLowerCase().trim() === cleanTeamName.toLowerCase()
   );
-  return;
-}
 
-    const selectedPlayers: ParticipantInfo[] = selectedPlayerIds.map((uid) => {
-      const selectedUser = availableUsers.find((u) => u.uid === uid);
-
-      return {
-        uid,
-        name: selectedUser?.name || selectedUser?.nickname || "Rivalo Player",
-        photoUrl: selectedUser?.photoUrl || selectedUser?.photoURL || "",
-      };
-    });
-
-    const newTeam: TeamInfo = {
-      id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      name: cleanTeamName,
-      players: selectedPlayers,
-      createdBy: user.uid,
-    };
-
-    const nextTeams = [...currentTeams, newTeam];
-
-    const currentParticipants = event.participants || [];
-    const currentParticipantsInfo = event.participantsInfo || [];
-
-    const mergedParticipants = Array.from(
-      new Set([
-        ...currentParticipants,
-        ...selectedPlayers.map((player) => player.uid),
-      ])
-    );
-
-    const mergedParticipantsInfo = [...currentParticipantsInfo];
-
-    for (const player of selectedPlayers) {
-      if (!mergedParticipantsInfo.some((p) => p.uid === player.uid)) {
-        mergedParticipantsInfo.push(player);
-      }
-    }
-
-    setCreatingTeam(true);
-    setMessage("");
-
-    try {
-      await updateDoc(doc(db, "events", event.id), {
-        teams: nextTeams,
-        participants: mergedParticipants,
-        participantsInfo: mergedParticipantsInfo,
-        updatedAt: serverTimestamp(),
-      });
-
-      await createActivity({
-        uid: user.uid,
-        type: "event",
-        text: `Squadra creata: ${newTeam.name}`,
-        value: 1,
-      });
-
-      setEvent({
-        ...event,
-        teams: nextTeams,
-        participants: mergedParticipants,
-        participantsInfo: mergedParticipantsInfo,
-      });
-
-      setParticipantsInfo(mergedParticipantsInfo);
-      setTeamName("");
-      setSelectedPlayerIds([]);
-      setMessage("Squadra creata.");
-    } catch (error) {
-      console.error(error);
-      setMessage("Errore durante la creazione della squadra.");
-    }
-
-    setCreatingTeam(false);
+  if (duplicatedTeamName) {
+    setMessage("Esiste già una squadra/coppia con questo nome nell'evento.");
+    return;
   }
-
-  function validateTeamsForCompetition() {
-  if (!event) return false;
 
   const competitionFormat =
     event.competitionFormat ||
     (event.sport === "calcetto" ? "squadre" : "singolo");
 
-  const teams = event.teams || [];
+  const eventParticipants = event.participants || [];
 
-  if (teams.length < 2) {
-    setMessage("Servono almeno 2 squadre/coppie per iniziare.");
-    return false;
+  if (eventParticipants.length === 0) {
+    setMessage("Prima devono esserci partecipanti iscritti all'evento.");
+    return;
   }
 
-  for (const team of teams) {
-    const playersCount = Array.isArray(team.players) ? team.players.length : 0;
+  if (competitionFormat === "singolo" && selectedPlayerIds.length !== 1) {
+    setMessage("Nel singolo devi selezionare esattamente 1 giocatore.");
+    return;
+  }
 
-    if (competitionFormat === "doppio" && playersCount !== 2) {
-      setMessage(`La coppia ${team.name} deve avere esattamente 2 giocatori.`);
-      return false;
+  if (competitionFormat === "doppio" && selectedPlayerIds.length !== 2) {
+    setMessage("Nel doppio devi selezionare esattamente 2 giocatori.");
+    return;
+  }
+
+  if (competitionFormat === "squadre") {
+    const minPlayers = event.sport === "calcetto" ? 5 : 2;
+    const maxPlayers = event.sport === "calcetto" ? 8 : 2;
+
+    if (selectedPlayerIds.length < minPlayers) {
+      setMessage(`Per questa squadra servono almeno ${minPlayers} giocatori.`);
+      return;
     }
 
-    if (competitionFormat === "squadre" && playersCount < 2) {
-      setMessage(`La squadra ${team.name} deve avere almeno 2 giocatori.`);
-      return false;
-    }
-
-    if (competitionFormat === "squadre" && playersCount > 8) {
-      setMessage(`La squadra ${team.name} supera il massimo di 8 giocatori.`);
-      return false;
+    if (selectedPlayerIds.length > maxPlayers) {
+      setMessage(
+        `Per questa squadra puoi selezionare massimo ${maxPlayers} giocatori.`
+      );
+      return;
     }
   }
 
-  return true;
+  const invalidSelection = selectedPlayerIds.some(
+    (uid) => !eventParticipants.includes(uid)
+  );
+
+  if (invalidSelection) {
+    setMessage("Puoi selezionare solo giocatori iscritti a questo evento.");
+    return;
+  }
+
+  const currentTeams = event.teams || [];
+
+  const alreadyInTeam = currentTeams.some((team) =>
+    team.players?.some((player) => selectedPlayerIds.includes(player.uid))
+  );
+
+  if (alreadyInTeam) {
+    setMessage(
+      "Uno o più giocatori selezionati sono già presenti in un'altra squadra/coppia dell'evento."
+    );
+    return;
+  }
+
+  const selectedPlayers: ParticipantInfo[] = selectedPlayerIds.map((uid) => {
+    const selectedUser = availableUsers.find((u) => u.uid === uid);
+
+    return {
+      uid,
+      name: selectedUser?.name || selectedUser?.nickname || "Rivalo Player",
+      photoUrl: selectedUser?.photoUrl || selectedUser?.photoURL || "",
+    };
+  });
+
+  const newTeam: TeamInfo = {
+    id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    name: cleanTeamName,
+    players: selectedPlayers,
+    createdBy: user.uid,
+  };
+
+  const nextTeams = [...currentTeams, newTeam];
+
+  const currentParticipants = event.participants || [];
+  const currentParticipantsInfo = event.participantsInfo || [];
+
+  const mergedParticipants = Array.from(
+    new Set([
+      ...currentParticipants,
+      ...selectedPlayers.map((player) => player.uid),
+    ])
+  );
+
+  const mergedParticipantsInfo = [...currentParticipantsInfo];
+
+  for (const player of selectedPlayers) {
+    if (!mergedParticipantsInfo.some((p) => p.uid === player.uid)) {
+      mergedParticipantsInfo.push(player);
+    }
+  }
+
+  setCreatingTeam(true);
+  setMessage("");
+
+  try {
+    await updateDoc(doc(db, "events", event.id), {
+      teams: nextTeams,
+      participants: mergedParticipants,
+      participantsInfo: mergedParticipantsInfo,
+      updatedAt: serverTimestamp(),
+    });
+
+    await createActivity({
+      uid: user.uid,
+      type: "event",
+      text: `Squadra creata: ${newTeam.name}`,
+      value: 1,
+    });
+
+    setEvent({
+      ...event,
+      teams: nextTeams,
+      participants: mergedParticipants,
+      participantsInfo: mergedParticipantsInfo,
+    });
+
+    setParticipantsInfo(mergedParticipantsInfo);
+    setTeamName("");
+    setSelectedPlayerIds([]);
+    setMessage("Squadra creata.");
+  } catch (error) {
+    console.error(error);
+    setMessage("Errore durante la creazione della squadra.");
+  } finally {
+    setCreatingTeam(false);
+  }
 }
 
 function getInvalidEventTeams() {
@@ -656,6 +576,10 @@ function getInvalidEventTeams() {
   return teams.filter((team) => {
     const playersCount = Array.isArray(team.players) ? team.players.length : 0;
 
+    if (competitionFormat === "singolo") {
+      return playersCount !== 1;
+    }
+
     if (competitionFormat === "doppio") {
       return playersCount !== 2;
     }
@@ -667,12 +591,39 @@ function getInvalidEventTeams() {
       return playersCount < minPlayers || playersCount > maxPlayers;
     }
 
-    if (competitionFormat === "singolo") {
-      return playersCount !== 1;
-    }
-
     return false;
   });
+}
+
+function validateTeamsForCompetition() {
+  if (!event) return false;
+
+  const teams = event.teams || [];
+
+  if (teams.length < 2) {
+    setMessage("Servono almeno 2 squadre/coppie per iniziare.");
+    return false;
+  }
+
+  const invalidTeams = getInvalidEventTeams();
+
+  if (invalidTeams.length > 0) {
+    setMessage(
+      "Ci sono squadre/coppie non valide. Controlla le rose prima di continuare."
+    );
+    return false;
+  }
+
+  const validTeams = teams.filter(
+    (team) => !invalidTeams.some((invalidTeam) => invalidTeam.id === team.id)
+  );
+
+  if (validTeams.length < 2) {
+    setMessage("Servono almeno 2 squadre/coppie valide per continuare.");
+    return false;
+  }
+
+  return true;
 }
 
 function getTeamValidationLabel(team: TeamInfo) {
@@ -725,48 +676,25 @@ async function generateTournamentBracket() {
   }
 
   if (event.bracket && event.bracket.length > 0) {
-  setMessage("Il tabellone è già stato generato.");
-  return;
-}
-
-  if (teams.length < 2) {
-    setMessage("Servono almeno 2 squadre per generare il tabellone.");
+    setMessage("Il tabellone è già stato generato.");
     return;
-    const invalidTeams = getInvalidEventTeams();
-
-if (invalidTeams.length > 0) {
-  setMessage("Ci sono squadre/coppie non valide. Controlla le rose prima di generare il tabellone.");
-  return;
-}
-const validTeams = teams.filter(
-  (team) => !invalidTeams.some((invalidTeam) => invalidTeam.id === team.id)
-);
-
-if (validTeams.length < 2) {
-  setMessage("Servono almeno 2 squadre/coppie valide per generare il tabellone.");
-  return;
-}
   }
+
   if (!validateTeamsForCompetition()) {
-  return;
-}
+    return;
+  }
 
-const invalidTeams = getInvalidEventTeams();
+  const invalidTeams = getInvalidEventTeams();
 
-const validTeams = teams.filter(
-  (team) => !invalidTeams.some((invalidTeam) => invalidTeam.id === team.id)
-);
+  const validTeams = teams.filter(
+    (team) => !invalidTeams.some((invalidTeam) => invalidTeam.id === team.id)
+  );
 
-if (validTeams.length < 2) {
-  setMessage("Servono almeno 2 squadre/coppie valide per generare il tabellone.");
-  return;
-}
+  setGeneratingBracket(true);
+  setMessage("");
 
-setGeneratingBracket(true);
-setMessage("");
-
-try {
-  const shuffledTeams = [...validTeams].sort(() => Math.random() - 0.5);
+  try {
+    const shuffledTeams = [...validTeams].sort(() => Math.random() - 0.5);
 
     const bracket: BracketMatch[] = [];
 
@@ -783,6 +711,10 @@ try {
         awayName: awayTeam?.name || "Riposo",
         winnerTeamId: "",
         matchId: "",
+        status: awayTeam ? "programmato" : "riposo",
+        resultStatus: awayTeam ? "da_creare" : "confermato",
+        homeScore: null,
+        awayScore: null,
       });
     }
 
@@ -809,10 +741,11 @@ try {
   } catch (error) {
     console.error(error);
     setMessage("Errore durante la generazione del tabellone.");
+  } finally {
+    setGeneratingBracket(false);
   }
-
-  setGeneratingBracket(false);
 }
+
 async function generateLeagueSchedule() {
   if (!user || !event) return;
 
@@ -822,53 +755,31 @@ async function generateLeagueSchedule() {
     setMessage("Il calendario è disponibile solo per i campionati.");
     return;
   }
-   if (event.leagueFixtures && event.leagueFixtures.length > 0) {
-  setMessage("Il calendario è già stato generato.");
-  return;
-}
 
-  if (teams.length < 2) {
-    setMessage("Servono almeno 2 squadre per generare il calendario.");
+  if (event.leagueFixtures && event.leagueFixtures.length > 0) {
+    setMessage("Il calendario è già stato generato.");
     return;
-    const invalidTeams = getInvalidEventTeams();
-
-if (invalidTeams.length > 0) {
-  setMessage("Ci sono squadre/coppie non valide. Controlla le rose prima di generare il calendario.");
-  return;
-}
-const validTeams = teams.filter(
-  (team) => !invalidTeams.some((invalidTeam) => invalidTeam.id === team.id)
-);
-
-if (validTeams.length < 2) {
-  setMessage("Servono almeno 2 squadre/coppie valide per generare il calendario.");
-  return;
-}
   }
- if (!validateTeamsForCompetition()) {
-  return;
-}
 
-const invalidTeams = getInvalidEventTeams();
+  if (!validateTeamsForCompetition()) {
+    return;
+  }
 
-const validTeams = teams.filter(
-  (team) => !invalidTeams.some((invalidTeam) => invalidTeam.id === team.id)
-);
+  const invalidTeams = getInvalidEventTeams();
 
-if (validTeams.length < 2) {
-  setMessage("Servono almeno 2 squadre/coppie valide per generare il calendario.");
-  return;
-}
+  const validTeams = teams.filter(
+    (team) => !invalidTeams.some((invalidTeam) => invalidTeam.id === team.id)
+  );
 
-setGeneratingLeague(true);
-setMessage("");
+  setGeneratingLeague(true);
+  setMessage("");
 
-try {
-  const workingTeams: TeamInfo[] =
-    validTeams.length % 2 === 0
-      ? [...validTeams]
-      : [
-          ...validTeams,
+  try {
+    const workingTeams: TeamInfo[] =
+      validTeams.length % 2 === 0
+        ? [...validTeams]
+        : [
+            ...validTeams,
             {
               id: "bye",
               name: "Riposo",
@@ -950,9 +861,9 @@ try {
   } catch (error) {
     console.error(error);
     setMessage("Errore durante la generazione del calendario.");
+  } finally {
+    setGeneratingLeague(false);
   }
-
-  setGeneratingLeague(false);
 }
 
   async function shareEvent() {
