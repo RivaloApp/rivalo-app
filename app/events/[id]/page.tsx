@@ -422,8 +422,31 @@ setTeamStats(teamStatsResult);
     const competitionFormat =
       event.competitionFormat ||
       (event.sport === "calcetto" ? "squadre" : "singolo");
+      const eventParticipants = event.participants || [];
+
+if (eventParticipants.length === 0) {
+  setMessage("Prima devono esserci partecipanti iscritti all'evento.");
+  return;
+}
+if (competitionFormat === "doppio" && eventParticipants.length < 2) {
+  setMessage("Per creare una coppia servono almeno 2 iscritti all'evento.");
+  return;
+}
+
+if (competitionFormat === "squadre" && eventParticipants.length < 2) {
+  setMessage("Per creare squadre servono almeno 2 iscritti all'evento.");
+  return;
+}
 
    if (competitionFormat === "doppio" && selectedPlayerIds.length !== 2) {
+    const invalidSelection = selectedPlayerIds.some(
+  (uid) => !eventParticipants.includes(uid)
+);
+
+if (invalidSelection) {
+  setMessage("Puoi selezionare solo giocatori iscritti a questo evento.");
+  return;
+}
   setMessage("Nel doppio devi selezionare esattamente 2 giocatori.");
   return;
 }
