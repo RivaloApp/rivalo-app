@@ -418,6 +418,16 @@ setTeamStats(teamStatsResult);
       setMessage("Inserisci il nome della squadra.");
       return;
     }
+    const cleanTeamName = teamName.trim();
+
+const duplicatedTeamName = (event.teams || []).some(
+  (team) => team.name?.toLowerCase().trim() === cleanTeamName.toLowerCase()
+);
+
+if (duplicatedTeamName) {
+  setMessage("Esiste già una squadra/coppia con questo nome nell'evento.");
+  return;
+}
 
     const competitionFormat =
       event.competitionFormat ||
@@ -523,7 +533,7 @@ if (duplicatedPlayer) {
 
     const newTeam: TeamInfo = {
       id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      name: teamName.trim(),
+      name: cleanTeamName,
       players: selectedPlayers,
       createdBy: user.uid,
     };
@@ -621,6 +631,37 @@ if (duplicatedPlayer) {
   return true;
 }
 
+function getInvalidEventTeams() {
+  if (!event) return [];
+
+  const competitionFormat =
+    event.competitionFormat ||
+    (event.sport === "calcetto" ? "squadre" : "singolo");
+
+  const teams = event.teams || [];
+
+  return teams.filter((team) => {
+    const playersCount = Array.isArray(team.players) ? team.players.length : 0;
+
+    if (competitionFormat === "doppio") {
+      return playersCount !== 2;
+    }
+
+    if (competitionFormat === "squadre") {
+      const minPlayers = event.sport === "calcetto" ? 5 : 2;
+      const maxPlayers = event.sport === "calcetto" ? 8 : 2;
+
+      return playersCount < minPlayers || playersCount > maxPlayers;
+    }
+
+    if (competitionFormat === "singolo") {
+      return playersCount !== 1;
+    }
+
+    return false;
+  });
+}
+
 async function generateTournamentBracket() {
   if (!user || !event) return;
 
@@ -639,6 +680,12 @@ async function generateTournamentBracket() {
   if (teams.length < 2) {
     setMessage("Servono almeno 2 squadre per generare il tabellone.");
     return;
+    const invalidTeams = getInvalidEventTeams();
+
+if (invalidTeams.length > 0) {
+  setMessage("Ci sono squadre/coppie non valide. Controlla le rose prima di generare il tabellone.");
+  return;
+}
   }
   if (!validateTeamsForCompetition()) {
   return;
@@ -712,6 +759,12 @@ async function generateLeagueSchedule() {
   if (teams.length < 2) {
     setMessage("Servono almeno 2 squadre per generare il calendario.");
     return;
+    const invalidTeams = getInvalidEventTeams();
+
+if (invalidTeams.length > 0) {
+  setMessage("Ci sono squadre/coppie non valide. Controlla le rose prima di generare il calendario.");
+  return;
+}
   }
   if (!validateTeamsForCompetition()) {
   return;
