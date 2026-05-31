@@ -973,10 +973,14 @@ setMessage("");
       let awayTeam: TeamInfo | undefined;
 
       if (event.type === "torneo" && event.bracket?.length) {
-        const nextBracketIndex = event.bracket.findIndex(
-          (match) => !match.matchId && Boolean(match.awayTeamId)
-        );
-
+      const nextBracketIndex = event.bracket.findIndex(
+  (match) =>
+    !match.matchId &&
+    Boolean(match.homeTeamId) &&
+    Boolean(match.awayTeamId) &&
+    match.status !== "riposo" &&
+    match.resultStatus !== "confermato"
+);
         if (nextBracketIndex === -1) {
           setMessage("Non ci sono match del tabellone da creare.");
           setCreatingMatch(false);
@@ -992,10 +996,13 @@ setMessage("");
         awayTeamName = bracketMatch.awayName;
         sourceBracketIndex = nextBracketIndex;
       } else if (event.type === "campionato" && event.leagueFixtures?.length) {
-        const nextFixtureIndex = event.leagueFixtures.findIndex(
-          (fixture) => !fixture.matchId
-        );
-
+       const nextFixtureIndex = event.leagueFixtures.findIndex(
+  (fixture) =>
+    !fixture.matchId &&
+    Boolean(fixture.homeTeamId) &&
+    Boolean(fixture.awayTeamId) &&
+    fixture.resultStatus !== "confermato"
+);
         if (nextFixtureIndex === -1) {
           setMessage("Tutte le giornate del campionato hanno già un match.");
           setCreatingMatch(false);
@@ -1219,12 +1226,25 @@ const invalidEventTeamsCount = invalidEventTeams.length;
 const hasPendingTournamentMatch =
   event.type === "torneo" &&
   Array.isArray(event.bracket) &&
-  event.bracket.some((match) => !match.matchId && Boolean(match.awayTeamId));
+  event.bracket.some(
+    (match) =>
+      !match.matchId &&
+      Boolean(match.homeTeamId) &&
+      Boolean(match.awayTeamId) &&
+      match.status !== "riposo" &&
+      match.resultStatus !== "confermato"
+  );
 
 const hasPendingLeagueMatch =
   event.type === "campionato" &&
   Array.isArray(event.leagueFixtures) &&
-  event.leagueFixtures.some((fixture) => !fixture.matchId);
+  event.leagueFixtures.some(
+    (fixture) =>
+      !fixture.matchId &&
+      Boolean(fixture.homeTeamId) &&
+      Boolean(fixture.awayTeamId) &&
+      fixture.resultStatus !== "confermato"
+  );
 
 const isCompetitionCompleted =
   event.status === "torneo completato" ||
