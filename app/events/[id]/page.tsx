@@ -893,20 +893,27 @@ async function generateLeagueSchedule() {
     }
   }
 
-  async function createMatchFromEvent() {
+async function createMatchFromEvent() {
   if (!user || !event) return;
 
-const competitionFormat =
-  event.competitionFormat ||
-  (event.sport === "calcetto" ? "squadre" : "singolo");
+  const competitionFormat =
+    event.competitionFormat ||
+    (event.sport === "calcetto" ? "squadre" : "singolo");
 
-if (
-  event.type === "torneo" &&
-  (!event.bracket || event.bracket.length === 0)
-) {
-  setMessage("Prima genera il tabellone del torneo.");
-  return;
-}
+  if (
+    (competitionFormat === "squadre" || competitionFormat === "doppio") &&
+    !validateTeamsForCompetition()
+  ) {
+    return;
+  }
+
+  if (
+    event.type === "torneo" &&
+    (!event.bracket || event.bracket.length === 0)
+  ) {
+    setMessage("Prima genera il tabellone del torneo.");
+    return;
+  }
 
 if (
   event.type === "campionato" &&
@@ -1231,25 +1238,9 @@ const canCreateEventMatch =
     : event.type === "campionato"
     ? hasPendingLeagueMatch
     : true;
-const validTeamsCount = teams.filter((team) => {
-  const playersCount = Array.isArray(team.players) ? team.players.length : 0;
-
-  if (competitionFormat === "doppio") {
-    return playersCount === 2;
-  }
-
-  if (competitionFormat === "squadre") {
-    return playersCount >= 2 && playersCount <= 8;
-  }
-
-  return true;
-}).length;
-
-const hasEnoughValidTeams = isTeamCompetition && validTeamsCount >= 2;
-
-const invalidTeamsCount = isTeamCompetition
-  ? Math.max(0, teams.length - validTeamsCount)
-  : 0;
+const validTeamsCount = validEventTeamsCount;
+const invalidTeamsCount = invalidEventTeamsCount;
+const hasEnoughValidTeams = isTeamCompetition && validEventTeamsCount >= 2;
 
     const totalTournamentMatches = Array.isArray(event.bracket)
   ? event.bracket.filter((match) => Boolean(match.awayTeamId)).length
