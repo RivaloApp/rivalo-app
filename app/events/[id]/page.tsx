@@ -478,12 +478,21 @@ if (invalidSelection) {
   return;
 }
 
+const currentTeams = event.teams || [];
+
+const alreadyInTeam = currentTeams.some((team) =>
+  team.players?.some((player) => selectedPlayerIds.includes(player.uid))
+);
+
+if (alreadyInTeam) {
+  setMessage("Uno o più giocatori selezionati sono già presenti in un'altra squadra/coppia dell'evento.");
+  return;
+}
+
 if (competitionFormat === "squadre" && selectedPlayerIds.length > 8) {
   setMessage("Una squadra può avere massimo 8 giocatori.");
   return;
 }
-
-const currentTeams = event.teams || [];
 
 const alreadyUsedPlayerIds = currentTeams.flatMap((team) =>
   Array.isArray(team.players) ? team.players.map((player) => player.uid) : []
