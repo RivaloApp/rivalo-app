@@ -662,6 +662,45 @@ function getInvalidEventTeams() {
   });
 }
 
+function getTeamValidationLabel(team: TeamInfo) {
+  if (!event) return "Da controllare";
+
+  const competitionFormat =
+    event.competitionFormat ||
+    (event.sport === "calcetto" ? "squadre" : "singolo");
+
+  const playersCount = Array.isArray(team.players) ? team.players.length : 0;
+
+  if (competitionFormat === "singolo") {
+    return playersCount === 1 ? "Valida" : "Serve 1 giocatore";
+  }
+
+  if (competitionFormat === "doppio") {
+    return playersCount === 2 ? "Valida" : "Servono 2 giocatori";
+  }
+
+  if (competitionFormat === "squadre") {
+    const minPlayers = event.sport === "calcetto" ? 5 : 2;
+    const maxPlayers = event.sport === "calcetto" ? 8 : 2;
+
+    if (playersCount < minPlayers) {
+      return `Minimo ${minPlayers} giocatori`;
+    }
+
+    if (playersCount > maxPlayers) {
+      return `Massimo ${maxPlayers} giocatori`;
+    }
+
+    return "Valida";
+  }
+
+  return "Da controllare";
+}
+
+function isTeamValid(team: TeamInfo) {
+  return getTeamValidationLabel(team) === "Valida";
+}
+
 async function generateTournamentBracket() {
   if (!user || !event) return;
 
@@ -1585,11 +1624,12 @@ const pendingCompetitionMatches = Math.max(
                         Nessuna squadra creata.
                       </div>
                     ) : (
-                      teams.map((team) => (
+                     teams.map((team) => (
   <TeamCard
     key={team.id}
     team={team}
-    competitionFormat={competitionFormat}
+    validationLabel={getTeamValidationLabel(team)}
+    valid={isTeamValid(team)}
   />
 ))
                     )}
@@ -2031,58 +2071,28 @@ const pendingCompetitionMatches = Math.max(
 
 function TeamCard({
   team,
-  competitionFormat,
+  validationLabel,
+  valid,
 }: {
   team: TeamInfo;
-  competitionFormat: CompetitionFormat;
+  validationLabel: string;
+  valid: boolean;
 }) {
-  const playersCount = Array.isArray(team.players) ? team.players.length : 0;
-
-  const isValid =
-    competitionFormat === "doppio"
-      ? playersCount === 2
-      : competitionFormat === "squadre"
-      ? playersCount >= 2 && playersCount <= 8
-      : true;
-
-  const isTooLarge = competitionFormat === "squadre" && playersCount > 8;
-
-  const statusLabel = isTooLarge
-    ? "Troppi giocatori"
-    : isValid
-    ? "Valida"
-    : "Incompleta";
-
-  const statusClass = isTooLarge
-    ? "border-red-400/20 bg-red-500/10 text-red-200"
-    : isValid
-    ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
-    : "border-yellow-400/20 bg-yellow-400/10 text-yellow-200";
-
-  const limitText =
-    competitionFormat === "doppio"
-      ? `${playersCount} / 2 giocatori`
-      : competitionFormat === "squadre"
-      ? `${playersCount} / 8 giocatori`
-      : `${playersCount} giocatori`;
-
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[.03] p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-xl font-black uppercase text-cyan-200">
-            {team.name}
-          </div>
-
-          <div className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-            {limitText}
-          </div>
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="text-xl font-black uppercase text-cyan-200">
+          {team.name}
         </div>
 
         <div
-          className={`rounded-xl border px-3 py-2 text-xs font-black uppercase ${statusClass}`}
+          className={`rounded-xl border px-3 py-2 text-xs font-black ${
+            valid
+              ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
+              : "border-red-400/20 bg-red-500/10 text-red-200"
+          }`}
         >
-          {statusLabel}
+          {validationLabel}
         </div>
       </div>
 
