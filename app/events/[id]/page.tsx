@@ -973,14 +973,10 @@ setMessage("");
       let awayTeam: TeamInfo | undefined;
 
       if (event.type === "torneo" && event.bracket?.length) {
-      const nextBracketIndex = event.bracket.findIndex(
-  (match) =>
-    !match.matchId &&
-    Boolean(match.homeTeamId) &&
-    Boolean(match.awayTeamId) &&
-    match.status !== "riposo" &&
-    match.resultStatus !== "confermato"
-);
+        const nextBracketIndex = event.bracket.findIndex(
+          (match) => !match.matchId && Boolean(match.awayTeamId)
+        );
+
         if (nextBracketIndex === -1) {
           setMessage("Non ci sono match del tabellone da creare.");
           setCreatingMatch(false);
@@ -996,13 +992,10 @@ setMessage("");
         awayTeamName = bracketMatch.awayName;
         sourceBracketIndex = nextBracketIndex;
       } else if (event.type === "campionato" && event.leagueFixtures?.length) {
-       const nextFixtureIndex = event.leagueFixtures.findIndex(
-  (fixture) =>
-    !fixture.matchId &&
-    Boolean(fixture.homeTeamId) &&
-    Boolean(fixture.awayTeamId) &&
-    fixture.resultStatus !== "confermato"
-);
+        const nextFixtureIndex = event.leagueFixtures.findIndex(
+          (fixture) => !fixture.matchId
+        );
+
         if (nextFixtureIndex === -1) {
           setMessage("Tutte le giornate del campionato hanno già un match.");
           setCreatingMatch(false);
@@ -1226,25 +1219,12 @@ const invalidEventTeamsCount = invalidEventTeams.length;
 const hasPendingTournamentMatch =
   event.type === "torneo" &&
   Array.isArray(event.bracket) &&
-  event.bracket.some(
-    (match) =>
-      !match.matchId &&
-      Boolean(match.homeTeamId) &&
-      Boolean(match.awayTeamId) &&
-      match.status !== "riposo" &&
-      match.resultStatus !== "confermato"
-  );
+  event.bracket.some((match) => !match.matchId && Boolean(match.awayTeamId));
 
 const hasPendingLeagueMatch =
   event.type === "campionato" &&
   Array.isArray(event.leagueFixtures) &&
-  event.leagueFixtures.some(
-    (fixture) =>
-      !fixture.matchId &&
-      Boolean(fixture.homeTeamId) &&
-      Boolean(fixture.awayTeamId) &&
-      fixture.resultStatus !== "confermato"
-  );
+  event.leagueFixtures.some((fixture) => !fixture.matchId);
 
 const isCompetitionCompleted =
   event.status === "torneo completato" ||
@@ -1704,31 +1684,20 @@ const pendingCompetitionMatches = Math.max(
                 Round {match.round} · Match {match.matchNumber}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <div
-                  className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
-                    match.resultStatus === "confermato"
-                      ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
-                      : match.matchId
-                      ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
-                      : "border-white/10 bg-white/[.03] text-slate-400"
-                  }`}
-                >
-                  {match.resultStatus === "confermato"
-                    ? "Completato"
+              <div
+                className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
+                  match.resultStatus === "confermato"
+                    ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
                     : match.matchId
-                    ? "Match creato"
-                    : "Da creare"}
-                </div>
-
-                {match.matchId && (
-                  <Link
-                    href={"/match/" + match.matchId}
-                    className="inline-flex items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/20"
-                  >
-                    Apri match
-                  </Link>
-                )}
+                    ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+                    : "border-white/10 bg-white/[.03] text-slate-400"
+                }`}
+              >
+                {match.resultStatus === "confermato"
+                  ? "Completato"
+                  : match.matchId
+                  ? "Match creato"
+                  : "Da creare"}
               </div>
             </div>
 
@@ -1753,8 +1722,15 @@ const pendingCompetitionMatches = Math.max(
                 </div>
               )}
 
-            {!match.matchId && (
-              <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 text-xs text-white/60">
+            {match.matchId ? (
+              <Link
+                href={"/match/" + match.matchId}
+                className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200 transition hover:bg-lime-400/20"
+              >
+                Apri match
+              </Link>
+            ) : (
+              <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs text-white/60">
                 Match non ancora creato
               </div>
             )}
@@ -1764,6 +1740,7 @@ const pendingCompetitionMatches = Math.max(
     )}
   </section>
 )}
+
 {event.type === "campionato" && isTeamCompetition && (
   <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
     <div className="mb-5 flex items-center justify-between gap-4">
@@ -1812,31 +1789,20 @@ const pendingCompetitionMatches = Math.max(
                 Giornata {fixture.round} · Match {fixture.matchNumber}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <div
-                  className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
-                    fixture.resultStatus === "confermato"
-                      ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
-                      : fixture.matchId
-                      ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
-                      : "border-white/10 bg-white/[.03] text-slate-400"
-                  }`}
-                >
-                  {fixture.resultStatus === "confermato"
-                    ? "Completata"
+              <div
+                className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
+                  fixture.resultStatus === "confermato"
+                    ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
                     : fixture.matchId
-                    ? "Match creato"
-                    : "Da creare"}
-                </div>
-
-                {fixture.matchId && (
-                  <Link
-                    href={"/match/" + fixture.matchId}
-                    className="inline-flex items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/20"
-                  >
-                    Apri match
-                  </Link>
-                )}
+                    ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+                    : "border-white/10 bg-white/[.03] text-slate-400"
+                }`}
+              >
+                {fixture.resultStatus === "confermato"
+                  ? "Completata"
+                  : fixture.matchId
+                  ? "Match creato"
+                  : "Da creare"}
               </div>
             </div>
 
@@ -1861,8 +1827,15 @@ const pendingCompetitionMatches = Math.max(
                 </div>
               )}
 
-            {!fixture.matchId && (
-              <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 text-xs text-white/60">
+            {fixture.matchId ? (
+              <Link
+                href={"/match/" + fixture.matchId}
+                className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200 transition hover:bg-lime-400/20"
+              >
+                Apri match
+              </Link>
+            ) : (
+              <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs text-white/60">
                 Match non ancora creato
               </div>
             )}
@@ -1906,6 +1879,7 @@ const pendingCompetitionMatches = Math.max(
     )}
   </section>
 )}
+
               <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
                 <div className="mb-5 flex items-center justify-between gap-4">
                   <div>
