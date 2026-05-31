@@ -738,16 +738,35 @@ if (invalidTeams.length > 0) {
   setMessage("Ci sono squadre/coppie non valide. Controlla le rose prima di generare il tabellone.");
   return;
 }
+const validTeams = teams.filter(
+  (team) => !invalidTeams.some((invalidTeam) => invalidTeam.id === team.id)
+);
+
+if (validTeams.length < 2) {
+  setMessage("Servono almeno 2 squadre/coppie valide per generare il tabellone.");
+  return;
+}
   }
   if (!validateTeamsForCompetition()) {
   return;
 }
 
-  setGeneratingBracket(true);
-  setMessage("");
+const invalidTeams = getInvalidEventTeams();
 
-  try {
-    const shuffledTeams = [...teams].sort(() => Math.random() - 0.5);
+const validTeams = teams.filter(
+  (team) => !invalidTeams.some((invalidTeam) => invalidTeam.id === team.id)
+);
+
+if (validTeams.length < 2) {
+  setMessage("Servono almeno 2 squadre/coppie valide per generare il tabellone.");
+  return;
+}
+
+setGeneratingBracket(true);
+setMessage("");
+
+try {
+  const shuffledTeams = [...validTeams].sort(() => Math.random() - 0.5);
 
     const bracket: BracketMatch[] = [];
 
@@ -817,20 +836,39 @@ if (invalidTeams.length > 0) {
   setMessage("Ci sono squadre/coppie non valide. Controlla le rose prima di generare il calendario.");
   return;
 }
+const validTeams = teams.filter(
+  (team) => !invalidTeams.some((invalidTeam) => invalidTeam.id === team.id)
+);
+
+if (validTeams.length < 2) {
+  setMessage("Servono almeno 2 squadre/coppie valide per generare il calendario.");
+  return;
+}
   }
-  if (!validateTeamsForCompetition()) {
+ if (!validateTeamsForCompetition()) {
   return;
 }
 
-  setGeneratingLeague(true);
-  setMessage("");
+const invalidTeams = getInvalidEventTeams();
 
-  try {
-    const workingTeams: TeamInfo[] =
-      teams.length % 2 === 0
-        ? [...teams]
-        : [
-            ...teams,
+const validTeams = teams.filter(
+  (team) => !invalidTeams.some((invalidTeam) => invalidTeam.id === team.id)
+);
+
+if (validTeams.length < 2) {
+  setMessage("Servono almeno 2 squadre/coppie valide per generare il calendario.");
+  return;
+}
+
+setGeneratingLeague(true);
+setMessage("");
+
+try {
+  const workingTeams: TeamInfo[] =
+    validTeams.length % 2 === 0
+      ? [...validTeams]
+      : [
+          ...validTeams,
             {
               id: "bye",
               name: "Riposo",
