@@ -432,6 +432,19 @@ if (duplicatedTeamName) {
     const competitionFormat =
       event.competitionFormat ||
       (event.sport === "calcetto" ? "squadre" : "singolo");
+      const isTeamCompetition =
+  competitionFormat === "squadre" || competitionFormat === "doppio";
+
+if (isTeamCompetition) {
+  const invalidTeams = getInvalidEventTeams();
+
+  if (invalidTeams.length > 0) {
+    setMessage(
+      "Ci sono squadre/coppie non valide. Controlla le rose prima di creare il match."
+    );
+    return;
+  }
+}
     const eventParticipants = event.participants || [];
 
 if (eventParticipants.length === 0) {
