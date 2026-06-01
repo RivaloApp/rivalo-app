@@ -1,21 +1,27 @@
 {
   "name": "Rivalo",
   "short_name": "Rivalo",
-  "description": "Social sportivo competitivo per gruppi, match, ranking e community.",
+  "description": "Social sportivo competitivo per gruppi, match, ranking, tornei e community.",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#020617",
   "theme_color": "#020617",
+  "categories": ["sports", "social", "lifestyle"],
+  "lang": "it",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
