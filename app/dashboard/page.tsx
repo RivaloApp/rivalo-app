@@ -1,6 +1,7 @@
 "use client";
 
 import PlayerCard from "../../components/cards/PlayerCard";
+import RivaloLogo from "../../components/RivaloLogo";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -340,7 +341,7 @@ function Sidebar() {
   return (
     <aside className="hidden w-[205px] shrink-0 border-r border-white/10 bg-[#020617]/82 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
       <Link href="/" className="mb-9 flex items-center gap-4 px-2">
-        <LogoMark />
+        <RivaloLogo />
       </Link>
 
       <div className="space-y-2">
@@ -402,27 +403,11 @@ function TopIcons({
 }) {
   return (
     <div className="mb-5 flex items-center justify-between gap-4 lg:justify-end">
-      <Link href="/dashboard" className="flex items-center gap-3 lg:hidden">
-        <div className="relative h-12 w-12 shrink-0">
-          <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
-
-          <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-white/20 bg-white text-2xl font-black italic text-[#020617] shadow-[0_0_24px_rgba(34,211,238,.22)]">
-            R
-          </div>
-        </div>
-
-        <div>
-          <div className="text-2xl font-black leading-none text-white">
-            Rivalo
-          </div>
-
-          <div className="mt-1 text-[9px] font-black tracking-[.24em] text-cyan-300">
-            OWN THE GAME
-          </div>
-        </div>
+      <Link href="/dashboard" className="flex min-w-0 items-center lg:hidden">
+        <RivaloLogo />
       </Link>
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex shrink-0 items-center gap-3 sm:gap-4">
         <Link
           href="/notifications"
           className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
@@ -717,51 +702,6 @@ function Goal({
       </div>
 
       <span className="font-bold">{value}</span>
-    </div>
-  );
-}
-
-function LogoMark() {
-  return (
-    <div className="flex items-center gap-4">
-      <div className="relative h-16 w-16 shrink-0">
-        <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
-
-        <svg viewBox="0 0 120 120" className="relative h-full w-full">
-          <defs>
-            <linearGradient id="dashboardLogoEdge" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#22d3ee" />
-              <stop offset="52%" stopColor="#3b82f6" />
-              <stop offset="100%" stopColor="#d946ef" />
-            </linearGradient>
-
-            <filter id="dashboardSoftGlow" x="-40%" y="-40%" width="180%" height="180%">
-              <feDropShadow dx="-3" dy="2" stdDeviation="4" floodColor="#22d3ee" floodOpacity=".65" />
-              <feDropShadow dx="4" dy="4" stdDeviation="5" floodColor="#d946ef" floodOpacity=".5" />
-            </filter>
-          </defs>
-
-          <path
-            d="M20 100 L20 13 H71 C93 13 106 27 106 46 C106 61 97 72 83 77 L105 100 H74 L56 76 H49 L49 100 Z"
-            fill="white"
-            filter="url(#dashboardSoftGlow)"
-          />
-
-          <path d="M49 36 H67 C75 36 80 40 80 47 C80 54 75 58 67 58 H49 Z" fill="#020617" />
-          <path d="M21 100 L49 76 H61 L29 114 Z" fill="url(#dashboardLogoEdge)" />
-          <path d="M73 78 L105 100 H76 L58 78 Z" fill="#d946ef" opacity=".55" />
-        </svg>
-      </div>
-
-      <div>
-        <div className="text-2xl font-black tracking-tight text-white">
-          Rivalo
-        </div>
-
-        <div className="mt-1 text-[10px] font-black tracking-[.32em] text-cyan-300">
-          OWN THE GAME
-        </div>
-      </div>
     </div>
   );
 }
