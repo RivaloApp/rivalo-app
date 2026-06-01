@@ -427,6 +427,20 @@ if (competitionStarted) {
  async function createTeam() {
   if (!user || !event) return;
 
+    const competitionStarted =
+    Boolean(event.bracket && event.bracket.length > 0) ||
+    Boolean(event.leagueFixtures && event.leagueFixtures.length > 0) ||
+    event.status === "tabellone creato" ||
+    event.status === "calendario creato" ||
+    event.status === "in corso" ||
+    event.status === "torneo completato" ||
+    event.status === "campionato completato";
+
+  if (competitionStarted) {
+    setMessage("Rose bloccate: la competizione è già iniziata.");
+    return;
+  }
+
   if (!teamName.trim()) {
     setMessage("Inserisci il nome della squadra.");
     return;
@@ -1159,6 +1173,14 @@ setMessage("");
   const participants = event.participants || [];
   const maxPlayers = Number(event.maxPlayers || 0);
   const teams = event.teams || [];
+  const competitionStarted =
+  Boolean(event.bracket && event.bracket.length > 0) ||
+  Boolean(event.leagueFixtures && event.leagueFixtures.length > 0) ||
+  event.status === "tabellone creato" ||
+  event.status === "calendario creato" ||
+  event.status === "in corso" ||
+  event.status === "torneo completato" ||
+  event.status === "campionato completato";
 
   const competitionFormat: CompetitionFormat =
     event.competitionFormat ||
@@ -1550,7 +1572,7 @@ const pendingCompetitionMatches = Math.max(
 </div>
                   </div>
 
-                  {isCreator && (
+                  {isCreator && !competitionStarted && (
                     <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
                       <Field label={competitionFormat === "doppio" ? "Nome coppia" : "Nome squadra"}>
                         <input
@@ -1615,6 +1637,11 @@ const pendingCompetitionMatches = Math.max(
                       </button>
                     </div>
                   )}
+                  {isCreator && competitionStarted && (
+  <div className="rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-4 text-sm font-bold text-yellow-100">
+    Rose bloccate: la competizione è già iniziata. Non puoi creare o modificare squadre/coppie.
+  </div>
+)}
 
                   <div className="mt-5 space-y-3">
                     {teams.length === 0 ? (
