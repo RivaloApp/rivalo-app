@@ -382,6 +382,8 @@ if (competitionStarted) {
         maxPlayers > 0 && newParticipantsCount >= maxPlayers
           ? "completo"
           : "aperto";
+          const eventWillBeFull =
+  maxPlayers > 0 && newParticipantsCount >= maxPlayers;
 
       await updateDoc(doc(db, "events", event.id), {
         participants: arrayUnion(user.uid),
@@ -396,6 +398,23 @@ if (competitionStarted) {
         text: `Si è iscritto a: ${event.title || "Evento Rivalo"}`,
         value: 1,
       });
+
+      if (eventWillBeFull && event.createdBy && event.createdBy !== user.uid) {
+  await createNotification({
+    uid: event.createdBy,
+    type: "event_full",
+    title: "Evento pieno",
+    message: `${event.title || "Il tuo evento Rivalo"} ha raggiunto il numero massimo di partecipanti.`,
+    link: "/events/" + event.id,
+    createdBy: user.uid,
+    metadata: {
+      eventId: event.id,
+      eventTitle: event.title || "Evento Rivalo",
+      maxPlayers,
+      participantsCount: newParticipantsCount,
+    },
+  });
+}
 
       setEvent({
         ...event,
