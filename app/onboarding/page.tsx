@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { doc, getDoc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "../../lib/firebase";
+import { createNotification } from "../../lib/createNotification";
 import {
   ArrowRight,
   CheckCircle2,
@@ -153,10 +154,26 @@ export default function OnboardingPage() {
           profileBonusXp,
 
           updatedAt: serverTimestamp(),
-          createdAt: oldData.createdAt ||Timestamp.now(),
+          createdAt: oldData.createdAt || Timestamp.now(),
         },
         { merge: true }
       );
+
+      await createNotification({
+        uid: user.uid,
+        type: "profile_completed",
+        title: "Profilo completato",
+        message:
+          "La tua card Rivalo è pronta. Ora puoi iniziare a giocare, entrare nei gruppi e scalare il ranking.",
+        link: "/dashboard",
+        createdBy: user.uid,
+        metadata: {
+          profileBonusXp,
+          mainSport,
+          city: city.trim(),
+        },
+      });
+
       window.location.href = "/dashboard";
     } catch (error) {
       console.error(error);
