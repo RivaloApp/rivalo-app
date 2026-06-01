@@ -110,15 +110,16 @@ export default function DashboardPage() {
             ...(d.data() as UserProfile),
           }))
         );
+
         const notificationsQuery = query(
-  collection(db, "notifications"),
-  where("uid", "==", currentUser.uid),
-  where("read", "==", false)
-);
+          collection(db, "notifications"),
+          where("uid", "==", currentUser.uid),
+          where("read", "==", false)
+        );
 
-const notificationsSnap = await getDocs(notificationsQuery);
+        const notificationsSnap = await getDocs(notificationsQuery);
 
-setUnreadNotificationsCount(notificationsSnap.size);
+        setUnreadNotificationsCount(notificationsSnap.size);
       } finally {
         setLoading(false);
       }
@@ -251,12 +252,12 @@ setUnreadNotificationsCount(notificationsSnap.size);
               />
               
               <QuickAction
-  href="/opponents"
-  tone="green"
-  icon={<Search />}
-  title="Cerca avversari"
-  text="Gruppi pubblici vicini"
-/>
+                href="/opponents"
+                tone="green"
+                icon={<Search />}
+                title="Richiedi ingresso"
+                text="Trova gruppi pubblici e chiedi di entrare"
+              />
               
 
               <QuickAction
@@ -292,12 +293,12 @@ setUnreadNotificationsCount(notificationsSnap.size);
               />
 
               <QuickAction
-  href="/notifications"
-  tone="cyan"
-  icon={<Bell />}
-  title="Notifiche"
-  text="Inviti, risultati e aggiornamenti"
-/>
+                href="/notifications"
+                tone="cyan"
+                icon={<Bell />}
+                title="Notifiche"
+                text="Inviti, risultati e aggiornamenti"
+              />
 
               <QuickAction
                 href="/feed"
@@ -402,18 +403,18 @@ function TopIcons({
   return (
     <div className="mb-3 flex items-center justify-end gap-4">
       <Link
-  href="/notifications"
-  className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
-  title="Notifiche"
->
-  <Bell size={22} />
+        href="/notifications"
+        className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
+        title="Notifiche"
+      >
+        <Bell size={22} />
 
-  {unreadNotificationsCount > 0 && (
-    <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-fuchsia-500 px-1 text-[10px] font-black text-white">
-      {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
-    </span>
-  )}
-</Link>
+        {unreadNotificationsCount > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-fuchsia-500 px-1 text-[10px] font-black text-white">
+            {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
+          </span>
+        )}
+      </Link>
 
       <button className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200">
         <Settings size={22} />

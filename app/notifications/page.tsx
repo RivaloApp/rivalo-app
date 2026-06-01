@@ -8,7 +8,6 @@ import {
   collection,
   doc,
   getDocs,
-  orderBy,
   query,
   serverTimestamp,
   updateDoc,
@@ -38,11 +37,20 @@ type NotificationItem = {
 };
 
 function getNotificationIcon(type?: string) {
-  if (type === "team_invite" || type === "group_request") {
+  if (
+    type === "team_invite" ||
+    type === "group_request" ||
+    type === "group_request_accepted" ||
+    type === "group_request_rejected"
+  ) {
     return <Users size={20} />;
   }
 
-  if (type === "result_proposed" || type === "result_confirmed") {
+  if (
+    type === "result_proposed" ||
+    type === "result_confirmed" ||
+    type === "result_disputed"
+  ) {
     return <Swords size={20} />;
   }
 
@@ -57,8 +65,27 @@ function getNotificationIcon(type?: string) {
   return <Bell size={20} />;
 }
 
+function getCreatedAtValue(createdAt: any) {
+  if (!createdAt) return 0;
+
+  if (typeof createdAt?.toDate === "function") {
+    return createdAt.toDate().getTime();
+  }
+
+  if (typeof createdAt?.seconds === "number") {
+    return createdAt.seconds * 1000;
+  }
+
+  if (typeof createdAt === "number") {
+    return createdAt;
+  }
+
+  return 0;
+}
+
 export default function NotificationsPage() {
- const router = useRouter();
+  const router = useRouter();
+
   const [user, setUser] = useState<User | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,16 +111,19 @@ export default function NotificationsPage() {
     try {
       const notificationsQuery = query(
         collection(db, "notifications"),
-        where("uid", "==", uid),
-        orderBy("createdAt", "desc")
+        where("uid", "==", uid)
       );
 
       const snap = await getDocs(notificationsQuery);
 
-      const result = snap.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...(docSnap.data() as Omit<NotificationItem, "id">),
-      }));
+      const result = snap.docs
+        .map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<NotificationItem, "id">),
+        }))
+        .sort(
+          (a, b) => getCreatedAtValue(b.createdAt) - getCreatedAtValue(a.createdAt)
+        );
 
       setNotifications(result);
     } catch (error) {
@@ -124,7 +154,7 @@ export default function NotificationsPage() {
     }
   }
 
-    async function openNotification(notification: NotificationItem) {
+  async function openNotification(notification: NotificationItem) {
     if (!notification.link) return;
 
     try {
@@ -311,6 +341,7 @@ export default function NotificationsPage() {
                                 type="button"
                                 onClick={(event) => {
                                   event.preventDefault();
+                                  event.stopPropagation();
                                   markAsRead(notification.id);
                                 }}
                                 className="inline-flex items-center gap-2 rounded-xl border border-lime-400/20 bg-lime-400/10 px-3 py-2 text-xs font-black text-lime-200"
@@ -332,17 +363,17 @@ export default function NotificationsPage() {
                   );
 
                   return notification.link ? (
-  <button
-    key={notification.id}
-    type="button"
-    onClick={() => openNotification(notification)}
-    className="block w-full text-left"
-  >
-    {content}
-  </button>
-) : (
-  <div key={notification.id}>{content}</div>
-);
+                    <button
+                      key={notification.id}
+                      type="button"
+                      onClick={() => openNotification(notification)}
+                      className="block w-full text-left"
+                    >
+                      {content}
+                    </button>
+                  ) : (
+                    <div key={notification.id}>{content}</div>
+                  );
                 })}
               </div>
             )}
