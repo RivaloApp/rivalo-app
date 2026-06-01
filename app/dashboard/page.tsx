@@ -401,24 +401,46 @@ function TopIcons({
   unreadNotificationsCount: number;
 }) {
   return (
-    <div className="mb-3 flex items-center justify-end gap-4">
-      <Link
-        href="/notifications"
-        className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
-        title="Notifiche"
-      >
-        <Bell size={22} />
+    <div className="mb-5 flex items-center justify-between gap-4 lg:justify-end">
+      <Link href="/dashboard" className="flex items-center gap-3 lg:hidden">
+        <div className="relative h-12 w-12 shrink-0">
+          <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
 
-        {unreadNotificationsCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-fuchsia-500 px-1 text-[10px] font-black text-white">
-            {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
-          </span>
-        )}
+          <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-white/20 bg-white text-2xl font-black italic text-[#020617] shadow-[0_0_24px_rgba(34,211,238,.22)]">
+            R
+          </div>
+        </div>
+
+        <div>
+          <div className="text-2xl font-black leading-none text-white">
+            Rivalo
+          </div>
+
+          <div className="mt-1 text-[9px] font-black tracking-[.24em] text-cyan-300">
+            OWN THE GAME
+          </div>
+        </div>
       </Link>
 
-      <button className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200">
-        <Settings size={22} />
-      </button>
+      <div className="flex items-center justify-end gap-3">
+        <Link
+          href="/notifications"
+          className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
+          title="Notifiche"
+        >
+          <Bell size={22} />
+
+          {unreadNotificationsCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-fuchsia-500 px-1 text-[10px] font-black text-white">
+              {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
+            </span>
+          )}
+        </Link>
+
+        <button className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200">
+          <Settings size={22} />
+        </button>
+      </div>
     </div>
   );
 }
