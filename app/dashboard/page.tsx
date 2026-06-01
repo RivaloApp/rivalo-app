@@ -11,6 +11,7 @@ import {
   limit,
   orderBy,
   query,
+  where,
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth, db } from "../../lib/firebase";
@@ -64,6 +65,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [leaders, setLeaders] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -108,6 +110,15 @@ export default function DashboardPage() {
             ...(d.data() as UserProfile),
           }))
         );
+        const notificationsQuery = query(
+  collection(db, "notifications"),
+  where("uid", "==", currentUser.uid),
+  where("read", "==", false)
+);
+
+const notificationsSnap = await getDocs(notificationsQuery);
+
+setUnreadNotificationsCount(notificationsSnap.size);
       } finally {
         setLoading(false);
       }
@@ -146,7 +157,7 @@ export default function DashboardPage() {
         <Sidebar />
 
         <div className="min-w-0 flex-1 px-6 py-6 lg:px-8 xl:px-10">
-          <TopIcons />
+          <TopIcons unreadNotificationsCount={unreadNotificationsCount} />
 
           <section className="grid gap-7 xl:grid-cols-[1fr_330px] 2xl:grid-cols-[1fr_360px]">
             <div className="grid items-start gap-8 xl:grid-cols-[310px_1fr] 2xl:grid-cols-[330px_1fr]">
@@ -375,17 +386,26 @@ function SideLink({
   );
 }
 
-function TopIcons() {
+function TopIcons({
+  unreadNotificationsCount,
+}: {
+  unreadNotificationsCount: number;
+}) {
   return (
     <div className="mb-3 flex items-center justify-end gap-4">
       <Link
-        href="/notifications"
-        className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
-        title="Notifiche"
-      >
-        <Bell size={22} />
-        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-fuchsia-400" />
-      </Link>
+  href="/notifications"
+  className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
+  title="Notifiche"
+>
+  <Bell size={22} />
+
+  {unreadNotificationsCount > 0 && (
+    <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-fuchsia-500 px-1 text-[10px] font-black text-white">
+      {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
+    </span>
+  )}
+</Link>
 
       <button className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200">
         <Settings size={22} />
