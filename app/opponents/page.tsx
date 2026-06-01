@@ -12,6 +12,7 @@ import {
   where,
 } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
+import { createNotification } from "../../lib/createNotification";
 import {
   ArrowLeft,
   ChevronRight,
@@ -32,6 +33,7 @@ type OpponentGroup = {
   members?: string[];
   premiumPlan?: string;
   ownerId?: string;
+  admins?: string[];
 };
 
 type JoinRequest = {
@@ -130,7 +132,7 @@ if (alreadyRequested) {
   setMessage("");
 
   try {
-    await addDoc(collection(db, "groupJoinRequests"), {
+    const requestRef = await addDoc(collection(db, "groupJoinRequests"), {
       groupId: group.id,
       groupName: group.name || "Gruppo Rivalo",
       groupOwnerId: group.ownerId || "",
@@ -139,6 +141,32 @@ if (alreadyRequested) {
       status: "pending",
       createdAt: serverTimestamp(),
     });
+
+    const notifyUserIds = Array.from(
+      new Set([group.ownerId || "", ...(group.admins || [])].filter(Boolean))
+    ).filter((uid) => uid !== user.uid);
+
+    await Promise.all(
+      notifyUserIds.map((uid) =>
+        createNotification({
+          uid,
+          type: "group_request",
+          title: "Nuova richiesta ingresso gruppo",
+          message: `${
+            user.displayName || "Un Rivalo Player"
+          } vuole entrare nel gruppo ${group.name || "Rivalo"}.`,
+          link: "/groups/" + group.id,
+          createdBy: user.uid,
+          metadata: {
+            groupId: group.id,
+            groupName: group.name || "Gruppo Rivalo",
+            requestId: requestRef.id,
+            fromUid: user.uid,
+            fromName: user.displayName || "Rivalo Player",
+          },
+        })
+      )
+    );
 
     setMessage("Richiesta inviata al gruppo.");
     await loadSentRequests(user.uid);
