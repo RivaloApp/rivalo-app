@@ -310,29 +310,29 @@ setJoinRequests(requestsResult);
         return;
       }
 
-     await updateDoc(doc(db, "groups", groupId), {
-  members: arrayUnion(foundUser.uid),
-  updatedAt: serverTimestamp(),
-});
+      await updateDoc(doc(db, "groups", groupId), {
+        members: arrayUnion(foundUser.uid),
+        updatedAt: serverTimestamp(),
+      });
 
-await createNotification({
-  uid: foundUser.uid,
-  type: "team_invite",
-  title: "Sei stato aggiunto a un gruppo",
-  message: `Sei entrato nel gruppo ${group.name || "Rivalo"}.`,
-  link: "/group/" + groupId,
-  createdBy: user.uid,
-  metadata: {
-    groupId,
-    groupName: group.name || "Gruppo Rivalo",
-    addedBy: user.uid,
-  },
-});
+      await createNotification({
+        uid: foundUser.uid,
+        type: "team_invite",
+        title: "Sei stato aggiunto a un gruppo",
+        message: `Sei entrato nel gruppo ${group.name || "Rivalo"}.`,
+        link: "/groups/" + groupId,
+        createdBy: user.uid,
+        metadata: {
+          groupId,
+          groupName: group.name || "Gruppo Rivalo",
+          addedBy: user.uid,
+        },
+      });
 
-setMemberSearch("");
-setMessage("Membro aggiunto al gruppo.");
+      setMemberSearch("");
+      setMessage("Membro aggiunto al gruppo.");
 
-await loadGroup();
+      await loadGroup();
     } catch (error) {
       console.error(error);
       setMessage("Errore durante l'aggiunta del membro.");
@@ -387,6 +387,8 @@ await loadGroup();
   }
 
   async function addMemberToTeam(teamId: string, memberUid: string) {
+    if (!user || !group) return;
+
     if (!memberUid) {
       setMessage("Seleziona un membro da aggiungere alla squadra.");
       return;
@@ -396,10 +398,29 @@ await loadGroup();
 
     try {
       const teamRef = doc(db, "groupTeams", teamId);
+      const selectedTeam = groupTeams.find((team) => team.id === teamId);
 
       await updateDoc(teamRef, {
         members: arrayUnion(memberUid),
         updatedAt: serverTimestamp(),
+      });
+
+      await createNotification({
+        uid: memberUid,
+        type: "team_invite",
+        title: "Sei stato aggiunto a una squadra",
+        message: `Sei entrato nella squadra ${
+          selectedTeam?.name || "Rivalo"
+        } del gruppo ${group.name || "Rivalo"}.`,
+        link: "/groups/" + groupId,
+        createdBy: user.uid,
+        metadata: {
+          groupId,
+          groupName: group.name || "Gruppo Rivalo",
+          teamId,
+          teamName: selectedTeam?.name || "Squadra Rivalo",
+          addedBy: user.uid,
+        },
       });
 
       setMessage("Membro aggiunto alla squadra.");
