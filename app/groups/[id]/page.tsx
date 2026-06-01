@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "../../../lib/firebase";
+import { createNotification } from "../../../lib/createNotification";
 import {
   ArrowLeft,
   CalendarDays,
@@ -416,6 +417,22 @@ setJoinRequests(requestsResult);
       acceptedBy: user?.uid || "",
     });
 
+    await createNotification({
+      uid: request.fromUid,
+      type: "group_request_accepted",
+      title: "Richiesta gruppo accettata",
+      message: `La tua richiesta per entrare nel gruppo ${
+        group?.name || request.groupName || "Rivalo"
+      } è stata accettata.`,
+      link: `/groups/${groupId}`,
+      createdBy: user?.uid || "",
+      metadata: {
+        groupId,
+        groupName: group?.name || request.groupName || "",
+        requestId: request.id,
+      },
+    });
+
     setMessage("Richiesta accettata. Membro aggiunto al gruppo.");
 
     await loadGroup();
@@ -426,6 +443,11 @@ setJoinRequests(requestsResult);
 }
 
 async function rejectJoinRequest(request: JoinRequest) {
+  if (!request.fromUid) {
+    setMessage("Richiesta non valida.");
+    return;
+  }
+
   setMessage("");
 
   try {
@@ -433,6 +455,22 @@ async function rejectJoinRequest(request: JoinRequest) {
       status: "rejected",
       rejectedAt: serverTimestamp(),
       rejectedBy: user?.uid || "",
+    });
+
+    await createNotification({
+      uid: request.fromUid,
+      type: "group_request_rejected",
+      title: "Richiesta gruppo rifiutata",
+      message: `La tua richiesta per entrare nel gruppo ${
+        group?.name || request.groupName || "Rivalo"
+      } è stata rifiutata.`,
+      link: "/groups",
+      createdBy: user?.uid || "",
+      metadata: {
+        groupId,
+        groupName: group?.name || request.groupName || "",
+        requestId: request.id,
+      },
     });
 
     setMessage("Richiesta rifiutata.");
