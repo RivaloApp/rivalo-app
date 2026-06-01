@@ -157,11 +157,11 @@ export default function DashboardPage() {
       <section className="relative z-10 flex min-h-screen">
         <Sidebar />
 
-        <div className="min-w-0 flex-1 px-6 py-6 lg:px-8 xl:px-10">
+        <div className="min-w-0 flex-1 px-5 py-5 lg:px-8 xl:px-10">
           <TopIcons unreadNotificationsCount={unreadNotificationsCount} />
 
           <section className="grid gap-7 xl:grid-cols-[1fr_330px] 2xl:grid-cols-[1fr_360px]">
-            <div className="grid items-start gap-8 xl:grid-cols-[310px_1fr] 2xl:grid-cols-[330px_1fr]">
+            <div className="grid items-start gap-6 xl:grid-cols-[310px_1fr] xl:gap-8 2xl:grid-cols-[330px_1fr]">
               <PlayerCard
                 name={displayName}
                 nickname={nickname}
@@ -170,20 +170,20 @@ export default function DashboardPage() {
                 photo={photo}
               />
 
-              <div className="pt-5">
-                <div className="text-2xl font-medium text-white/90">
+              <div className="pt-3 sm:pt-5">
+                <div className="text-xl font-medium text-white/90 sm:text-2xl">
                   Bentornato,
                 </div>
 
-                <h1 className="mt-2 text-5xl font-black uppercase leading-none tracking-tight text-white md:text-6xl">
+                <h1 className="mt-2 text-4xl font-black uppercase leading-none tracking-tight text-white sm:text-5xl md:text-6xl">
                   {displayName}
                 </h1>
 
-                <div className="mt-3 text-3xl font-black uppercase text-cyan-300">
+                <div className="mt-3 text-2xl font-black uppercase text-cyan-300 sm:text-3xl">
                   {nickname}
                 </div>
 
-                <div className="mt-9 grid max-w-[520px] grid-cols-3 gap-5">
+                <div className="mt-6 grid max-w-[520px] grid-cols-3 gap-3 sm:mt-9 sm:gap-5">
                   <StatShield
                     tone="purple"
                     value={String(level)}
@@ -441,16 +441,20 @@ function StatShield({
   }[tone];
 
   return (
-    <div className={`rounded-[1.7rem] bg-gradient-to-b ${styles} p-[2px] shadow-2xl`}>
-      <div className="rounded-[1.6rem] bg-black/40 p-5 text-center">
-        <div className="text-5xl font-black">{value}</div>
+    <div className={`rounded-[1.25rem] bg-gradient-to-b ${styles} p-[2px] shadow-2xl sm:rounded-[1.7rem]`}>
+      <div className="rounded-[1.15rem] bg-black/40 px-3 py-4 text-center sm:rounded-[1.6rem] sm:p-5">
+        <div className="text-4xl font-black leading-none sm:text-5xl">
+          {value}
+        </div>
 
-        <div className="mt-3 whitespace-nowrap text-sm font-black uppercase">
+        <div className="mt-2 whitespace-nowrap text-[10px] font-black uppercase sm:mt-3 sm:text-sm">
           {label}
         </div>
 
-        <div className="mt-3 flex justify-center text-cyan-200">
-          {icon}
+        <div className="mt-2 flex justify-center text-cyan-200 sm:mt-3">
+          <span className="[&>svg]:h-5 [&>svg]:w-5 sm:[&>svg]:h-6 sm:[&>svg]:w-6">
+            {icon}
+          </span>
         </div>
       </div>
     </div>

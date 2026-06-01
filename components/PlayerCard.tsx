@@ -73,9 +73,9 @@ export default function PlayerCard({
 
   return (
     <div
-      className={`relative mx-auto w-full max-w-[255px] sm:max-w-[330px] rivalo-card-glow ${rarityStyle}`}
+      className={`relative mx-auto w-full max-w-[258px] sm:max-w-[330px] rivalo-card-glow ${rarityStyle}`}
     >
-      <div className="absolute -inset-3 rounded-[2rem] bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.48),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.46),transparent_38%)] blur-2xl sm:-inset-4 sm:rounded-[2.5rem] sm:bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.62),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.58),transparent_38%)]" />
+      <div className="absolute -inset-2 rounded-[2rem] bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.42),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.42),transparent_38%)] blur-2xl sm:-inset-4 sm:rounded-[2.5rem] sm:bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.62),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.58),transparent_38%)]" />
 
       <div className="relative">
         <div
@@ -95,7 +95,7 @@ export default function PlayerCard({
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_48%,rgba(249,115,22,.48),transparent_33%),radial-gradient(circle_at_84%_42%,rgba(37,99,235,.48),transparent_34%),linear-gradient(135deg,#050814_0%,#070a16_44%,#12051c_100%)]" />
 
-          <div className="relative z-10 flex h-[350px] flex-col px-4 pb-5 pt-4 sm:h-[455px] sm:px-5 sm:pb-7 sm:pt-5">
+          <div className="relative z-10 flex h-[355px] flex-col px-4 pb-6 pt-4 sm:h-[455px] sm:px-5 sm:pb-7 sm:pt-5">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-4xl font-black leading-none text-yellow-300 sm:text-5xl">
@@ -112,36 +112,32 @@ export default function PlayerCard({
               </div>
             </div>
 
-            <div className="relative mt-2 flex h-[108px] items-center justify-center sm:mt-3 sm:h-[140px]">
+            <div className="relative mt-1 flex h-[92px] items-center justify-center sm:mt-3 sm:h-[140px]">
               {displayPhoto ? (
                 <img
                   src={displayPhoto}
                   alt="Foto profilo"
-                  className="relative z-10 h-[98px] w-[98px] rounded-[1rem] object-cover shadow-[0_0_18px_rgba(255,255,255,.10)] sm:h-[132px] sm:w-[132px] sm:rounded-[1.25rem] sm:shadow-[0_0_22px_rgba(255,255,255,.12)]"
+                  className="relative z-10 h-[88px] w-[88px] rounded-[1rem] object-cover shadow-[0_0_18px_rgba(255,255,255,.10)] sm:h-[132px] sm:w-[132px] sm:rounded-[1.25rem] sm:shadow-[0_0_22px_rgba(255,255,255,.12)]"
                 />
               ) : (
-                <div className="relative z-10 flex h-[98px] w-[98px] items-center justify-center rounded-[1rem] border border-cyan-300/20 bg-black/25 sm:h-[132px] sm:w-[132px] sm:rounded-[1.25rem]">
-                  <UserRound size={52} className="text-cyan-200 sm:hidden" />
+                <div className="relative z-10 flex h-[88px] w-[88px] items-center justify-center rounded-[1rem] border border-cyan-300/20 bg-black/25 sm:h-[132px] sm:w-[132px] sm:rounded-[1.25rem]">
+                  <UserRound size={48} className="text-cyan-200 sm:hidden" />
                   <UserRound size={70} className="hidden text-cyan-200 sm:block" />
                 </div>
               )}
             </div>
 
-            <div className="mt-0 text-center sm:mt-1">
-              <div className="truncate px-2 text-2xl font-black uppercase text-yellow-300 sm:px-3 sm:text-3xl">
+            <div className="mt-0 text-center">
+              <div className="truncate px-2 text-[22px] font-black uppercase leading-tight text-yellow-300 sm:px-3 sm:text-3xl">
                 {name || "Player"}
               </div>
 
-              <div className="mt-0.5 truncate px-2 text-sm font-black uppercase text-yellow-200 sm:mt-1 sm:px-3 sm:text-lg">
+              <div className="mt-0.5 truncate px-2 text-[13px] font-black uppercase leading-tight text-yellow-200 sm:mt-1 sm:px-3 sm:text-lg">
                 {nickname || mainSport || "Rivalo Player"}
-              </div>
-
-              <div className="mt-1 text-base text-yellow-300 sm:mt-2 sm:text-lg">
-                ★
               </div>
             </div>
 
-            <div className="mt-auto pt-2 sm:pt-3">
+            <div className="mt-auto pb-3 pt-2 sm:pb-0 sm:pt-3">
               <div className="grid grid-cols-4 gap-1.5 text-center sm:gap-2">
                 {stats.map((stat) => (
                   <CardStat
@@ -167,7 +163,7 @@ function CardStat({
   label: string;
 }) {
   return (
-    <div className="min-w-0 rounded-md bg-black/20 px-0.5 py-1">
+    <div className="min-w-0 rounded-lg border border-yellow-300/10 bg-black/25 px-0.5 py-1.5">
       <div className="text-[13px] font-black leading-none text-yellow-300 sm:text-[15px]">
         {value}
       </div>
