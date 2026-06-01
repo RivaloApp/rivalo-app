@@ -178,31 +178,29 @@ export default function MatchDetailsPage() {
     };
 
     if (Array.isArray(eventData.bracket)) {
-  let nextBracket = eventData.bracket.map((bracketMatch: any) => {
-    if (bracketMatch.matchId !== matchId) {
-      return bracketMatch;
-    }
+      let nextBracket = eventData.bracket.map((bracketMatch: any) => {
+        if (bracketMatch.matchId !== matchId) return bracketMatch;
 
-    if (bracketMatch.resultStatus === "confermato") {
-      return bracketMatch;
-    }
+        if (bracketMatch.resultStatus === "confermato") {
+          return bracketMatch;
+        }
 
-    const winnerTeamId =
-      winnerSide === "home"
-        ? bracketMatch.homeTeamId || ""
-        : winnerSide === "away"
-        ? bracketMatch.awayTeamId || ""
-        : "";
+        const winnerTeamId =
+          winnerSide === "home"
+            ? bracketMatch.homeTeamId || ""
+            : winnerSide === "away"
+            ? bracketMatch.awayTeamId || ""
+            : "";
 
-    return {
-      ...bracketMatch,
-      homeScore: homeScoreNumber,
-      awayScore: awayScoreNumber,
-      resultStatus: "confermato",
-      status: "completato",
-      winnerTeamId,
-    };
-  });
+        return {
+          ...bracketMatch,
+          homeScore: homeScoreNumber,
+          awayScore: awayScoreNumber,
+          resultStatus: "confermato",
+          status: "completato",
+          winnerTeamId,
+        };
+      });
 
       const currentMatch = nextBracket.find(
         (bracketMatch: any) => bracketMatch.matchId === matchId
