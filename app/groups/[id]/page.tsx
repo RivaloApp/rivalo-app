@@ -310,15 +310,29 @@ setJoinRequests(requestsResult);
         return;
       }
 
-      await updateDoc(doc(db, "groups", groupId), {
-        members: arrayUnion(foundUser.uid),
-        updatedAt: serverTimestamp(),
-      });
+     await updateDoc(doc(db, "groups", groupId), {
+  members: arrayUnion(foundUser.uid),
+  updatedAt: serverTimestamp(),
+});
 
-      setMemberSearch("");
-      setMessage("Membro aggiunto al gruppo.");
+await createNotification({
+  uid: foundUser.uid,
+  type: "team_invite",
+  title: "Sei stato aggiunto a un gruppo",
+  message: `Sei entrato nel gruppo ${group.name || "Rivalo"}.`,
+  link: "/group/" + groupId,
+  createdBy: user.uid,
+  metadata: {
+    groupId,
+    groupName: group.name || "Gruppo Rivalo",
+    addedBy: user.uid,
+  },
+});
 
-      await loadGroup();
+setMemberSearch("");
+setMessage("Membro aggiunto al gruppo.");
+
+await loadGroup();
     } catch (error) {
       console.error(error);
       setMessage("Errore durante l'aggiunta del membro.");
