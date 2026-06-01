@@ -612,6 +612,32 @@ await updateDoc(matchRef, {
             </div>
           </div>
         </section>
+                {match.eventId && (
+          <section className="mt-6 rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 p-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
+                  Match collegato
+                </div>
+
+                <div className="mt-2 text-xl font-black text-cyan-100">
+                  {match.eventTitle || "Evento Rivalo"}
+                </div>
+
+                <div className="mt-1 text-sm text-slate-300">
+                  Questo match fa parte di un evento, torneo o campionato Rivalo.
+                </div>
+              </div>
+
+              <Link
+                href={"/events/" + match.eventId}
+                className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-100 transition hover:bg-cyan-400/20"
+              >
+                Apri evento
+              </Link>
+            </div>
+          </section>
+        )}
 
         <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_.9fr]">
           <form
