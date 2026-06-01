@@ -255,24 +255,77 @@ function FooterItem({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 function PhoneMockup() {
   return (
-    <div className="relative mx-auto w-full max-w-[480px]">
-      <div className="absolute inset-0 rounded-[3rem] bg-cyan-400/20 blur-3xl" />
-      <div className="relative overflow-hidden rounded-[3rem] border border-white/10 bg-[#071126] p-5 shadow-[0_0_60px_rgba(34,211,238,.12)]">
-        <div className="rounded-[2rem] border border-white/10 bg-[#0b1730] p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-cyan-300">RivalScore</div>
-              <div className="mt-2 text-5xl font-black text-white">91</div>
-            </div>
-            <div className="rounded-2xl bg-gradient-to-br from-cyan-400 to-fuchsia-500 px-5 py-3 text-lg font-black text-white">
-              MVP
-            </div>
-          </div>
+    <div className="relative mx-auto flex w-full max-w-[520px] items-center justify-center py-8">
+      <div className="absolute h-[430px] w-[430px] rounded-full bg-cyan-400/10 blur-3xl" />
+      <div className="absolute right-8 top-6 h-48 w-48 rounded-full bg-fuchsia-500/10 blur-3xl" />
+      <div className="absolute left-6 bottom-3 h-44 w-44 rounded-full bg-lime-400/10 blur-3xl" />
 
-          <div className="mt-8 grid grid-cols-3 gap-3">
-            <Mini value="24" label="Vittorie" />
-            <Mini value="11" label="MVP" />
-            <Mini value="+320" label="XP" />
+      <div className="relative w-full max-w-[360px] rotate-[2deg]">
+        <div className="absolute inset-0 translate-y-8 rounded-[3rem] bg-cyan-400/20 blur-3xl" />
+
+        <div className="relative overflow-hidden rounded-[2.6rem] border border-cyan-300/30 bg-gradient-to-br from-cyan-300/30 via-blue-600/20 to-fuchsia-500/30 p-[2px] shadow-[0_0_80px_rgba(34,211,238,.22)]">
+          <div className="relative overflow-hidden rounded-[2.5rem] bg-[#071126] p-5">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_12%,rgba(34,211,238,.28),transparent_34%),radial-gradient(circle_at_80%_18%,rgba(217,70,239,.22),transparent_35%),linear-gradient(135deg,rgba(255,255,255,.08),transparent_32%,rgba(34,211,238,.08))]" />
+            <div className="absolute left-[-90px] top-[-70px] h-56 w-56 rounded-full border border-cyan-300/20" />
+            <div className="absolute bottom-[-85px] right-[-70px] h-60 w-60 rounded-full border border-fuchsia-300/20" />
+            <div className="absolute right-5 top-5 rounded-full border border-white/10 bg-white/[.05] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">
+              Rare card
+            </div>
+
+            <div className="relative rounded-[2rem] border border-white/10 bg-black/25 p-5 backdrop-blur">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
+                    RivalScore
+                  </div>
+
+                  <div className="mt-2 text-6xl font-black leading-none text-white drop-shadow-[0_0_18px_rgba(34,211,238,.4)]">
+                    91
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-center">
+                  <Trophy className="mx-auto text-yellow-300" size={24} />
+                  <div className="mt-1 text-xs font-black text-yellow-100">
+                    MVP
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-7 overflow-hidden rounded-[1.6rem] border border-cyan-300/20 bg-cyan-400/10 p-4">
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">
+                  Rivalo Player
+                </div>
+
+                <div className="mt-2 text-3xl font-black uppercase text-white">
+                  Elite card
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-lime-300/30 bg-lime-400/10 px-3 py-1 text-xs font-black text-lime-200">
+                    Calcetto
+                  </span>
+                  <span className="rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-200">
+                    Livello 12
+                  </span>
+                  <span className="rounded-full border border-fuchsia-300/30 bg-fuchsia-400/10 px-3 py-1 text-xs font-black text-fuchsia-200">
+                    Streak x5
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <Mini value="24" label="Vittorie" />
+                <Mini value="11" label="MVP" />
+                <Mini value="+320" label="XP" />
+              </div>
+            </div>
+
+            <div className="relative mt-4 grid grid-cols-3 gap-2">
+              <div className="h-2 rounded-full bg-cyan-300/60" />
+              <div className="h-2 rounded-full bg-fuchsia-300/60" />
+              <div className="h-2 rounded-full bg-lime-300/60" />
+            </div>
           </div>
         </div>
       </div>
