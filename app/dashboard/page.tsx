@@ -292,6 +292,14 @@ setUnreadNotificationsCount(notificationsSnap.size);
               />
 
               <QuickAction
+  href="/notifications"
+  tone="cyan"
+  icon={<Bell />}
+  title="Notifiche"
+  text="Inviti, risultati e aggiornamenti"
+/>
+
+              <QuickAction
                 href="/feed"
                 tone="orange"
                 icon={<Radio />}
