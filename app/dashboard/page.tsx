@@ -34,7 +34,6 @@ import {
   Users,
   CircleDot,
   ArrowRight,
-  Flame,
   Swords,
   Radio,
   Search,
@@ -58,7 +57,7 @@ type UserProfile = {
   photoURL?: string;
   photoUrl?: string;
   onboardingCompleted?: boolean;
-profileCompleted?: boolean;
+  profileCompleted?: boolean;
 };
 
 export default function DashboardPage() {
@@ -81,21 +80,21 @@ export default function DashboardPage() {
         const snap = await getDoc(doc(db, "users", currentUser.uid));
 
         if (snap.exists()) {
-  const data = snap.data() as UserProfile;
+          const data = snap.data() as UserProfile;
 
-  if (!data.onboardingCompleted) {
-    window.location.href = "/onboarding";
-    return;
-  }
+          if (!data.onboardingCompleted) {
+            window.location.href = "/onboarding";
+            return;
+          }
 
-  setProfile({
-    uid: currentUser.uid,
-    ...data,
-  });
-} else {
-  window.location.href = "/onboarding";
-  return;
-}
+          setProfile({
+            uid: currentUser.uid,
+            ...data,
+          });
+        } else {
+          window.location.href = "/onboarding";
+          return;
+        }
 
         const q = query(
           collection(db, "users"),
@@ -159,12 +158,16 @@ export default function DashboardPage() {
         <Sidebar />
 
         <div className="min-w-0 flex-1 px-5 py-5 lg:px-8 xl:px-10">
-          <div className="mb-5 flex items-center justify-between gap-4 lg:justify-end">
-            <Link href="/" className="min-w-0 origin-left scale-[0.76] sm:scale-90 lg:hidden">
-              <RivaloLogo />
-            </Link>
+          <div className="mb-6 lg:mb-3">
+            <div className="lg:hidden">
+              <Link href="/" className="block w-fit">
+                <RivaloLogo />
+              </Link>
+            </div>
 
-            <TopIcons unreadNotificationsCount={unreadNotificationsCount} />
+            <div className="mt-4 flex justify-end lg:mt-0">
+              <TopIcons unreadNotificationsCount={unreadNotificationsCount} />
+            </div>
           </div>
 
           <section className="grid gap-7 xl:grid-cols-[1fr_330px] 2xl:grid-cols-[1fr_360px]">
@@ -257,7 +260,7 @@ export default function DashboardPage() {
                 title="Gruppi"
                 text="Amici e classifiche gruppo"
               />
-              
+
               <QuickAction
                 href="/opponents"
                 tone="green"
@@ -265,7 +268,6 @@ export default function DashboardPage() {
                 title="Richiedi ingresso"
                 text="Trova gruppi pubblici e chiedi di entrare"
               />
-              
 
               <QuickAction
                 href="/events"
@@ -345,8 +347,8 @@ export default function DashboardPage() {
 
 function Sidebar() {
   return (
-    <aside className="hidden w-[205px] shrink-0 border-r border-white/10 bg-[#020617]/82 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
-      <Link href="/" className="mb-9 flex origin-left scale-[0.82] items-center gap-4 px-2 xl:scale-90">
+    <aside className="hidden w-[270px] shrink-0 border-r border-white/10 bg-[#020617]/82 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
+      <Link href="/" className="mb-9 block px-2">
         <RivaloLogo />
       </Link>
 
@@ -363,15 +365,15 @@ function Sidebar() {
       </div>
 
       <button
-  onClick={async () => {
-    await signOut(auth);
-    window.location.href = "/login";
-  }}
-  className="mt-auto flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-semibold text-slate-300 transition hover:bg-white/[.05] hover:text-white"
->
-  <LogOut size={20} />
-  Esci
-</button>
+        onClick={async () => {
+          await signOut(auth);
+          window.location.href = "/login";
+        }}
+        className="mt-auto flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-semibold text-slate-300 transition hover:bg-white/[.05] hover:text-white"
+      >
+        <LogOut size={20} />
+        Esci
+      </button>
     </aside>
   );
 }
