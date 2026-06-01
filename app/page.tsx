@@ -16,66 +16,87 @@ import {
 
 export default function Home() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[#020617] text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <Background />
 
-      <section className="relative z-10 mx-auto max-w-[1240px] px-5 py-7">
-        <nav className="flex items-center justify-between gap-5">
-         <Link href="/" className="inline-flex">
-  <LogoMark />
-</Link>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="rounded-2xl border border-white/20 bg-white/[.03] px-7 py-4 font-bold">
+      <section className="relative z-10 mx-auto max-w-[1240px] px-4 py-6 sm:px-5 sm:py-7">
+        <nav className="flex items-center justify-between gap-3">
+          <Link href="/" className="min-w-0 shrink">
+            <LogoMark />
+          </Link>
+
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+            <Link
+              href="/login"
+              className="rounded-2xl border border-white/20 bg-white/[.03] px-5 py-3 text-sm font-bold sm:px-7 sm:py-4 sm:text-base"
+            >
               Accedi
             </Link>
-            <Link href="/signup" className="rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-7 py-4 font-black">
+
+            <Link
+              href="/signup"
+              className="hidden rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-7 py-4 font-black sm:inline-flex"
+            >
               Prova la Beta
             </Link>
           </div>
         </nav>
 
-        <section className="mt-[72px] grid items-center gap-12 lg:grid-cols-[1fr_1fr]">
-          <div>
-            <div className="mb-7 inline-flex rounded-full border border-cyan-400/60 bg-cyan-400/[.055] px-6 py-3 text-[15px] font-black uppercase">
+        <section className="mt-12 grid items-center gap-10 lg:mt-[72px] lg:grid-cols-[1fr_1fr] lg:gap-12">
+          <div className="min-w-0">
+            <div className="mb-6 inline-flex max-w-full rounded-full border border-cyan-400/60 bg-cyan-400/[.055] px-5 py-3 text-[13px] font-black uppercase sm:mb-7 sm:px-6 sm:text-[15px]">
               <span className="text-lime-300">Calcetto</span>
-              <span className="mx-3 text-cyan-400">•</span>
+              <span className="mx-2 text-cyan-400 sm:mx-3">•</span>
               <span className="text-cyan-300">Padel</span>
-              <span className="mx-3 text-fuchsia-400">•</span>
+              <span className="mx-2 text-fuchsia-400 sm:mx-3">•</span>
               <span className="text-fuchsia-300">Tennis</span>
             </div>
 
-            <h1 className="max-w-[665px] text-[54px] font-black leading-[1.07] tracking-[-.045em] md:text-[72px]">
+            <h1 className="max-w-full text-[44px] font-black leading-[1.08] tracking-[-.045em] sm:text-[54px] md:text-[72px]">
               Competizione.
               <br />
               Statistiche.
               <br />
               Rivalità.
               <br />
-              <span className="bg-gradient-to-r from-cyan-300 via-blue-500 to-fuchsia-500 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-cyan-300 via-blue-500 to-fuchsia-500 bg-clip-text text-transparent">
                 Tutto in un’unica app.
               </span>
             </h1>
 
-            <p className="mt-7 max-w-[565px] text-[18px] leading-[1.75] text-slate-300">
+            <p className="mt-6 max-w-full text-[16px] leading-[1.7] text-slate-300 sm:mt-7 sm:max-w-[565px] sm:text-[18px]">
               Crea il tuo gruppo, organizza le partite, sfida i tuoi amici e scala le classifiche.
             </p>
 
-            <div className="mt-10 flex flex-wrap gap-5">
-              <Link href="/login" className="group flex items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-10 py-5 text-lg font-black">
+            <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-5">
+              <Link
+                href="/login"
+                className="group flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-7 py-4 text-base font-black sm:gap-4 sm:px-10 sm:py-5 sm:text-lg"
+              >
                 Entra in Rivalo
                 <ChevronRight className="transition group-hover:translate-x-1" size={22} />
               </Link>
 
-              <Link href="/login" className="flex items-center gap-4 rounded-2xl border border-white/20 bg-white/[.03] px-8 py-5 text-lg font-black">
+              <Link
+                href="/login"
+                className="flex items-center justify-center gap-3 rounded-2xl border border-white/20 bg-white/[.03] px-7 py-4 text-base font-black sm:gap-4 sm:px-8 sm:py-5 sm:text-lg"
+              >
                 Accedi
-                <UserRound size={25} />
+                <UserRound size={23} />
+              </Link>
+
+              <Link
+                href="/signup"
+                className="flex items-center justify-center rounded-2xl border border-fuchsia-400/30 bg-fuchsia-500/10 px-7 py-4 text-base font-black text-fuchsia-100 sm:hidden"
+              >
+                Prova la Beta
               </Link>
             </div>
 
-            <div className="mt-12 grid max-w-[530px] grid-cols-3 overflow-hidden rounded-3xl border border-white/10 bg-[#071126]/80 p-2">
-              <HeroStat icon={<Trophy size={34} />} value="24.7K" label="Partite" color="text-lime-300" />
-              <HeroStat icon={<Users size={34} />} value="5.892" label="Giocatori" color="text-fuchsia-400" border />
-              <HeroStat icon={<BarChart3 size={34} />} value="92%" label="Attività" color="text-cyan-300" border />
+            <div className="mt-10 grid max-w-full grid-cols-3 overflow-hidden rounded-3xl border border-white/10 bg-[#071126]/80 p-2 sm:mt-12 sm:max-w-[530px]">
+              <HeroStat icon={<Trophy size={30} />} value="24.7K" label="Partite" color="text-lime-300" />
+              <HeroStat icon={<Users size={30} />} value="5.892" label="Giocatori" color="text-fuchsia-400" border />
+              <HeroStat icon={<BarChart3 size={30} />} value="92%" label="Attività" color="text-cyan-300" border />
             </div>
           </div>
 
@@ -161,8 +182,8 @@ function Background() {
 
 function LogoMark() {
   return (
-    <div className="flex items-center gap-4">
-      <div className="relative h-16 w-16 shrink-0">
+    <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+      <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
         <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
 
         <svg viewBox="0 0 120 120" className="relative h-full w-full">
@@ -191,12 +212,12 @@ function LogoMark() {
         </svg>
       </div>
 
-      <div>
-        <div className="text-3xl font-black tracking-tight text-white">
+      <div className="min-w-0">
+        <div className="text-2xl font-black tracking-tight text-white sm:text-3xl">
           Rivalo
         </div>
 
-        <div className="mt-1 text-xs font-black tracking-[.32em] text-cyan-300">
+        <div className="mt-1 text-[9px] font-black tracking-[.24em] text-cyan-300 sm:text-xs sm:tracking-[.32em]">
           OWN THE GAME
         </div>
       </div>
@@ -206,10 +227,10 @@ function LogoMark() {
 
 function HeroStat({ icon, value, label, color, border }: { icon: React.ReactNode; value: string; label: string; color: string; border?: boolean }) {
   return (
-    <div className={`flex flex-col items-center justify-center px-4 py-6 text-center ${border ? "border-l border-white/10" : ""}`}>
+    <div className={`flex flex-col items-center justify-center px-2 py-5 text-center sm:px-4 sm:py-6 ${border ? "border-l border-white/10" : ""}`}>
       <div className={color}>{icon}</div>
-      <div className="mt-3 text-2xl font-black text-white">{value}</div>
-      <div className="mt-1 text-sm font-semibold text-slate-400">{label}</div>
+      <div className="mt-3 text-xl font-black text-white sm:text-2xl">{value}</div>
+      <div className="mt-1 text-xs font-semibold text-slate-400 sm:text-sm">{label}</div>
     </div>
   );
 }
@@ -255,77 +276,24 @@ function FooterItem({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 function PhoneMockup() {
   return (
-    <div className="relative mx-auto flex w-full max-w-[520px] items-center justify-center py-8">
-      <div className="absolute h-[430px] w-[430px] rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="absolute right-8 top-6 h-48 w-48 rounded-full bg-fuchsia-500/10 blur-3xl" />
-      <div className="absolute left-6 bottom-3 h-44 w-44 rounded-full bg-lime-400/10 blur-3xl" />
-
-      <div className="relative w-full max-w-[360px] rotate-[2deg]">
-        <div className="absolute inset-0 translate-y-8 rounded-[3rem] bg-cyan-400/20 blur-3xl" />
-
-        <div className="relative overflow-hidden rounded-[2.6rem] border border-cyan-300/30 bg-gradient-to-br from-cyan-300/30 via-blue-600/20 to-fuchsia-500/30 p-[2px] shadow-[0_0_80px_rgba(34,211,238,.22)]">
-          <div className="relative overflow-hidden rounded-[2.5rem] bg-[#071126] p-5">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_12%,rgba(34,211,238,.28),transparent_34%),radial-gradient(circle_at_80%_18%,rgba(217,70,239,.22),transparent_35%),linear-gradient(135deg,rgba(255,255,255,.08),transparent_32%,rgba(34,211,238,.08))]" />
-            <div className="absolute left-[-90px] top-[-70px] h-56 w-56 rounded-full border border-cyan-300/20" />
-            <div className="absolute bottom-[-85px] right-[-70px] h-60 w-60 rounded-full border border-fuchsia-300/20" />
-            <div className="absolute right-5 top-5 rounded-full border border-white/10 bg-white/[.05] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100">
-              Rare card
+    <div className="relative mx-auto w-full max-w-[480px]">
+      <div className="absolute inset-0 rounded-[3rem] bg-cyan-400/20 blur-3xl" />
+      <div className="relative overflow-hidden rounded-[3rem] border border-white/10 bg-[#071126] p-5 shadow-[0_0_60px_rgba(34,211,238,.12)]">
+        <div className="rounded-[2rem] border border-white/10 bg-[#0b1730] p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-bold text-cyan-300">RivalScore</div>
+              <div className="mt-2 text-5xl font-black text-white">91</div>
             </div>
-
-            <div className="relative rounded-[2rem] border border-white/10 bg-black/25 p-5 backdrop-blur">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
-                    RivalScore
-                  </div>
-
-                  <div className="mt-2 text-6xl font-black leading-none text-white drop-shadow-[0_0_18px_rgba(34,211,238,.4)]">
-                    91
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-yellow-300/30 bg-yellow-300/10 px-4 py-3 text-center">
-                  <Trophy className="mx-auto text-yellow-300" size={24} />
-                  <div className="mt-1 text-xs font-black text-yellow-100">
-                    MVP
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-7 overflow-hidden rounded-[1.6rem] border border-cyan-300/20 bg-cyan-400/10 p-4">
-                <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">
-                  Rivalo Player
-                </div>
-
-                <div className="mt-2 text-3xl font-black uppercase text-white">
-                  Elite card
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full border border-lime-300/30 bg-lime-400/10 px-3 py-1 text-xs font-black text-lime-200">
-                    Calcetto
-                  </span>
-                  <span className="rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-200">
-                    Livello 12
-                  </span>
-                  <span className="rounded-full border border-fuchsia-300/30 bg-fuchsia-400/10 px-3 py-1 text-xs font-black text-fuchsia-200">
-                    Streak x5
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                <Mini value="24" label="Vittorie" />
-                <Mini value="11" label="MVP" />
-                <Mini value="+320" label="XP" />
-              </div>
+            <div className="rounded-2xl bg-gradient-to-br from-cyan-400 to-fuchsia-500 px-5 py-3 text-lg font-black text-white">
+              MVP
             </div>
+          </div>
 
-            <div className="relative mt-4 grid grid-cols-3 gap-2">
-              <div className="h-2 rounded-full bg-cyan-300/60" />
-              <div className="h-2 rounded-full bg-fuchsia-300/60" />
-              <div className="h-2 rounded-full bg-lime-300/60" />
-            </div>
+          <div className="mt-8 grid grid-cols-3 gap-3">
+            <Mini value="24" label="Vittorie" />
+            <Mini value="11" label="MVP" />
+            <Mini value="+320" label="XP" />
           </div>
         </div>
       </div>
@@ -341,5 +309,3 @@ function Mini({ value, label }: { value: string; label: string }) {
     </div>
   );
 }
-
-
