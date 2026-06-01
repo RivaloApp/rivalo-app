@@ -179,7 +179,9 @@ export default function MatchDetailsPage() {
 
     if (Array.isArray(eventData.bracket)) {
       let nextBracket = eventData.bracket.map((bracketMatch: any) => {
-        if (bracketMatch.matchId !== matchId) return bracketMatch;
+        if (bracketMatch.resultStatus === "confermato") {
+          return bracketMatch;
+        }
 
         const winnerTeamId =
           winnerSide === "home"
