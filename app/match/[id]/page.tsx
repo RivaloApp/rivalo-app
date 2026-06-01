@@ -17,6 +17,7 @@ import { auth, db } from "../../../lib/firebase";
 import { applyMatchStats } from "../../../lib/rivaloStats";
 import { updatePlayerStats } from "../../../lib/updatePlayerStats";
 import { updateTeamEventStats } from "../../../lib/updateTeamEventStats";
+import { createNotification } from "../../../lib/createNotification";
 import {
   ArrowLeft,
   CalendarDays,
@@ -152,6 +153,50 @@ export default function MatchDetailsPage() {
       )
     );
   }
+
+  async function notifyMatchPlayers({
+  type,
+  title,
+  message,
+}: {
+  type: "result_proposed" | "result_confirmed" | "result_disputed";
+  title: string;
+  message: string;
+}) {
+  if (!user || !match) return;
+
+  const playerIds = Array.from(
+    new Set(
+      (match.players || [])
+        .map((player) => player.uid)
+        .filter(Boolean)
+    )
+  ).filter((uid) => uid !== user.uid);
+
+  if (playerIds.length === 0) return;
+
+  await Promise.all(
+    playerIds.map((uid) =>
+      createNotification({
+        uid,
+        type,
+        title,
+        message,
+        link: "/match/" + matchId,
+        createdBy: user.uid,
+        metadata: {
+          matchId,
+          eventId: match.eventId || "",
+          eventTitle: match.eventTitle || "",
+          homeTeam,
+          awayTeam,
+          homeScore: Number(homeScore || 0),
+          awayScore: Number(awayScore || 0),
+        },
+      })
+    )
+  );
+}
 
   async function syncEventMatchResult(safeMatch: MatchDoc) {
     if (!safeMatch.eventId) return;
@@ -370,8 +415,16 @@ export default function MatchDetailsPage() {
         resultProposedAt: serverTimestamp(),
       });
 
-      await loadMatch();
-      setMessage("Risultato proposto. Ora puoi confermarlo.");
+      await notifyMatchPlayers({
+  type: "result_proposed",
+  title: "Risultato proposto",
+  message: `${homeTeam || "Squadra 1"} ${homeScore || "0"} - ${
+    awayScore || "0"
+  } ${awayTeam || "Squadra 2"}. Controlla e conferma se è corretto.`,
+});
+
+await loadMatch();
+setMessage("Risultato proposto. Ora puoi confermarlo.");
     } catch {
       setMessage("Errore durante il salvataggio del risultato.");
     } finally {
@@ -479,8 +532,16 @@ await updateDoc(matchRef, {
         statsAppliedBy: user.uid,
       });
 
-      await loadMatch();
-      setMessage("Risultato confermato. Statistiche applicate una sola volta.");
+     await notifyMatchPlayers({
+  type: "result_confirmed",
+  title: "Risultato confermato",
+  message: `${homeTeam || "Squadra 1"} ${homeScore || "0"} - ${
+    awayScore || "0"
+  } ${awayTeam || "Squadra 2"}. Statistiche aggiornate.`,
+});
+
+await loadMatch();
+setMessage("Risultato confermato. Statistiche applicate una sola volta.");
     } catch (error: any) {
       console.error(error);
 
@@ -526,8 +587,16 @@ await updateDoc(matchRef, {
         disputedAt: serverTimestamp(),
       });
 
-      await loadMatch();
-      setMessage("Risultato contestato. Servirà revisione.");
+      await notifyMatchPlayers({
+  type: "result_disputed",
+  title: "Risultato contestato",
+  message: `${homeTeam || "Squadra 1"} ${homeScore || "0"} - ${
+    awayScore || "0"
+  } ${awayTeam || "Squadra 2"}. Il risultato è stato contestato.`,
+});
+
+await loadMatch();
+setMessage("Risultato contestato. Servirà revisione.");
     } catch {
       setMessage("Errore durante la contestazione.");
     } finally {
