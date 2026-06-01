@@ -159,7 +159,13 @@ export default function DashboardPage() {
         <Sidebar />
 
         <div className="min-w-0 flex-1 px-5 py-5 lg:px-8 xl:px-10">
-          <TopIcons unreadNotificationsCount={unreadNotificationsCount} />
+          <div className="mb-5 flex items-center justify-between gap-4 lg:justify-end">
+            <Link href="/" className="min-w-0 origin-left scale-[0.76] sm:scale-90 lg:hidden">
+              <RivaloLogo />
+            </Link>
+
+            <TopIcons unreadNotificationsCount={unreadNotificationsCount} />
+          </div>
 
           <section className="grid gap-7 xl:grid-cols-[1fr_330px] 2xl:grid-cols-[1fr_360px]">
             <div className="grid items-start gap-6 xl:grid-cols-[310px_1fr] xl:gap-8 2xl:grid-cols-[330px_1fr]">
@@ -340,7 +346,7 @@ export default function DashboardPage() {
 function Sidebar() {
   return (
     <aside className="hidden w-[205px] shrink-0 border-r border-white/10 bg-[#020617]/82 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
-      <Link href="/" className="mb-9 flex items-center gap-4 px-2">
+      <Link href="/" className="mb-9 flex origin-left scale-[0.82] items-center gap-4 px-2 xl:scale-90">
         <RivaloLogo />
       </Link>
 
@@ -401,31 +407,39 @@ function TopIcons({
 }: {
   unreadNotificationsCount: number;
 }) {
+  async function handleLogout() {
+    await signOut(auth);
+    window.location.href = "/login";
+  }
+
   return (
-    <div className="mb-5 flex items-center justify-between gap-4 lg:justify-end">
-      <Link href="/dashboard" className="flex min-w-0 items-center lg:hidden">
-        <RivaloLogo />
+    <div className="flex shrink-0 items-center justify-end gap-3 sm:gap-4">
+      <Link
+        href="/notifications"
+        className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
+        title="Notifiche"
+      >
+        <Bell size={22} />
+
+        {unreadNotificationsCount > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-fuchsia-500 px-1 text-[10px] font-black text-white">
+            {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
+          </span>
+        )}
       </Link>
 
-      <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-        <Link
-          href="/notifications"
-          className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
-          title="Notifiche"
-        >
-          <Bell size={22} />
+      <button className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200">
+        <Settings size={22} />
+      </button>
 
-          {unreadNotificationsCount > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-fuchsia-500 px-1 text-[10px] font-black text-white">
-              {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
-            </span>
-          )}
-        </Link>
-
-        <button className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200">
-          <Settings size={22} />
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-red-100 transition hover:bg-red-500/20 lg:hidden"
+        title="Esci"
+      >
+        <LogOut size={22} />
+      </button>
     </div>
   );
 }
