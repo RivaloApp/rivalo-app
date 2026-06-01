@@ -759,13 +759,37 @@ async function generateTournamentBracket() {
     });
 
     await createActivity({
-      uid: user.uid,
-      type: "event",
-      text: `Tabellone generato: ${event.title || "Torneo Rivalo"}`,
-      value: 1,
-    });
+  uid: user.uid,
+  type: "event",
+  text: `Tabellone generato: ${event.title || "Torneo Rivalo"}`,
+  value: 1,
+});
 
-    setMessage("Tabellone generato.");
+const notifiedPlayerIds = Array.from(
+  new Set((event.participants || []).filter(Boolean))
+).filter((uid) => uid !== user.uid);
+
+await Promise.all(
+  notifiedPlayerIds.map((uid) =>
+    createNotification({
+      uid,
+      type: "tournament_ready",
+      title: "Tabellone torneo pronto",
+      message: `Il tabellone di ${
+        event.title || "un torneo Rivalo"
+      } è stato generato.`,
+      link: "/events/" + event.id,
+      createdBy: user.uid,
+      metadata: {
+        eventId: event.id,
+        eventTitle: event.title || "Torneo Rivalo",
+        source: "torneo",
+      },
+    })
+  )
+);
+
+setMessage("Tabellone generato.");
   } catch (error) {
     console.error(error);
     setMessage("Errore durante la generazione del tabellone.");
@@ -876,16 +900,40 @@ async function generateLeagueSchedule() {
       status: "calendario creato",
     });
 
-    await createActivity({
-      uid: user.uid,
-      type: "event",
-      text: `Calendario campionato generato: ${
-        event.title || "Campionato Rivalo"
-      }`,
-      value: 1,
-    });
+   await createActivity({
+  uid: user.uid,
+  type: "event",
+  text: `Calendario campionato generato: ${
+    event.title || "Campionato Rivalo"
+  }`,
+  value: 1,
+});
 
-    setMessage("Calendario campionato generato.");
+const notifiedPlayerIds = Array.from(
+  new Set((event.participants || []).filter(Boolean))
+).filter((uid) => uid !== user.uid);
+
+await Promise.all(
+  notifiedPlayerIds.map((uid) =>
+    createNotification({
+      uid,
+      type: "league_ready",
+      title: "Calendario campionato pronto",
+      message: `Il calendario di ${
+        event.title || "un campionato Rivalo"
+      } è stato generato.`,
+      link: "/events/" + event.id,
+      createdBy: user.uid,
+      metadata: {
+        eventId: event.id,
+        eventTitle: event.title || "Campionato Rivalo",
+        source: "campionato",
+      },
+    })
+  )
+);
+
+setMessage("Calendario campionato generato.");
   } catch (error) {
     console.error(error);
     setMessage("Errore durante la generazione del calendario.");
