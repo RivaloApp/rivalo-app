@@ -378,10 +378,14 @@ function SideLink({
 function TopIcons() {
   return (
     <div className="mb-3 flex items-center justify-end gap-4">
-      <button className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200">
+      <Link
+        href="/notifications"
+        className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
+        title="Notifiche"
+      >
         <Bell size={22} />
         <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-fuchsia-400" />
-      </button>
+      </Link>
 
       <button className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200">
         <Settings size={22} />
