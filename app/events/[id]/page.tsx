@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { createActivity } from "../../../lib/createActivity";
+import { createNotification } from "../../../lib/createNotification";
 
 import {
   addDoc,
@@ -1136,6 +1137,32 @@ setMessage("");
       value: 1,
     });
 
+    const notifiedPlayerIds = Array.from(
+  new Set(players.map((player) => player.uid).filter(Boolean))
+).filter((uid) => uid !== user.uid);
+
+await Promise.all(
+  notifiedPlayerIds.map((uid) =>
+    createNotification({
+      uid,
+      type: "new_match",
+      title: "Nuovo match creato",
+      message: `${homeTeamName} vs ${awayTeamName} è stato creato da ${
+        event.title || "un evento Rivalo"
+      }.`,
+      link: `/match/${matchRef.id}`,
+      createdBy: user.uid,
+      metadata: {
+        eventId: event.id,
+        matchId: matchRef.id,
+        eventTitle: event.title || "Evento Rivalo",
+        homeTeam: homeTeamName,
+        awayTeam: awayTeamName,
+        source: event.type || "evento",
+      },
+    })
+  )
+);
     router.push(`/match/${matchRef.id}`);
   } catch (error) {
     console.error(error);
