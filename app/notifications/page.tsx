@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import {
   collection,
@@ -57,6 +58,7 @@ function getNotificationIcon(type?: string) {
 }
 
 export default function NotificationsPage() {
+ const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,6 +121,32 @@ export default function NotificationsPage() {
     } catch (error) {
       console.error(error);
       setMessage("Non sono riuscito ad aggiornare la notifica.");
+    }
+  }
+
+    async function openNotification(notification: NotificationItem) {
+    if (!notification.link) return;
+
+    try {
+      if (!notification.read) {
+        await updateDoc(doc(db, "notifications", notification.id), {
+          read: true,
+          readAt: serverTimestamp(),
+        });
+
+        setNotifications((current) =>
+          current.map((currentNotification) =>
+            currentNotification.id === notification.id
+              ? { ...currentNotification, read: true }
+              : currentNotification
+          )
+        );
+      }
+
+      router.push(notification.link);
+    } catch (error) {
+      console.error(error);
+      setMessage("Non sono riuscito ad aprire la notifica.");
     }
   }
 
@@ -304,12 +332,17 @@ export default function NotificationsPage() {
                   );
 
                   return notification.link ? (
-                    <Link key={notification.id} href={notification.link}>
-                      {content}
-                    </Link>
-                  ) : (
-                    <div key={notification.id}>{content}</div>
-                  );
+  <button
+    key={notification.id}
+    type="button"
+    onClick={() => openNotification(notification)}
+    className="block w-full text-left"
+  >
+    {content}
+  </button>
+) : (
+  <div key={notification.id}>{content}</div>
+);
                 })}
               </div>
             )}
