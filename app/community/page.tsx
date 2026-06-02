@@ -6,6 +6,8 @@ import Link from "next/link";
 import {
   addDoc,
   collection,
+  doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -37,22 +39,93 @@ type Post = {
   type?: string;
   city?: string;
   sport?: string;
+  authorId?: string;
   authorName?: string;
 };
 
 type ActivityItem = {
   id: string;
   uid?: string;
+  userId?: string;
+  createdBy?: string;
+  playerId?: string;
+  authorId?: string;
   type?: string;
   text?: string;
   title?: string;
   description?: string;
   value?: number;
+  sport?: string;
+  city?: string;
+  userIds?: string[];
+  players?: any[];
+  participants?: any[];
   createdAt?: any;
 };
 
+type UserProfile = {
+  name?: string;
+  nickname?: string;
+  city?: string;
+  mainSport?: string;
+};
+
+function normalize(value?: string) {
+  return (value || "").toLowerCase().trim();
+}
+
+function includesCurrentUser(activity: ActivityItem, uid: string) {
+  if (!uid) return false;
+
+  if (
+    activity.uid === uid ||
+    activity.userId === uid ||
+    activity.createdBy === uid ||
+    activity.playerId === uid ||
+    activity.authorId === uid
+  ) {
+    return true;
+  }
+
+  if (Array.isArray(activity.userIds) && activity.userIds.includes(uid)) {
+    return true;
+  }
+
+  const possibleArrays = [activity.players, activity.participants];
+
+  return possibleArrays.some((items) =>
+    Array.isArray(items)
+      ? items.some((item) => {
+          if (typeof item === "string") return item === uid;
+
+          return (
+            item?.uid === uid ||
+            item?.id === uid ||
+            item?.userId === uid ||
+            item?.playerId === uid
+          );
+        })
+      : false
+  );
+}
+
+function isRelevantCommunityPost(post: Post, uid: string, profile: UserProfile | null) {
+  if (post.authorId === uid) return true;
+
+  const profileCity = normalize(profile?.city);
+  const profileSport = normalize(profile?.mainSport);
+  const postCity = normalize(post.city);
+  const postSport = normalize(post.sport);
+
+  const cityOk = !profileCity || !postCity || postCity === profileCity;
+  const sportOk = !profileSport || !postSport || postSport === profileSport;
+
+  return cityOk && sportOk;
+}
+
 export default function CommunityPage() {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
 
@@ -73,54 +146,76 @@ export default function CommunityPage() {
 
       setUser(currentUser);
 
+      const loadedProfile = await loadUserProfile(currentUser.uid);
+      setProfile(loadedProfile);
+      setCity(loadedProfile?.city || "");
+      setSport(loadedProfile?.mainSport || "calcetto");
+
       await Promise.all([
-        loadPosts(),
-        loadActivities(),
+        loadPosts(currentUser.uid, loadedProfile),
+        loadActivities(currentUser.uid),
       ]);
     });
 
     return () => unsub();
   }, []);
 
-  async function loadPosts() {
+  async function loadUserProfile(uid: string) {
+    const snap = await getDoc(doc(db, "users", uid));
+
+    if (!snap.exists()) return null;
+
+    return snap.data() as UserProfile;
+  }
+
+  async function loadPosts(uid: string, userProfile: UserProfile | null) {
     setLoading(true);
 
     try {
       const q = query(
         collection(db, "communityPosts"),
-        orderBy("createdAt", "desc")
+        orderBy("createdAt", "desc"),
+        limit(80)
       );
 
       const snap = await getDocs(q);
 
+      const allPosts = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<Post, "id">),
+      }));
+
       setPosts(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<Post, "id">),
-        }))
+        allPosts.filter((post) =>
+          isRelevantCommunityPost(post, uid, userProfile)
+        )
       );
     } finally {
       setLoading(false);
     }
   }
 
-  async function loadActivities() {
+  async function loadActivities(uid: string) {
     setActivitiesLoading(true);
 
     try {
       const q = query(
         collection(db, "activities"),
         orderBy("createdAt", "desc"),
-        limit(30)
+        limit(80)
       );
 
       const snap = await getDocs(q);
 
+      const allActivities = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<ActivityItem, "id">),
+      }));
+
       setActivities(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<ActivityItem, "id">),
-        }))
+        allActivities.filter((activity) =>
+          includesCurrentUser(activity, uid)
+        )
       );
     } finally {
       setActivitiesLoading(false);
@@ -138,20 +233,23 @@ export default function CommunityPage() {
       sport,
       type,
       authorId: user.uid,
-      authorName: user.displayName || "Rivalo Player",
+      authorName:
+        profile?.nickname ||
+        profile?.name ||
+        user.displayName ||
+        "Rivalo Player",
       reactions: 0,
       comments: 0,
       createdAt: serverTimestamp(),
     });
 
     setText("");
-    await loadPosts();
+    await loadPosts(user.uid, profile);
   }
 
   return (
     <main className="min-h-screen bg-[#020617] px-5 py-8 text-white">
       <section className="mx-auto max-w-7xl">
-
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -161,7 +259,6 @@ export default function CommunityPage() {
         </Link>
 
         <div className="mt-8 grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
-
           <form
             onSubmit={publishPost}
             className="rounded-[2rem] border border-white/10 bg-white/[.04] p-6 shadow-2xl"
@@ -178,6 +275,11 @@ export default function CommunityPage() {
                   Trova giocatori, squadre e sfide nella tua città.
                 </p>
               </div>
+            </div>
+
+            <div className="mb-5 flex flex-wrap gap-2">
+              <Badge>{profile?.mainSport || sport}</Badge>
+              <Badge>{profile?.city || city || "Zona non inserita"}</Badge>
             </div>
 
             <div className="space-y-4">
@@ -256,13 +358,12 @@ export default function CommunityPage() {
           </form>
 
           <div className="space-y-6">
-
             <section className="rounded-[2rem] border border-cyan-400/20 bg-cyan-400/[.05] p-6 shadow-2xl">
               <div className="mb-6 flex items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 text-sm font-black uppercase tracking-[.25em] text-cyan-300">
                     <Radio size={17} />
-                    Live Feed
+                    Live Feed personale
                   </div>
 
                   <h2 className="mt-2 text-3xl font-black">
@@ -279,7 +380,7 @@ export default function CommunityPage() {
                 </div>
               ) : activities.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-slate-400">
-                  Nessuna attività live ancora. Conferma un match per generare il feed automatico.
+                  Nessuna attività personale ancora. Quando giocherai match o parteciperai a eventi, comparirà qui.
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -314,7 +415,7 @@ export default function CommunityPage() {
                 </div>
               ) : posts.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-slate-400">
-                  Nessun post ancora.
+                  Nessun post compatibile con la tua zona o il tuo sport.
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -350,9 +451,7 @@ export default function CommunityPage() {
                 </div>
               )}
             </section>
-
           </div>
-
         </div>
       </section>
     </main>
@@ -379,12 +478,12 @@ function ActivityCard({
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_60%)]" />
 
       <div className="relative flex items-center gap-4">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border bg-black/30 ${style.iconColor}`}>
+        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border bg-black/30 ${style.iconColor}`}>
           {style.icon}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="text-lg font-black">
+          <div className="break-words text-lg font-black">
             {text}
           </div>
 
@@ -463,6 +562,7 @@ function getActivityStyle(type?: string) {
       "border-cyan-300/20 bg-gradient-to-br from-cyan-500/20 to-blue-500/10",
   };
 }
+
 function Field({
   label,
   children,
