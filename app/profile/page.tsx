@@ -109,31 +109,75 @@ setAvailability("");
   async function uploadPhoto(file: File) {
     if (!file) return;
 
-    setSaving(true);
-    setMessage("");
+    try {
+      setSaving(true);
+      setMessage("");
 
-    const reader = new FileReader();
+      const optimizedPhoto = await resizeImageToDataUrl(file, 640);
 
-    reader.onload = () => {
-      const result = reader.result;
-
-      if (typeof result === "string") {
-        setPhotoUrl(result);
-        localStorage.setItem("rivaloProfilePhoto", result);
-        setMessage("Foto caricata. Ora premi Salva profilo.");
-      } else {
-        setMessage("Errore caricamento foto.");
-      }
-
-      setSaving(false);
-    };
-
-    reader.onerror = () => {
+      setPhotoUrl(optimizedPhoto);
+      localStorage.setItem("rivaloProfilePhoto", optimizedPhoto);
+      setMessage("Foto caricata e ottimizzata. Ora premi Salva profilo.");
+    } catch (error) {
+      console.error(error);
       setMessage("Errore caricamento foto.");
+    } finally {
       setSaving(false);
-    };
+    }
+  }
 
-    reader.readAsDataURL(file);
+  function resizeImageToDataUrl(file: File, maxSize: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const source = reader.result;
+
+        if (typeof source !== "string") {
+          reject(new Error("File non valido."));
+          return;
+        }
+
+        const image = new Image();
+
+        image.onload = () => {
+          const canvas = document.createElement("canvas");
+          const size = maxSize;
+
+          canvas.width = size;
+          canvas.height = size;
+
+          const ctx = canvas.getContext("2d");
+
+          if (!ctx) {
+            reject(new Error("Canvas non supportato."));
+            return;
+          }
+
+          const side = Math.min(image.width, image.height);
+          const sx = (image.width - side) / 2;
+          const sy = (image.height - side) / 2;
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(image, sx, sy, side, side, 0, 0, size, size);
+
+          resolve(canvas.toDataURL("image/jpeg", 0.86));
+        };
+
+        image.onerror = () => {
+          reject(new Error("Impossibile leggere la foto."));
+        };
+
+        image.src = source;
+      };
+
+      reader.onerror = () => {
+        reject(new Error("Impossibile leggere il file."));
+      };
+
+      reader.readAsDataURL(file);
+    });
   }
 
   async function saveProfile() {
