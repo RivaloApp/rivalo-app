@@ -135,33 +135,33 @@ export default function SeasonsPage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <SeasonHighlight
                     title="Leader"
                     value={rows[0]?.points || 0}
                     label={rows[0]?.playerName || "Player"}
-                    icon={<Crown size={24} className="text-yellow-300" />}
+                    icon={<Crown size={22} className="text-yellow-300" />}
                   />
 
                   <SeasonHighlight
                     title="Top gol"
                     value={topScorer?.goals || 0}
                     label={topScorer?.playerName || "Player"}
-                    icon={<Target size={24} className="text-cyan-300" />}
+                    icon={<Target size={22} className="text-cyan-300" />}
                   />
 
                   <SeasonHighlight
                     title="MVP"
                     value={topMvp?.mvp || 0}
                     label={topMvp?.playerName || "Player"}
-                    icon={<Star size={24} className="text-orange-300" />}
+                    icon={<Star size={22} className="text-orange-300" />}
                   />
                 </div>
 
                 <div className="mt-9">
                   <div className="mb-5 flex items-center gap-3">
                     <Trophy size={24} className="shrink-0 text-cyan-300" />
-                    <h2 className="text-[38px] font-black leading-none sm:text-4xl">
+                    <h2 className="text-[34px] font-black leading-none sm:text-4xl">
                       Classifica Stagionale
                     </h2>
                   </div>
@@ -197,20 +197,20 @@ function SeasonHighlight({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0 text-[11px] font-black uppercase tracking-[0.18em] text-slate-300 sm:text-xs">
+    <div className="min-w-0 rounded-[1.35rem] border border-white/10 bg-black/20 p-3 sm:rounded-[2rem] sm:p-5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 truncate text-[10px] font-black uppercase tracking-[0.16em] text-slate-300 sm:text-xs">
           {title}
         </div>
 
         <div className="shrink-0">{icon}</div>
       </div>
 
-      <div className="mt-4 text-[42px] font-black leading-none text-white sm:text-5xl">
+      <div className="mt-4 text-[34px] font-black leading-none text-white sm:text-5xl">
         {value}
       </div>
 
-      <div className="mt-2 truncate text-xs font-black uppercase text-cyan-300 sm:text-sm">
+      <div className="mt-2 truncate text-[11px] font-black uppercase text-cyan-300 sm:text-sm">
         {label}
       </div>
     </div>
@@ -240,13 +240,13 @@ function SeasonRankRow({
       href={row.uid ? `/public/${row.uid}` : "/leaderboard"}
       className="block rounded-[1.8rem] border border-white/10 bg-black/20 p-4 transition hover:border-cyan-400/30 hover:bg-cyan-400/[0.03] sm:p-5"
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3 sm:gap-4">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/[0.04] text-xl">
           {medal}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[25px] font-black uppercase leading-tight sm:text-3xl">
+          <div className="text-[22px] font-black uppercase leading-tight sm:text-3xl">
             {row.playerName || "Player"}
           </div>
 
@@ -256,7 +256,7 @@ function SeasonRankRow({
         </div>
 
         <div className="shrink-0 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-center">
-          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-cyan-200">
+          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-200">
             Pos
           </div>
           <div className="text-xl font-black text-cyan-200">
