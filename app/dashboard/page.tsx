@@ -37,6 +37,8 @@ import {
   Swords,
   Radio,
   Search,
+  Menu,
+  X,
 } from "lucide-react";
 
 type UserProfile = {
@@ -60,12 +62,95 @@ type UserProfile = {
   profileCompleted?: boolean;
 };
 
+type NavItem = {
+  href: string;
+  icon: React.ReactNode;
+  text: string;
+  subtitle?: string;
+};
+
+const NAV_ITEMS: NavItem[] = [
+  {
+    href: "/dashboard",
+    icon: <Grid2X2 />,
+    text: "Dashboard",
+    subtitle: "Home privata Rivalo",
+  },
+  {
+    href: "/leaderboard",
+    icon: <Globe2 />,
+    text: "Classifica",
+    subtitle: "Ranking globale",
+  },
+  {
+    href: "/match",
+    icon: <CircleDot />,
+    text: "Match",
+    subtitle: "Crea e gestisci partite",
+  },
+  {
+    href: "/groups",
+    icon: <Users />,
+    text: "Gruppi",
+    subtitle: "Community e squadre",
+  },
+  {
+    href: "/opponents",
+    icon: <Search />,
+    text: "Trova gruppi",
+    subtitle: "Richiedi ingresso",
+  },
+  {
+    href: "/events",
+    icon: <CalendarDays />,
+    text: "Eventi",
+    subtitle: "Tornei e campionati",
+  },
+  {
+    href: "/seasons",
+    icon: <Medal />,
+    text: "Stagioni",
+    subtitle: "Ranking stagionale",
+  },
+  {
+    href: "/community",
+    icon: <MessageCircle />,
+    text: "Community",
+    subtitle: "Feed e post",
+  },
+  {
+    href: "/feed",
+    icon: <Radio />,
+    text: "Feed live",
+    subtitle: "Attività Rivalo",
+  },
+  {
+    href: "/rivalries",
+    icon: <Swords />,
+    text: "Rivalità",
+    subtitle: "Sfide storiche",
+  },
+  {
+    href: "/profile",
+    icon: <UserRound />,
+    text: "Profilo",
+    subtitle: "Card e statistiche",
+  },
+  {
+    href: "/notifications",
+    icon: <Bell />,
+    text: "Notifiche",
+    subtitle: "Inviti e aggiornamenti",
+  },
+];
+
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [leaders, setLeaders] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -157,16 +242,24 @@ export default function DashboardPage() {
       <section className="relative z-10 flex min-h-screen">
         <Sidebar />
 
+        <MobileMenu
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+        />
+
         <div className="min-w-0 flex-1 px-5 py-5 lg:px-8 xl:px-10">
           <div className="mb-6 lg:mb-3">
             <div className="lg:hidden">
-              <Link href="/" className="block w-fit">
+              <Link href="/dashboard" className="block w-fit">
                 <RivaloLogo />
               </Link>
             </div>
 
             <div className="mt-4 flex justify-end lg:mt-0">
-              <TopIcons unreadNotificationsCount={unreadNotificationsCount} />
+              <TopIcons
+                unreadNotificationsCount={unreadNotificationsCount}
+                onOpenMenu={() => setMobileMenuOpen(true)}
+              />
             </div>
           </div>
 
@@ -345,10 +438,93 @@ export default function DashboardPage() {
   );
 }
 
+function MobileMenu({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  async function handleLogout() {
+    await signOut(auth);
+    window.location.href = "/login";
+  }
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 lg:hidden">
+      <button
+        type="button"
+        aria-label="Chiudi menu"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      <div className="absolute right-0 top-0 flex h-full w-[88%] max-w-[390px] flex-col border-l border-cyan-400/15 bg-[#020617]/96 p-5 shadow-[0_0_50px_rgba(34,211,238,.16)]">
+        <div className="flex items-center justify-between gap-4">
+          <Link href="/dashboard" onClick={onClose} className="block min-w-0">
+            <RivaloLogo />
+          </Link>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[.04] text-slate-200"
+            aria-label="Chiudi menu"
+          >
+            <X size={23} />
+          </button>
+        </div>
+
+        <div className="mt-6 text-xs font-black uppercase tracking-[.28em] text-cyan-300">
+          Menu rapido
+        </div>
+
+        <nav className="mt-4 grid gap-3 overflow-y-auto pr-1">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onClose}
+              className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-4 transition hover:border-cyan-400/30 hover:bg-cyan-400/10"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-200 [&>svg]:h-5 [&>svg]:w-5">
+                {item.icon}
+              </span>
+
+              <span className="min-w-0">
+                <span className="block truncate text-base font-black text-white">
+                  {item.text}
+                </span>
+
+                {item.subtitle && (
+                  <span className="mt-0.5 block truncate text-xs font-medium text-slate-400">
+                    {item.subtitle}
+                  </span>
+                )}
+              </span>
+            </Link>
+          ))}
+        </nav>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="mt-5 flex items-center justify-center gap-3 rounded-2xl border border-red-400/20 bg-red-500/10 px-5 py-4 font-black text-red-100 transition hover:bg-red-500/20"
+        >
+          <LogOut size={21} />
+          Esci
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Sidebar() {
   return (
     <aside className="hidden w-[270px] shrink-0 border-r border-white/10 bg-[#020617]/82 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
-      <Link href="/" className="mb-9 block px-2">
+      <Link href="/dashboard" className="mb-9 block px-2">
         <RivaloLogo />
       </Link>
 
@@ -406,8 +582,10 @@ function SideLink({
 
 function TopIcons({
   unreadNotificationsCount,
+  onOpenMenu,
 }: {
   unreadNotificationsCount: number;
+  onOpenMenu: () => void;
 }) {
   async function handleLogout() {
     await signOut(auth);
@@ -416,6 +594,16 @@ function TopIcons({
 
   return (
     <div className="flex shrink-0 items-center justify-end gap-3 sm:gap-4">
+      <button
+        type="button"
+        onClick={onOpenMenu}
+        className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-3 text-cyan-100 transition hover:bg-cyan-400/20 lg:hidden"
+        title="Menu"
+        aria-label="Apri menu"
+      >
+        <Menu size={22} />
+      </button>
+
       <Link
         href="/notifications"
         className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
@@ -430,9 +618,14 @@ function TopIcons({
         )}
       </Link>
 
-      <button className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200">
+      <Link
+        href="/profile"
+        className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
+        title="Profilo"
+        aria-label="Profilo"
+      >
         <Settings size={22} />
-      </button>
+      </Link>
 
       <button
         type="button"
