@@ -52,7 +52,7 @@ export async function updatePlayerStats(match: MatchData) {
     const data = userSnap.data();
 
     const currentRivalScore = Number(data.rivalScore || 1000);
-    const currentXp = Number(data.xp || 100);
+    const currentXp = Number(data.xp || 0);
     const currentWinStreak = Number(data.winStreak || 0);
     const currentBestStreak = Number(data.bestStreak || 0);
 
@@ -169,6 +169,8 @@ export async function updatePlayerStats(match: MatchData) {
 
         uid: player.uid,
         playerName: player.name || "Player",
+        sport: match.sport || "calcetto",
+        mainSport: match.sport || "calcetto",
 
         points: increment(seasonPoints),
         matchesPlayed: increment(1),
