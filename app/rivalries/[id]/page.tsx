@@ -182,8 +182,8 @@ export default function RivalryDetailPage() {
             </div>
 
             <div className="mt-7 grid gap-4 md:grid-cols-2">
-              <PlayerPanel user={firstUser} name={firstName} wins={firstWins} />
-              <PlayerPanel user={secondUser} name={secondName} wins={secondWins} />
+              <PlayerPanel user={firstUser} name={firstName} wins={firstWins} rivalryId={id} />
+              <PlayerPanel user={secondUser} name={secondName} wins={secondWins} rivalryId={id} />
             </div>
 
             <div className="mt-7 grid grid-cols-2 gap-4">
@@ -226,10 +226,12 @@ function PlayerPanel({
   user,
   name,
   wins,
+  rivalryId,
 }: {
   user?: UserMini;
   name: string;
   wins: number;
+  rivalryId: string;
 }) {
   const photo = user?.photoURL || user?.photoUrl || "";
 
@@ -258,8 +260,8 @@ function PlayerPanel({
       </div>
 
       <Link
-        href={user?.id ? `/public/${user.id}` : "/leaderboard"}
-        className="mt-5 flex w-full items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-300 transition hover:border-cyan-300/40 hover:bg-cyan-400/15"
+        href={user?.id ? `/public/${user.id}?from=rivalry&rivalryId=${rivalryId}` : "/rivalries"}
+        className="mt-5 flex w-full items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-5 py-3 text-center text-sm font-black uppercase tracking-[0.2em] text-cyan-200 transition hover:border-cyan-300/70 hover:bg-cyan-400/20"
       >
         Apri profilo
       </Link>
