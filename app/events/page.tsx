@@ -206,8 +206,8 @@ export default function EventsPage() {
     <main className="min-h-screen bg-[#020617] text-white">
       <Background />
 
-      <section className="relative z-10 mx-auto max-w-7xl px-5 py-8">
-        <header className="mb-8">
+      <section className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-5 sm:py-8">
+        <header className="mb-6 sm:mb-8">
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -216,23 +216,23 @@ export default function EventsPage() {
             Torna alla dashboard
           </Link>
 
-          <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="mt-6 flex flex-col gap-5 lg:mt-8 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="text-sm font-black uppercase tracking-[0.35em] text-cyan-300">
+              <div className="text-xs font-black uppercase tracking-[0.28em] text-cyan-300 sm:text-sm sm:tracking-[0.35em]">
                 Rivalo Events
               </div>
 
-              <h1 className="mt-3 text-5xl font-black tracking-tight md:text-6xl">
+              <h1 className="mt-3 text-4xl font-black leading-tight tracking-tight sm:text-5xl md:text-6xl">
                 Eventi e Tornei
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
                 Crea tornei, sfide e campionati per calcetto, padel e tennis.
                 Scegli se giocare singolo, doppio o a squadre.
               </p>
             </div>
 
-            <div className="rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 px-6 py-4">
+            <div className="rounded-[1.5rem] border border-cyan-400/20 bg-cyan-400/10 px-5 py-4 sm:rounded-[2rem] sm:px-6">
               <div className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
                 Eventi attivi
               </div>
@@ -247,16 +247,16 @@ export default function EventsPage() {
         <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
           <form
             onSubmit={createEvent}
-            className="rounded-[2.5rem] border border-white/10 bg-white/[.045] p-6 shadow-2xl backdrop-blur"
+            className="rounded-[2rem] border border-white/10 bg-white/[.045] p-4 shadow-2xl backdrop-blur sm:rounded-[2.5rem] sm:p-6"
           >
-            <div className="mb-6 flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-3xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
+            <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 sm:h-14 sm:w-14 sm:rounded-3xl">
                 <Plus size={30} />
               </div>
 
               <div>
-                <h2 className="text-3xl font-black">Crea evento</h2>
-                <p className="mt-1 text-slate-400">
+                <h2 className="text-2xl font-black sm:text-3xl">Crea evento</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-400 sm:text-base">
                   Scegli sport, formato e tipo competizione.
                 </p>
               </div>
@@ -453,14 +453,14 @@ export default function EventsPage() {
             </div>
           </form>
 
-          <section className="rounded-[2.5rem] border border-white/10 bg-white/[.045] p-6 shadow-2xl backdrop-blur">
+          <section className="rounded-[2rem] border border-white/10 bg-white/[.045] p-4 shadow-2xl backdrop-blur sm:rounded-[2.5rem] sm:p-6">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm font-black uppercase tracking-[.25em] text-cyan-300">
                   Calendario Rivalo
                 </div>
 
-                <h2 className="mt-2 text-3xl font-black">
+                <h2 className="mt-2 text-3xl font-black leading-tight">
                   Eventi disponibili
                 </h2>
               </div>
@@ -520,10 +520,10 @@ function EventCard({ event }: { event: EventItem }) {
   return (
     <Link
       href={`/events/${event.id}`}
-      className="group block rounded-[2rem] border border-white/10 bg-[#071126] p-5 transition hover:border-cyan-400/30 hover:bg-cyan-400/[0.04]"
+      className="group block rounded-[1.7rem] border border-white/10 bg-[#071126] p-4 transition hover:border-cyan-400/30 hover:bg-cyan-400/[0.04] sm:rounded-[2rem] sm:p-5"
     >
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-        <div>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
           <div className="mb-3 flex flex-wrap gap-2">
             <Badge>{typeLabel}</Badge>
             <Badge>{sportLabel}</Badge>
@@ -531,47 +531,53 @@ function EventCard({ event }: { event: EventItem }) {
             <Badge>{event.status || "aperto"}</Badge>
           </div>
 
-          <h3 className="text-2xl font-black uppercase">
+          <h3 className="break-words text-[26px] font-black uppercase leading-tight sm:text-2xl">
             {event.title || "Evento Rivalo"}
           </h3>
 
-          <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-400">
-            <span className="inline-flex items-center gap-2">
-              <MapPin size={16} />
-              {event.city || "Città da definire"}
+          <div className="mt-3 grid gap-2 text-[15px] leading-6 text-slate-400">
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <MapPin size={16} className="shrink-0" />
+              <span className="min-w-0 truncate">
+                {event.city || "Città da definire"}
+              </span>
             </span>
 
-            <span className="inline-flex items-center gap-2">
-              <CalendarDays size={16} />
-              {event.date || "Data da definire"}{" "}
-              {event.time ? `• ${event.time}` : ""}
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <CalendarDays size={16} className="shrink-0" />
+              <span className="min-w-0 truncate">
+                {event.date || "Data da definire"}
+                {event.time ? ` · ${event.time}` : ""}
+              </span>
             </span>
 
-            <span className="inline-flex items-center gap-2">
-              <Users size={16} />
-              {event.competitionFormat === "squadre"
-                ? `${teamsCount} squadre`
-                : `${participantsCount}${
-                    event.maxPlayers ? ` / ${event.maxPlayers}` : ""
-                  } iscritti`}
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <Users size={16} className="shrink-0" />
+              <span className="min-w-0 truncate">
+                {event.competitionFormat === "squadre"
+                  ? `${teamsCount} squadre`
+                  : `${participantsCount}${
+                      event.maxPlayers ? ` / ${event.maxPlayers}` : ""
+                    } iscritti`}
+              </span>
             </span>
           </div>
 
           {event.field && (
-            <div className="mt-2 text-sm text-slate-300">
+            <div className="mt-2 break-words text-[15px] leading-6 text-slate-300">
               Campo: {event.field}
             </div>
           )}
 
           {event.prize && (
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-yellow-300/20 bg-yellow-400/10 px-3 py-1 text-xs font-black uppercase text-yellow-200">
-              <Trophy size={14} />
-              {event.prize}
+            <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-yellow-300/20 bg-yellow-400/10 px-3 py-1 text-xs font-black uppercase text-yellow-200">
+              <Trophy size={14} className="shrink-0" />
+              <span className="truncate">{event.prize}</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-300 transition group-hover:translate-x-1">
+        <div className="flex w-full items-center justify-center gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-300 transition group-hover:translate-x-1 lg:w-auto">
           Apri
           <ChevronRight size={18} />
         </div>
@@ -589,11 +595,11 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-black uppercase tracking-[0.12em] text-slate-300">
+      <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-300 sm:text-sm sm:tracking-[0.12em]">
         {label}
       </span>
 
-      <div className="rounded-2xl border border-white/10 bg-[#020617]/70 px-4 py-4">
+      <div className="rounded-2xl border border-white/10 bg-[#020617]/70 px-4 py-3 text-base sm:py-4">
         {children}
       </div>
     </label>
@@ -602,7 +608,7 @@ function Field({
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs font-black uppercase text-cyan-200">
+    <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-black uppercase text-cyan-200 sm:text-xs">
       {children}
     </span>
   );
