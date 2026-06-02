@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 
 import {
@@ -21,6 +21,8 @@ import {
   Flame,
   Trophy,
   UserRound,
+  Crown,
+  Shield,
 } from "lucide-react";
 
 type Rivalry = {
@@ -64,16 +66,16 @@ export default function RivalriesPage() {
         setRivalries(rivalriesData);
 
         const allUserIds = Array.from(
-  new Set(
-    rivalriesData.flatMap((rivalry) => {
-      const rivalrySafe = rivalry as any;
+          new Set(
+            rivalriesData.flatMap((rivalry) => {
+              const rivalrySafe = rivalry as any;
 
-      return Array.isArray(rivalrySafe.users)
-        ? rivalrySafe.users
-        : [];
-    })
-  )
-);
+              return Array.isArray(rivalrySafe.users)
+                ? rivalrySafe.users
+                : [];
+            })
+          )
+        );
 
         const usersResult: Record<string, UserMini> = {};
 
@@ -106,60 +108,62 @@ export default function RivalriesPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-5 py-8 text-white">
+    <main className="min-h-screen overflow-hidden bg-[#020617] px-4 py-7 text-white sm:px-5 sm:py-8">
       <div className="mx-auto max-w-6xl">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
+          className="inline-flex items-center gap-2 text-[15px] font-black text-cyan-300 transition hover:text-cyan-200"
         >
-          <ArrowLeft size={17} />
+          <ArrowLeft size={18} />
           Torna alla dashboard
         </Link>
 
-        <section className="mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[.04] shadow-2xl">
-          <div className="relative border-b border-white/10 px-8 py-10">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.18),transparent_60%)]" />
+        <section className="mt-8 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl sm:rounded-[2.5rem]">
+          <div className="relative border-b border-white/10 px-6 py-9 sm:px-8 sm:py-10">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(248,113,113,0.20),transparent_58%)]" />
+            <div className="absolute -right-24 top-4 h-56 w-56 rounded-full bg-red-500/10 blur-3xl" />
+            <div className="absolute -left-20 bottom-0 h-52 w-52 rounded-full bg-pink-500/10 blur-3xl" />
 
-            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-400/30 bg-red-500/10 text-red-300">
-                  <Swords size={34} />
+            <div className="relative flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="mt-1 flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl border border-red-400/30 bg-red-500/10 text-red-300 shadow-[0_0_35px_rgba(248,113,113,0.16)] sm:h-16 sm:w-16">
+                  <Swords size={31} />
                 </div>
 
-                <div>
-                  <div className="text-sm font-black uppercase tracking-[0.3em] text-red-300">
+                <div className="min-w-0">
+                  <div className="text-[13px] font-black uppercase tracking-[0.32em] text-red-300 sm:text-sm">
                     Rivalo Rivalries
                   </div>
 
-                  <h1 className="mt-2 text-5xl font-black">
+                  <h1 className="mt-3 text-5xl font-black leading-[0.95] tracking-tight sm:text-6xl">
                     Rivalità
                   </h1>
 
-                  <p className="mt-3 max-w-2xl text-slate-300">
+                  <p className="mt-4 max-w-2xl text-[1.35rem] leading-relaxed text-slate-300 sm:text-2xl">
                     Le sfide più calde tra player Rivalo. Ogni match conta.
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-[2rem] border border-red-400/20 bg-red-500/10 px-6 py-4">
+              <div className="rounded-[2rem] border border-red-400/20 bg-red-500/10 px-6 py-5 shadow-[0_0_35px_rgba(248,113,113,0.10)]">
                 <div className="text-xs font-black uppercase tracking-[0.25em] text-red-300">
                   Rivalità attive
                 </div>
 
-                <div className="mt-1 text-3xl font-black text-red-100">
+                <div className="mt-2 text-5xl font-black text-red-100">
                   {rivalries.length}
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="p-8">
+          <div className="p-5 sm:p-8">
             {loading ? (
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-slate-300">
+              <div className="rounded-3xl border border-white/10 bg-black/20 p-6 text-slate-300">
                 Caricamento rivalità...
               </div>
             ) : rivalries.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-slate-300">
+              <div className="rounded-3xl border border-white/10 bg-black/20 p-6 text-slate-300">
                 Nessuna rivalità ancora. Conferma match tra squadre diverse per generarle.
               </div>
             ) : (
@@ -189,9 +193,9 @@ function RivalryCard({
 }) {
   const rivalrySafe = rivalry as any;
 
-const userIds: string[] = Array.isArray(rivalrySafe.users)
-  ? rivalrySafe.users
-  : [];
+  const userIds: string[] = Array.isArray(rivalrySafe.users)
+    ? rivalrySafe.users
+    : [];
 
   const firstUid = userIds[0] || "";
   const secondUid = userIds[1] || "";
@@ -201,11 +205,12 @@ const userIds: string[] = Array.isArray(rivalrySafe.users)
 
   const firstName =
     firstUser?.nickname ||
+    firstUser?.name ||
     "Player 1";
 
   const secondName =
-    secondUser?.name ||
     secondUser?.nickname ||
+    secondUser?.name ||
     "Player 2";
 
   const firstPhoto =
@@ -220,7 +225,6 @@ const userIds: string[] = Array.isArray(rivalrySafe.users)
 
   const firstWins = Number(rivalry[firstUid] || 0);
   const secondWins = Number(rivalry[secondUid] || 0);
-
   const matchesPlayed = Number(rivalry.matchesPlayed || 0);
 
   const leader =
@@ -232,120 +236,95 @@ const userIds: string[] = Array.isArray(rivalrySafe.users)
 
   const intensity =
     matchesPlayed >= 10
-      ? "LEGENDARIA"
+      ? "Leggendaria"
       : matchesPlayed >= 5
-      ? "CALDA"
-      : "NUOVA";
+      ? "Calda"
+      : "Nuova";
+
+  const scoreLabel = `${firstWins} - ${secondWins}`;
 
   return (
     <Link
       href={`/rivalries/${rivalry.id}`}
-      className="group block overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#111827] to-[#020617] p-6 shadow-2xl transition hover:border-red-400/40 hover:bg-red-500/10"
+      className="group relative block overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#111827] via-[#08111f] to-[#020617] p-5 shadow-2xl transition hover:border-red-400/40 hover:bg-red-500/10 sm:p-6"
     >
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="grid flex-1 grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <PlayerSide
-            name={firstName}
-            photo={firstPhoto}
-            score={firstWins}
-            align="left"
-          />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(248,113,113,0.14),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(236,72,153,0.12),transparent_42%)] opacity-90" />
 
-          <div className="flex flex-col items-center">
-            <div className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-red-300">
-              <Swords size={26} />
+      <div className="relative">
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 sm:gap-4">
+          <Avatar photo={firstPhoto} />
+
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2">
+              <Swords className="shrink-0 text-red-300" size={20} />
+
+              <h2 className="min-w-0 truncate text-[1.65rem] font-black uppercase leading-none tracking-tight sm:text-4xl">
+                {firstName} vs {secondName}
+              </h2>
             </div>
 
-            <div className="mt-3 text-sm font-black uppercase tracking-[0.25em] text-red-300">
-              VS
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] font-black uppercase tracking-[0.18em] text-slate-400 sm:text-sm">
+              <span className="text-red-200">{scoreLabel}</span>
+              <span>vittorie</span>
             </div>
           </div>
 
-          <PlayerSide
-            name={secondName}
-            photo={secondPhoto}
-            score={secondWins}
-            align="right"
-          />
+          <Avatar photo={secondPhoto} />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3 lg:w-[460px]">
-          <InfoBox
+        <div className="mt-5 rounded-[1.6rem] border border-red-400/20 bg-red-500/10 px-5 py-4 text-center shadow-[0_0_30px_rgba(248,113,113,0.08)]">
+          <div className="text-xs font-black uppercase tracking-[0.3em] text-red-300">
+            Score
+          </div>
+
+          <div className="mt-1 text-5xl font-black leading-none text-white">
+            {scoreLabel}
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <CompactInfoBox
             label="Match"
             value={matchesPlayed}
             icon={<Trophy size={18} />}
             color="text-cyan-300"
           />
 
-          <InfoBox
+          <CompactInfoBox
             label="Intensità"
             value={intensity}
             icon={<Flame size={18} />}
             color="text-orange-300"
           />
 
-          <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-center">
-            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-              Dominio
-            </div>
+          <CompactInfoBox
+            label="Dominio"
+            value={leader}
+            icon={<Crown size={18} />}
+            color="text-red-200"
+          />
 
-            <div className="mt-1 break-words text-lg font-black text-red-200">
-              {leader}
-            </div>
-          </div>
+          <CompactInfoBox
+            label="Status"
+            value="Attiva"
+            icon={<Shield size={18} />}
+            color="text-pink-300"
+          />
         </div>
-      </div>
 
-      <div className="mt-5 flex justify-end">
-        <div className="text-sm font-black uppercase tracking-[0.2em] text-red-300 transition group-hover:translate-x-1">
-          Apri rivalità →
+        <div className="mt-5 flex justify-end">
+          <div className="text-sm font-black uppercase tracking-[0.2em] text-red-300 transition group-hover:translate-x-1">
+            Apri rivalità →
+          </div>
         </div>
       </div>
     </Link>
   );
 }
 
-function PlayerSide({
-  name,
-  photo,
-  score,
-  align,
-}: {
-  name: string;
-  photo: string;
-  score: number;
-  align: "left" | "right";
-}) {
-  return (
-    <div
-      className={`flex items-center gap-4 ${
-        align === "right" ? "justify-end text-right" : ""
-      }`}
-    >
-      {align === "left" && (
-        <Avatar photo={photo} />
-      )}
-
-      <div className="min-w-0">
-        <div className="truncate text-2xl font-black uppercase">
-          {name}
-        </div>
-
-        <div className="mt-1 text-sm font-black uppercase tracking-[0.2em] text-slate-400">
-          {score} vittorie
-        </div>
-      </div>
-
-      {align === "right" && (
-        <Avatar photo={photo} />
-      )}
-    </div>
-  );
-}
-
 function Avatar({ photo }: { photo: string }) {
   return (
-    <div className="h-16 w-16 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/30 shadow-[0_0_22px_rgba(34,211,238,0.08)] sm:h-[4.5rem] sm:w-[4.5rem]">
       {photo ? (
         <img
           src={photo}
@@ -353,15 +332,13 @@ function Avatar({ photo }: { photo: string }) {
           className="h-full w-full object-cover"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center">
-          <UserRound className="text-cyan-200" />
-        </div>
+        <UserRound className="text-cyan-200" size={30} />
       )}
     </div>
   );
 }
 
-function InfoBox({
+function CompactInfoBox({
   label,
   value,
   icon,
@@ -369,20 +346,22 @@ function InfoBox({
 }: {
   label: string;
   value: string | number;
-  icon: React.ReactNode;
+  icon: ReactNode;
   color: string;
 }) {
+  const displayValue = useMemo(() => String(value), [value]);
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-center">
+    <div className="min-w-0 rounded-2xl border border-white/10 bg-black/25 px-3 py-4 text-center">
       <div className={`flex justify-center ${color}`}>
         {icon}
       </div>
 
-      <div className="mt-1 text-lg font-black">
-        {value}
+      <div className="mt-2 truncate text-lg font-black leading-none text-white sm:text-xl">
+        {displayValue}
       </div>
 
-      <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+      <div className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 sm:text-xs">
         {label}
       </div>
     </div>
