@@ -73,9 +73,26 @@ export default function PlayerCard({
 
   return (
     <div
-      className={`relative mx-auto w-full max-w-[258px] sm:max-w-[330px] rivalo-card-glow ${rarityStyle}`}
+      className={`relative mx-auto w-full max-w-[258px] sm:max-w-[330px] ${rarityStyle}`}
     >
-      <div className="absolute -inset-2 rounded-[2rem] bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.42),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.42),transparent_38%)] blur-2xl sm:-inset-4 sm:rounded-[2.5rem] sm:bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.62),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.58),transparent_38%)]" />
+      {/* Effetti 3D sotto la card: riempiono gli spazi laterali senza creare cornici rettangolari */}
+      <div className="pointer-events-none absolute -left-12 top-16 h-44 w-20 rotate-[-18deg] rounded-full border-l-2 border-cyan-300/35 opacity-80 blur-[1px] sm:-left-16 sm:top-24 sm:h-64 sm:w-28" />
+      <div className="pointer-events-none absolute -right-12 top-20 h-48 w-20 rotate-[16deg] rounded-full border-r-2 border-fuchsia-400/35 opacity-80 blur-[1px] sm:-right-16 sm:top-28 sm:h-64 sm:w-28" />
+      <div className="pointer-events-none absolute -left-9 bottom-14 h-20 w-28 rounded-full border-b-2 border-yellow-300/35 opacity-70 blur-[1px] sm:-left-12 sm:bottom-20 sm:w-40" />
+      <div className="pointer-events-none absolute -right-9 bottom-16 h-20 w-28 rounded-full border-b-2 border-cyan-300/30 opacity-70 blur-[1px] sm:-right-12 sm:bottom-20 sm:w-40" />
+
+      <div className="pointer-events-none absolute -left-10 top-20 h-64 w-24 rounded-full bg-cyan-400/10 blur-3xl sm:-left-16 sm:top-28 sm:h-80 sm:w-32" />
+      <div className="pointer-events-none absolute -right-10 top-24 h-64 w-24 rounded-full bg-fuchsia-500/10 blur-3xl sm:-right-16 sm:top-32 sm:h-80 sm:w-32" />
+      <div className="pointer-events-none absolute inset-x-6 bottom-[-10px] h-20 rounded-full bg-yellow-300/10 blur-3xl sm:bottom-[-16px]" />
+
+      {/* Glow della forma, non rettangolare */}
+      <div
+        className="pointer-events-none absolute -inset-2 bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.42),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.42),transparent_38%)] blur-2xl sm:-inset-4 sm:bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.62),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.58),transparent_38%)]"
+        style={{
+          clipPath:
+            "polygon(9% 0%, 91% 0%, 100% 9%, 100% 81%, 50% 100%, 0% 81%, 0% 9%)",
+        }}
+      />
 
       <div className="relative">
         <div
@@ -87,13 +104,17 @@ export default function PlayerCard({
         />
 
         <div
-          className="rivalo-energy-sweep relative m-[2px] overflow-hidden bg-[#050814]"
+          className="relative m-[2px] overflow-hidden bg-[#050814]"
           style={{
             clipPath:
               "polygon(10% 1%, 90% 1%, 98.5% 10%, 98.5% 79.5%, 50% 98.5%, 1.5% 79.5%, 1.5% 10%)",
           }}
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_48%,rgba(249,115,22,.48),transparent_33%),radial-gradient(circle_at_84%_42%,rgba(37,99,235,.48),transparent_34%),linear-gradient(135deg,#050814_0%,#070a16_44%,#12051c_100%)]" />
+
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_0%,rgba(255,255,255,.055)_42%,transparent_54%)]" />
+          <div className="pointer-events-none absolute left-[-40%] top-[-20%] h-[160%] w-[70%] rotate-12 bg-cyan-300/[.035] blur-xl" />
+          <div className="pointer-events-none absolute right-[-36%] top-[10%] h-[130%] w-[70%] rotate-[-10deg] bg-fuchsia-400/[.04] blur-xl" />
 
           <div className="relative z-10 flex h-[355px] flex-col px-4 pb-6 pt-4 sm:h-[455px] sm:px-5 sm:pb-7 sm:pt-5">
             <div className="flex items-start justify-between">
@@ -137,7 +158,8 @@ export default function PlayerCard({
               </div>
             </div>
 
-            <div className="mt-auto pb-3 pt-2 sm:pb-0 sm:pt-3">
+            {/* Valori più alti: restano leggibili senza cambiare la forma della card */}
+            <div className="mt-auto pb-10 pt-2 sm:pb-14 sm:pt-3">
               <div className="grid grid-cols-4 gap-1.5 text-center sm:gap-2">
                 {stats.map((stat) => (
                   <CardStat
@@ -163,7 +185,7 @@ function CardStat({
   label: string;
 }) {
   return (
-    <div className="min-w-0 rounded-lg border border-yellow-300/10 bg-black/25 px-0.5 py-1.5">
+    <div className="min-w-0 rounded-lg border border-yellow-300/10 bg-black/35 px-0.5 py-1.5 shadow-[0_0_14px_rgba(0,0,0,.24)]">
       <div className="text-[13px] font-black leading-none text-yellow-300 sm:text-[15px]">
         {value}
       </div>
