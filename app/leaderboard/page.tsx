@@ -2,12 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  collection,
-  getDocs,
-  limit,
-  query,
-} from "firebase/firestore";
+import { collection, getDocs, limit, query } from "firebase/firestore";
 
 import { db } from "../../lib/firebase";
 
@@ -82,11 +77,7 @@ export default function LeaderboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const q = query(
-          collection(db, "users"),
-          limit(200)
-        );
-
+        const q = query(collection(db, "users"), limit(200));
         const snap = await getDocs(q);
 
         setUsers(
@@ -275,16 +266,16 @@ export default function LeaderboardPage() {
                   />
                 </div>
 
-                <div className="mt-9 sm:mt-12">
-                  <div className="mb-5 flex items-center gap-3">
+                <div className="mt-8 sm:mt-10">
+                  <div className="mb-4 flex items-center gap-3">
                     <div className="h-3 w-3 rounded-full bg-cyan-300" />
 
-                    <h2 className="text-[32px] font-black leading-tight sm:text-3xl">
+                    <h2 className="text-[30px] font-black leading-tight sm:text-3xl">
                       Top mondiale
                     </h2>
                   </div>
 
-                  <div className="grid gap-5 md:grid-cols-3">
+                  <div className="grid gap-3">
                     {rankedUsers.slice(0, 3).map((user, index) => (
                       <LeaderboardPodiumCard
                         key={user.id}
@@ -292,9 +283,7 @@ export default function LeaderboardPage() {
                         index={index}
                       />
                     ))}
-                  </div>
 
-                  <div className="mt-8 space-y-4 sm:mt-10">
                     {rankedUsers.slice(3).map((user, index) => (
                       <CompactRow
                         key={user.id}
@@ -338,9 +327,7 @@ function StatPill({
         {label}
       </div>
 
-      <div className="mt-1 text-2xl font-black">
-        {value}
-      </div>
+      <div className="mt-1 text-2xl font-black">{value}</div>
     </div>
   );
 }
@@ -380,20 +367,20 @@ function CategoryCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-5">
+    <div className="rounded-[1.35rem] border border-white/10 bg-black/20 p-4 sm:rounded-[1.6rem]">
       <div className="flex items-center justify-between gap-3">
-        <div className="break-words text-xs font-black uppercase tracking-[0.18em] text-slate-300 sm:text-sm sm:tracking-[0.2em]">
+        <div className="break-words text-[11px] font-black uppercase tracking-[0.16em] text-slate-300 sm:text-xs">
           {title}
         </div>
 
         <div className="shrink-0">{icon}</div>
       </div>
 
-      <div className="mt-4 text-4xl font-black leading-none text-white sm:mt-5 sm:text-5xl">
+      <div className="mt-3 text-4xl font-black leading-none text-white sm:text-5xl">
         {value}
       </div>
 
-      <div className="mt-3 truncate text-sm text-cyan-300">
+      <div className="mt-2 truncate text-sm text-cyan-300">
         {user?.name || user?.nickname || "Player"}
       </div>
     </div>
@@ -411,16 +398,9 @@ function LeaderboardPodiumCard({
   const matches = Number(user.matchesPlayed || 0);
   const wins = Number(user.wins || 0);
   const rankScore = calculateGlobalRankScore(user);
+  const winRate = matches > 0 ? Math.round((wins / matches) * 100) : 0;
 
-  const winRate =
-    matches > 0 ? Math.round((wins / matches) * 100) : 0;
-
-  const medal =
-    index === 0 ? (
-      <Crown />
-    ) : (
-      <Medal />
-    );
+  const medal = index === 0 ? <Crown size={22} /> : <Medal size={22} />;
 
   const border =
     index === 0
@@ -429,111 +409,73 @@ function LeaderboardPodiumCard({
       ? "border-slate-300/25"
       : "border-orange-300/25";
 
-  const glow =
+  const rankColor =
     index === 0
-      ? "rgba(250,204,21,0.18)"
+      ? "text-yellow-200"
       : index === 1
-      ? "rgba(148,163,184,0.16)"
-      : "rgba(251,146,60,0.14)";
+      ? "text-slate-200"
+      : "text-orange-200";
 
   return (
     <div
-      className={`relative min-w-0 overflow-hidden rounded-[1.8rem] border ${border} bg-gradient-to-br from-[#0f172a] to-[#111827] p-4 shadow-2xl transition hover:border-cyan-400/30 sm:rounded-[2rem] sm:p-6 lg:hover:scale-[1.02]`}
+      className={`relative min-w-0 overflow-hidden rounded-[1.5rem] border ${border} bg-gradient-to-br from-[#0f172a] to-[#111827] p-4 shadow-xl sm:rounded-[1.8rem] sm:p-5`}
     >
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(circle at top, ${glow}, transparent 58%)`,
-        }}
-      />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.12),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(217,70,239,.10),transparent_45%)]" />
 
-      <div className="absolute right-4 top-4 text-yellow-300">
-        {medal}
-      </div>
-
-      <div className="relative flex flex-col items-center text-center">
-        <div className="mb-4 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-sm font-black text-cyan-200">
-          #{index + 1} Globale
+      <div className="relative flex min-w-0 items-center gap-3">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 font-black text-cyan-200 sm:h-16 sm:w-16">
+          #{index + 1}
         </div>
 
-        <div className="h-20 w-20 overflow-hidden rounded-full border-4 border-cyan-400/30 shadow-xl sm:h-24 sm:w-24">
+        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-2 border-cyan-400/30 bg-black/30 sm:h-16 sm:w-16">
           {photo ? (
-            <img
-              src={photo}
-              alt="profile"
-              className="h-full w-full object-cover"
-            />
+            <img src={photo} alt="profile" className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-black/30">
-              <UserRound className="h-10 w-10 text-cyan-200" />
+            <div className="flex h-full w-full items-center justify-center">
+              <UserRound className="h-8 w-8 text-cyan-200" />
             </div>
           )}
         </div>
 
-        <div className="mt-4 w-full min-w-0">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-center gap-2">
+            <span className={`shrink-0 ${rankColor}`}>{medal}</span>
+
+            <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-black text-cyan-200">
+              Top {index + 1}
+            </span>
+          </div>
+
           <Link
             href={`/public/${user.id}`}
-            className="block truncate text-[26px] font-black uppercase leading-tight tracking-wide transition hover:text-cyan-300 sm:text-2xl"
+            className="block truncate text-xl font-black uppercase leading-tight tracking-wide transition hover:text-cyan-300 sm:text-2xl"
           >
             {user.name || user.nickname || "Player"}
           </Link>
 
-          <div className="mt-1 text-sm capitalize text-slate-400">
+          <div className="truncate text-xs capitalize text-slate-400">
             {user.mainSport || "sport"}
           </div>
         </div>
 
-        <div className="mt-5">
-          <div className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
-            Rank Score
+        <div className="shrink-0 text-right">
+          <div className="text-[10px] font-black uppercase tracking-[0.15em] text-cyan-300">
+            Rank
           </div>
 
-          <div className="text-5xl font-black leading-none text-cyan-300">
+          <div className="text-2xl font-black leading-none text-cyan-300 sm:text-3xl">
             {rankScore}
           </div>
-
-          <div className="mt-2 text-xs text-slate-400">
-            RivalScore salvato: {user.rivalScore || 1000}
-          </div>
         </div>
+      </div>
 
-        <div className="mt-5 grid w-full grid-cols-2 gap-3 sm:mt-6 sm:grid-cols-3">
-          <MiniStat
-            label="Win"
-            value={wins}
-            color="text-lime-300"
-          />
-
-          <MiniStat
-            label="MVP"
-            value={user.mvp || 0}
-            color="text-yellow-200"
-          />
-
-          <MiniStat
-            label="Partite"
-            value={matches}
-            color="text-cyan-200"
-          />
-
-          <MiniStat
-            label="Gol"
-            value={user.goals || 0}
-            color="text-yellow-300"
-          />
-
-          <MiniStat
-            label="Assist"
-            value={user.assists || 0}
-            color="text-cyan-300"
-          />
-
-          <MiniStat
-            label="WR%"
-            value={winRate}
-            color="text-cyan-200"
-          />
-        </div>
+      <div className="relative mt-4 grid grid-cols-4 gap-2 text-center sm:grid-cols-6">
+        <MiniStat label="Win" value={wins} color="text-lime-300" />
+        <MiniStat label="MVP" value={user.mvp || 0} color="text-yellow-200" />
+        <MiniStat label="Partite" value={matches} color="text-cyan-200" />
+        <MiniStat label="Gol" value={user.goals || 0} color="text-yellow-300" />
+        <MiniStat label="Assist" value={user.assists || 0} color="text-cyan-300" />
+        <MiniStat label="WR%" value={winRate} color="text-cyan-200" />
       </div>
     </div>
   );
@@ -550,7 +492,7 @@ function CompactRow({
   const rankScore = calculateGlobalRankScore(user);
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
+    <div className="flex min-w-0 flex-col gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
       <div className="flex min-w-0 items-center gap-3 sm:gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-400/10 font-black text-cyan-300">
           #{index}
@@ -558,11 +500,7 @@ function CompactRow({
 
         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10">
           {photo ? (
-            <img
-              src={photo}
-              alt="profile"
-              className="h-full w-full object-cover"
-            />
+            <img src={photo} alt="profile" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-black/30">
               <UserRound className="text-slate-400" />
@@ -585,24 +523,9 @@ function CompactRow({
       </div>
 
       <div className="grid grid-cols-4 gap-3 text-center md:flex md:items-center md:gap-6">
-        <CompactStat
-          label="Rank"
-          value={rankScore}
-          color="text-cyan-300"
-        />
-
-        <CompactStat
-          label="Win"
-          value={user.wins || 0}
-          color="text-lime-300"
-        />
-
-        <CompactStat
-          label="MVP"
-          value={user.mvp || 0}
-          color="text-yellow-100"
-        />
-
+        <CompactStat label="Rank" value={rankScore} color="text-cyan-300" />
+        <CompactStat label="Win" value={user.wins || 0} color="text-lime-300" />
+        <CompactStat label="MVP" value={user.mvp || 0} color="text-yellow-100" />
         <CompactStat
           label="Partite"
           value={user.matchesPlayed || 0}
@@ -623,14 +546,9 @@ function MiniStat({
   color: string;
 }) {
   return (
-    <div className="rounded-2xl bg-black/25 p-3">
-      <div className="truncate text-xs text-slate-400">
-        {label}
-      </div>
-
-      <div className={`text-xl font-black ${color}`}>
-        {value}
-      </div>
+    <div className="min-w-0 rounded-xl bg-black/25 px-2 py-2">
+      <div className="truncate text-[10px] text-slate-400">{label}</div>
+      <div className={`truncate text-base font-black ${color}`}>{value}</div>
     </div>
   );
 }
@@ -646,13 +564,8 @@ function CompactStat({
 }) {
   return (
     <div className="min-w-0">
-      <div className="truncate text-xs text-slate-500">
-        {label}
-      </div>
-
-      <div className={`truncate font-black ${color}`}>
-        {value}
-      </div>
+      <div className="truncate text-xs text-slate-500">{label}</div>
+      <div className={`truncate font-black ${color}`}>{value}</div>
     </div>
   );
 }
