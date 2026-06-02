@@ -140,21 +140,21 @@ export default function SeasonsPage() {
                     title="Leader"
                     value={rows[0]?.points || 0}
                     label={rows[0]?.playerName || "Player"}
-                    icon={<Crown size={20} className="text-yellow-300" />}
+                    icon={<Crown size={18} className="text-yellow-300" />}
                   />
 
                   <SeasonHighlight
                     title="Top gol"
                     value={topScorer?.goals || 0}
                     label={topScorer?.playerName || "Player"}
-                    icon={<Target size={20} className="text-cyan-300" />}
+                    icon={<Target size={18} className="text-cyan-300" />}
                   />
 
                   <SeasonHighlight
                     title="MVP"
                     value={topMvp?.mvp || 0}
                     label={topMvp?.playerName || "Player"}
-                    icon={<Star size={20} className="text-orange-300" />}
+                    icon={<Star size={18} className="text-orange-300" />}
                   />
                 </div>
 
@@ -198,12 +198,12 @@ function SeasonHighlight({
 }) {
   return (
     <div className="relative min-w-0 rounded-[1.35rem] border border-white/10 bg-black/20 p-3 sm:rounded-[2rem] sm:p-5">
-      <div className="flex min-w-0 items-center justify-between gap-2">
-        <div className="min-w-0 whitespace-nowrap text-[10px] font-black uppercase leading-none tracking-[0.1em] text-slate-300 sm:text-xs sm:tracking-[0.18em]">
+      <div className="flex min-w-0 items-start justify-between gap-1">
+        <div className="min-w-0 text-[9px] font-black uppercase leading-none tracking-[0.08em] text-slate-300 sm:text-xs sm:tracking-[0.18em]">
           {title}
         </div>
 
-        <div className="shrink-0">
+        <div className="shrink-0 translate-y-[-1px]">
           {icon}
         </div>
       </div>
