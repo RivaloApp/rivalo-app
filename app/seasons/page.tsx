@@ -5,13 +5,17 @@ import Link from "next/link";
 
 import {
   collection,
+  doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
   query,
 } from "firebase/firestore";
 
-import { db } from "../../lib/firebase";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth, db } from "../../lib/firebase";
+
 import {
   CURRENT_SEASON_ID,
   CURRENT_SEASON_NAME,
@@ -32,6 +36,8 @@ type SeasonRow = {
   playerName?: string;
   seasonId?: string;
   seasonName?: string;
+  sport?: string;
+  mainSport?: string;
   points?: number;
   matchesPlayed?: number;
   wins?: number;
@@ -43,17 +49,63 @@ type SeasonRow = {
   rivalScoreChange?: number;
 };
 
+type UserProfile = {
+  mainSport?: string;
+};
+
+function normalizeSport(value?: string) {
+  return (value || "").toLowerCase().trim();
+}
+
+function sportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Padel";
+  if (sport === "tennis") return "Tennis";
+  return "Calcetto";
+}
+
+function isRowCompatibleWithUserSport(row: SeasonRow, userSport: string) {
+  const normalizedUserSport = normalizeSport(userSport);
+  const rowSport = normalizeSport(row.sport || row.mainSport);
+
+  if (!rowSport) {
+    return normalizedUserSport === "calcetto";
+  }
+
+  return rowSport === normalizedUserSport;
+}
+
 export default function SeasonsPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [userSport, setUserSport] = useState("calcetto");
   const [rows, setRows] = useState<SeasonRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadSeason() {
+    const unsub = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        window.location.href = "/login";
+        return;
+      }
+
+      setUser(currentUser);
+
       try {
+        setLoading(true);
+
+        const userSnap = await getDoc(doc(db, "users", currentUser.uid));
+        const profile = userSnap.exists()
+          ? (userSnap.data() as UserProfile)
+          : null;
+
+        const currentSport = normalizeSport(profile?.mainSport || "calcetto");
+        setUserSport(currentSport || "calcetto");
+
         const q = query(
           collection(db, "seasonStats"),
           orderBy("points", "desc"),
-          limit(50)
+          limit(80)
         );
 
         const snap = await getDocs(q);
@@ -63,15 +115,16 @@ export default function SeasonsPage() {
             id: docSnap.id,
             ...(docSnap.data() as Omit<SeasonRow, "id">),
           }))
-          .filter((row) => row.seasonId === CURRENT_SEASON_ID);
+          .filter((row) => row.seasonId === CURRENT_SEASON_ID)
+          .filter((row) => isRowCompatibleWithUserSport(row, currentSport));
 
         setRows(data);
       } finally {
         setLoading(false);
       }
-    }
+    });
 
-    loadSeason();
+    return () => unsub();
   }, []);
 
   const topScorer = useMemo(() => {
@@ -100,7 +153,7 @@ export default function SeasonsPage() {
             <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="text-xs font-black uppercase tracking-[0.32em] text-cyan-300 sm:text-sm sm:tracking-[0.35em]">
-                  Rivalo Seasons
+                  Rivalo Seasons · {sportLabel(userSport)}
                 </div>
 
                 <h1 className="mt-3 text-[48px] font-black leading-[0.95] sm:text-5xl md:text-6xl">
@@ -108,17 +161,17 @@ export default function SeasonsPage() {
                 </h1>
 
                 <p className="mt-4 max-w-2xl text-[18px] leading-relaxed text-slate-300 sm:text-xl">
-                  La competizione attiva di Rivalo: scala la classifica, domina la stagione e lascia il segno.
+                  La competizione attiva Rivalo filtrata sul tuo sport principale.
                 </p>
               </div>
 
               <div className="w-full rounded-[1.75rem] border border-lime-300/20 bg-lime-400/10 px-6 py-4 sm:w-auto sm:rounded-[2rem]">
                 <div className="text-xs font-black uppercase tracking-[0.25em] text-lime-300">
-                  Stato
+                  Sport attivo
                 </div>
 
                 <div className="mt-1 text-2xl font-black text-lime-200">
-                  Attiva
+                  {sportLabel(userSport)}
                 </div>
               </div>
             </div>
@@ -131,7 +184,7 @@ export default function SeasonsPage() {
               </div>
             ) : rows.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-slate-300">
-                Nessun dato stagionale ancora. Conferma un match per iniziare la stagione.
+                Nessun dato stagionale per {sportLabel(userSport)}. Gioca e conferma un match di {sportLabel(userSport)} per entrare nella classifica.
               </div>
             ) : (
               <>
