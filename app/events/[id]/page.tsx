@@ -1463,7 +1463,7 @@ const pendingCompetitionMatches = Math.max(
                   <Badge>{event.status || "aperto"}</Badge>
                 </div>
 
-                <h1 className="mt-5 text-5xl font-black uppercase">
+                <h1 className="mt-5 text-4xl font-black uppercase sm:text-5xl">
                   {event.title || "Evento Rivalo"}
                 </h1>
 
@@ -1488,7 +1488,7 @@ const pendingCompetitionMatches = Math.max(
             </div>
           </div>
 
-          <div className="grid gap-6 p-8 lg:grid-cols-[1fr_360px]">
+          <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[1fr_360px]">
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <InfoCard
@@ -1563,7 +1563,7 @@ const pendingCompetitionMatches = Math.max(
         Riepilogo competizione
       </div>
 
-      <h2 className="mt-2 text-3xl font-black">
+      <h2 className="mt-2 text-2xl font-black sm:text-3xl">
         Stato torneo / campionato
       </h2>
 
@@ -1572,7 +1572,7 @@ const pendingCompetitionMatches = Math.max(
       </p>
     </div>
 
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
   <SummaryBox
     label={isTeamCompetition ? "Squadre" : "Partecipanti"}
     value={isTeamCompetition ? teams.length : participants.length}
@@ -1642,7 +1642,7 @@ const pendingCompetitionMatches = Math.max(
                       Squadre
                     </div>
 
-                    <h2 className="mt-2 text-3xl font-black">
+                    <h2 className="mt-2 text-2xl font-black sm:text-3xl">
                       Gestione squadre
                     </h2>
 
@@ -1752,8 +1752,8 @@ const pendingCompetitionMatches = Math.max(
 
                   <div className="mt-5 space-y-3">
                     {teams.length === 0 ? (
-                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
-                        Nessuna squadra creata.
+                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-slate-400">
+                        Nessuna squadra/coppia creata. Iscritti evento: {participants.length}. Crea almeno 2 squadre valide per generare tabellone o calendario.
                       </div>
                     ) : (
                      teams.map((team) => (
@@ -1778,7 +1778,7 @@ const pendingCompetitionMatches = Math.max(
           Tabellone torneo
         </div>
 
-        <h2 className="mt-2 text-3xl font-black">
+        <h2 className="mt-2 text-2xl font-black sm:text-3xl">
           Tabellone completo
         </h2>
 
@@ -1883,7 +1883,7 @@ const pendingCompetitionMatches = Math.max(
           Calendario campionato
         </div>
 
-        <h2 className="mt-2 text-3xl font-black">
+        <h2 className="mt-2 text-2xl font-black sm:text-3xl">
           Giornate andata / ritorno
         </h2>
 
@@ -1988,7 +1988,7 @@ const pendingCompetitionMatches = Math.max(
           Classifica squadre
         </div>
 
-        <h2 className="mt-2 text-3xl font-black">
+        <h2 className="mt-2 text-2xl font-black sm:text-3xl">
           Ranking competizione
         </h2>
 
@@ -2021,7 +2021,7 @@ const pendingCompetitionMatches = Math.max(
                       Ranking evento
                     </div>
 
-                    <h2 className="mt-2 text-3xl font-black">
+                    <h2 className="mt-2 text-2xl font-black sm:text-3xl">
                       Classifica evento
                     </h2>
 
@@ -2060,6 +2060,12 @@ const pendingCompetitionMatches = Math.max(
                     {isTeamCompetition ? teams.length : participants.length}
                     {!isTeamCompetition && maxPlayers > 0 ? ` / ${maxPlayers}` : ""}
                   </div>
+
+                  {isTeamCompetition && (
+                    <div className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                      {participants.length} giocatori iscritti
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2276,29 +2282,33 @@ function TeamRankRow({
     Number(team.goalsFor || 0) - Number(team.goalsAgainst || 0);
 
   return (
-    <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[.03] p-4 md:grid-cols-[50px_1fr_54px_54px_54px_54px_54px_54px_54px_54px] md:items-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-400/10 text-lg font-black text-lime-300">
-        #{index + 1}
-      </div>
-
-      <div className="min-w-0">
-        <div className="truncate font-black uppercase">
-          {team.teamName || "Squadra"}
+    <div className="rounded-2xl border border-white/10 bg-white/[.03] p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-lime-400/10 text-lg font-black text-lime-300">
+          #{index + 1}
         </div>
 
-        <div className="text-xs text-slate-400">
-          {team.matchesPlayed || 0} match giocati
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-lg font-black uppercase">
+            {team.teamName || "Squadra"}
+          </div>
+
+          <div className="text-xs text-slate-400">
+            {team.matchesPlayed || 0} match giocati
+          </div>
         </div>
       </div>
 
-      <RankStat label="PT" value={team.points || 0} />
-      <RankStat label="G" value={team.matchesPlayed || 0} />
-      <RankStat label="V" value={team.wins || 0} />
-      <RankStat label="N" value={team.draws || 0} />
-      <RankStat label="P" value={team.losses || 0} />
-      <RankStat label="GF" value={team.goalsFor || 0} />
-      <RankStat label="GS" value={team.goalsAgainst || 0} />
-      <RankStat label="DR" value={goalDifference} />
+      <div className="mt-4 grid grid-cols-4 gap-2">
+        <RankStat label="PT" value={team.points || 0} />
+        <RankStat label="G" value={team.matchesPlayed || 0} />
+        <RankStat label="V" value={team.wins || 0} />
+        <RankStat label="N" value={team.draws || 0} />
+        <RankStat label="P" value={team.losses || 0} />
+        <RankStat label="GF" value={team.goalsFor || 0} />
+        <RankStat label="GS" value={team.goalsAgainst || 0} />
+        <RankStat label="DR" value={goalDifference} />
+      </div>
     </div>
   );
 }
@@ -2327,40 +2337,44 @@ function EventRankRow({
   return (
     <Link
       href={`/public/${stat.uid}`}
-      className="grid gap-4 rounded-2xl border border-white/10 bg-white/[.03] p-4 transition hover:border-cyan-400/30 md:grid-cols-[50px_1fr_70px_70px_70px_70px]"
+      className="block rounded-2xl border border-white/10 bg-white/[.03] p-4 transition hover:border-cyan-400/30"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-black/30">
-        {icon}
-      </div>
-
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/30">
-          {stat.photoUrl ? (
-            <img
-              src={stat.photoUrl}
-              alt="Player"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <UserRound className="text-cyan-200" size={22} />
-          )}
+      <div className="flex items-center gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-black/30">
+          {icon}
         </div>
 
-        <div className="min-w-0">
-          <div className="truncate font-black uppercase">
-            {stat.playerName || "Rivalo Player"}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/30">
+            {stat.photoUrl ? (
+              <img
+                src={stat.photoUrl}
+                alt="Player"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <UserRound className="text-cyan-200" size={22} />
+            )}
           </div>
 
-          <div className="text-xs text-slate-400">
-            {stat.matchesPlayed || 0} match evento
+          <div className="min-w-0">
+            <div className="truncate text-lg font-black uppercase">
+              {stat.playerName || "Rivalo Player"}
+            </div>
+
+            <div className="text-xs text-slate-400">
+              {stat.matchesPlayed || 0} match evento
+            </div>
           </div>
         </div>
       </div>
 
-      <RankStat label="PT" value={stat.points || 0} />
-      <RankStat label="V" value={stat.wins || 0} />
-      <RankStat label="MVP" value={stat.mvp || 0} />
-      <RankStat label="DR" value={goalDifference} />
+      <div className="mt-4 grid grid-cols-4 gap-2">
+        <RankStat label="PT" value={stat.points || 0} />
+        <RankStat label="V" value={stat.wins || 0} />
+        <RankStat label="MVP" value={stat.mvp || 0} />
+        <RankStat label="DR" value={goalDifference} />
+      </div>
     </Link>
   );
 }
@@ -2373,12 +2387,12 @@ function RankStat({
   value: number;
 }) {
   return (
-    <div className="text-center">
-      <div className="text-lg font-black text-cyan-200">
+    <div className="rounded-xl border border-white/10 bg-black/20 px-2 py-3 text-center">
+      <div className="text-base font-black text-cyan-200">
         {value}
       </div>
 
-      <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+      <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
         {label}
       </div>
     </div>
@@ -2439,7 +2453,7 @@ function InfoCard({
         {label}
       </div>
 
-      <div className="mt-2 break-words text-2xl font-black">
+      <div className="mt-2 break-words text-xl font-black sm:text-2xl">
         {value}
       </div>
     </div>
@@ -2487,10 +2501,10 @@ function SummaryBox({
       : "border-cyan-300/20 bg-cyan-400/10 text-cyan-200";
 
   return (
-    <div className={`rounded-2xl border p-5 text-center ${toneClass}`}>
-      <div className="text-3xl font-black">{value}</div>
+    <div className={`rounded-2xl border p-3 text-center sm:p-4 ${toneClass}`}>
+      <div className="text-2xl font-black sm:text-3xl">{value}</div>
 
-      <div className="mt-2 text-xs font-black uppercase tracking-[0.16em]">
+      <div className="mt-2 truncate text-[10px] font-black uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.16em]">
         {label}
       </div>
     </div>
