@@ -47,6 +47,7 @@ const [message, setMessage] = useState("");
       setUser(currentUser);
 
       try {
+        localStorage.removeItem("rivaloProfilePhoto");
         const snap = await getDoc(doc(db, "users", currentUser.uid));
 
         if (snap.exists()) {
@@ -61,9 +62,9 @@ setPlayStyle(data.playStyle || "");
 setAvailability(data.availability || "");
 
           setPhotoUrl(
-            localStorage.getItem("rivaloProfilePhoto") ||
-              data.photoUrl ||
+            data.photoUrl ||
               data.photoURL ||
+              localStorage.getItem(`rivaloProfilePhoto:${currentUser.uid}`) ||
               ""
           );
 
@@ -97,6 +98,7 @@ setAvailability("");
           setAssists(0);
           setWinStreak(0);
           setBestStreak(0);
+          setPhotoUrl("");
         }
       } finally {
         setLoading(false);
@@ -116,7 +118,9 @@ setAvailability("");
       const optimizedPhoto = await resizeImageToDataUrl(file, 640);
 
       setPhotoUrl(optimizedPhoto);
-      localStorage.setItem("rivaloProfilePhoto", optimizedPhoto);
+      if (user?.uid) {
+        localStorage.setItem(`rivaloProfilePhoto:${user.uid}`, optimizedPhoto);
+      }
       setMessage("Foto caricata e ottimizzata. Ora premi Salva profilo.");
     } catch (error) {
       console.error(error);
