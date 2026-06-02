@@ -197,13 +197,13 @@ function SeasonHighlight({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="min-w-0 rounded-[1.35rem] border border-white/10 bg-black/20 p-3 sm:rounded-[2rem] sm:p-5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0 truncate text-[10px] font-black uppercase tracking-[0.16em] text-slate-300 sm:text-xs">
-          {title}
-        </div>
+    <div className="relative min-w-0 rounded-[1.35rem] border border-white/10 bg-black/20 p-3 pr-8 sm:rounded-[2rem] sm:p-5 sm:pr-10">
+      <div className="absolute right-3 top-3 sm:right-5 sm:top-5">
+        {icon}
+      </div>
 
-        <div className="shrink-0">{icon}</div>
+      <div className="whitespace-nowrap text-[9px] font-black uppercase leading-none tracking-[0.12em] text-slate-300 sm:text-xs sm:tracking-[0.18em]">
+        {title}
       </div>
 
       <div className="mt-4 text-[34px] font-black leading-none text-white sm:text-5xl">
