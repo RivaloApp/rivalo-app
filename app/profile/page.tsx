@@ -181,9 +181,9 @@ setAvailability("");
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-4">
-            <RivaloLogo />
-          </Link>
+          <Link href="/dashboard" className="flex items-center gap-4">
+  <RivaloLogo />
+</Link>
 
           <Link
             href="/dashboard"
