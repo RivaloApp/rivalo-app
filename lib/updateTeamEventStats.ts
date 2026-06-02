@@ -11,14 +11,24 @@ type UpdateTeamEventStatsInput = {
   eventId?: string;
   homeTeam?: string;
   awayTeam?: string;
+  homeTeamId?: string;
+  awayTeamId?: string;
+  sport?: string;
   homeScore: number;
   awayScore: number;
 };
+
+function makeSafeTeamId(name: string) {
+  return name.trim().toLowerCase().replace(/\s+/g, "_");
+}
 
 export async function updateTeamEventStats({
   eventId,
   homeTeam,
   awayTeam,
+  homeTeamId,
+  awayTeamId,
+  sport,
   homeScore,
   awayScore,
 }: UpdateTeamEventStatsInput) {
@@ -34,7 +44,7 @@ export async function updateTeamEventStats({
 
   const teams = [
     {
-      id: homeTeam.trim().toLowerCase().replace(/\s+/g, "_"),
+      id: homeTeamId || makeSafeTeamId(homeTeam),
       name: homeTeam,
       goalsFor: finalHomeScore,
       goalsAgainst: finalAwayScore,
@@ -43,7 +53,7 @@ export async function updateTeamEventStats({
       draw: isDraw,
     },
     {
-      id: awayTeam.trim().toLowerCase().replace(/\s+/g, "_"),
+      id: awayTeamId || makeSafeTeamId(awayTeam),
       name: awayTeam,
       goalsFor: finalAwayScore,
       goalsAgainst: finalHomeScore,
@@ -54,6 +64,8 @@ export async function updateTeamEventStats({
   ];
 
   for (const team of teams) {
+    if (!team.id) continue;
+
     const points = team.won ? 3 : team.draw ? 1 : 0;
 
     const teamRef = doc(
@@ -66,6 +78,7 @@ export async function updateTeamEventStats({
       teamRef,
       {
         eventId,
+        sport: sport || "",
         teamId: team.id,
         teamName: team.name,
 
@@ -78,6 +91,7 @@ export async function updateTeamEventStats({
 
         goalsFor: increment(team.goalsFor),
         goalsAgainst: increment(team.goalsAgainst),
+        goalDifference: increment(team.goalsFor - team.goalsAgainst),
 
         updatedAt: serverTimestamp(),
       },
