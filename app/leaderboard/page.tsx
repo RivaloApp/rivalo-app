@@ -152,7 +152,7 @@ export default function LeaderboardPage() {
   }, [filteredUsers]);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-5 py-8 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] px-4 py-6 text-white sm:px-5 sm:py-8">
       <div className="mx-auto max-w-7xl">
         <Link
           href="/dashboard"
@@ -162,33 +162,33 @@ export default function LeaderboardPage() {
           Torna alla dashboard
         </Link>
 
-        <div className="mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[.04] shadow-2xl">
-          <div className="relative border-b border-white/10 p-8">
+        <div className="mt-6 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl sm:mt-8 sm:rounded-[2.5rem]">
+          <div className="relative border-b border-white/10 p-4 sm:p-8">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),transparent_60%)]" />
 
-            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-yellow-300/30 bg-yellow-400/10 text-yellow-300">
-                  <Globe2 size={34} />
+            <div className="relative flex min-w-0 flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-yellow-300/30 bg-yellow-400/10 text-yellow-300 sm:h-16 sm:w-16 sm:rounded-3xl">
+                  <Globe2 className="h-7 w-7 sm:h-[34px] sm:w-[34px]" />
                 </div>
 
                 <div>
-                  <div className="text-sm font-black uppercase tracking-[.3em] text-cyan-300">
+                  <div className="text-xs font-black uppercase tracking-[.22em] text-cyan-300 sm:text-sm sm:tracking-[.3em]">
                     Rivalo Global Ranking
                   </div>
 
-                  <h1 className="mt-2 text-5xl font-black">
+                  <h1 className="mt-2 break-words text-[40px] font-black leading-[1.05] tracking-tight sm:text-5xl">
                     Classifica mondiale
                   </h1>
 
-                  <p className="mt-3 max-w-3xl text-slate-300">
+                  <p className="mt-3 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
                     Ranking generale basato sulle statistiche reali: vittorie,
                     MVP, partite, rendimento, gol e assist.
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
                 <StatPill
                   label="Utenti totali"
                   value={users.length}
@@ -204,8 +204,8 @@ export default function LeaderboardPage() {
             </div>
           </div>
 
-          <div className="p-8">
-            <div className="mb-8 flex flex-wrap gap-3">
+          <div className="p-4 sm:p-8">
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:mb-8 sm:flex sm:flex-wrap">
               <FilterButton
                 active={sportFilter === "all"}
                 onClick={() => setSportFilter("all")}
@@ -245,7 +245,7 @@ export default function LeaderboardPage() {
               </div>
             ) : (
               <>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   <CategoryCard
                     title="Top Gol"
                     value={topScorer?.goals || 0}
@@ -275,11 +275,11 @@ export default function LeaderboardPage() {
                   />
                 </div>
 
-                <div className="mt-12">
+                <div className="mt-9 sm:mt-12">
                   <div className="mb-5 flex items-center gap-3">
                     <div className="h-3 w-3 rounded-full bg-cyan-300" />
 
-                    <h2 className="text-3xl font-black">
+                    <h2 className="text-[32px] font-black leading-tight sm:text-3xl">
                       Top mondiale
                     </h2>
                   </div>
@@ -294,7 +294,7 @@ export default function LeaderboardPage() {
                     ))}
                   </div>
 
-                  <div className="mt-10 space-y-4">
+                  <div className="mt-8 space-y-4 sm:mt-10">
                     {rankedUsers.slice(3).map((user, index) => (
                       <CompactRow
                         key={user.id}
@@ -324,14 +324,14 @@ function StatPill({
 }) {
   return (
     <div
-      className={`rounded-2xl border px-4 py-3 ${
+      className={`min-w-0 rounded-2xl border px-4 py-3 ${
         color === "cyan"
           ? "border-cyan-400/20 bg-cyan-400/10"
           : "border-yellow-400/20 bg-yellow-400/10"
       }`}
     >
       <div
-        className={`text-xs uppercase tracking-[0.2em] ${
+        className={`break-words text-[10px] font-black uppercase tracking-[0.16em] sm:text-xs sm:tracking-[0.2em] ${
           color === "cyan" ? "text-cyan-300" : "text-yellow-300"
         }`}
       >
@@ -357,7 +357,7 @@ function FilterButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-2xl border px-5 py-3 text-sm font-black uppercase tracking-[0.16em] transition ${
+      className={`min-w-0 rounded-2xl border px-3 py-3 text-[12px] font-black uppercase tracking-[0.12em] transition sm:px-5 sm:text-sm sm:tracking-[0.16em] ${
         active
           ? "border-cyan-300/40 bg-cyan-400/20 text-cyan-100"
           : "border-white/10 bg-black/20 text-slate-300 hover:border-cyan-400/30 hover:text-cyan-200"
@@ -380,16 +380,16 @@ function CategoryCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-black/20 p-5">
-      <div className="flex items-center justify-between">
-        <div className="text-sm font-black uppercase tracking-[0.2em] text-slate-300">
+    <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="break-words text-xs font-black uppercase tracking-[0.18em] text-slate-300 sm:text-sm sm:tracking-[0.2em]">
           {title}
         </div>
 
-        {icon}
+        <div className="shrink-0">{icon}</div>
       </div>
 
-      <div className="mt-5 text-5xl font-black text-white">
+      <div className="mt-4 text-4xl font-black leading-none text-white sm:mt-5 sm:text-5xl">
         {value}
       </div>
 
@@ -438,7 +438,7 @@ function LeaderboardPodiumCard({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-[2rem] border ${border} bg-gradient-to-br from-[#0f172a] to-[#111827] p-6 shadow-2xl transition hover:scale-[1.02] hover:border-cyan-400/30`}
+      className={`relative min-w-0 overflow-hidden rounded-[1.8rem] border ${border} bg-gradient-to-br from-[#0f172a] to-[#111827] p-4 shadow-2xl transition hover:border-cyan-400/30 sm:rounded-[2rem] sm:p-6 lg:hover:scale-[1.02]`}
     >
       <div
         className="absolute inset-0"
@@ -456,7 +456,7 @@ function LeaderboardPodiumCard({
           #{index + 1} Globale
         </div>
 
-        <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-cyan-400/30 shadow-xl">
+        <div className="h-20 w-20 overflow-hidden rounded-full border-4 border-cyan-400/30 shadow-xl sm:h-24 sm:w-24">
           {photo ? (
             <img
               src={photo}
@@ -470,10 +470,10 @@ function LeaderboardPodiumCard({
           )}
         </div>
 
-        <div className="mt-4 w-full">
+        <div className="mt-4 w-full min-w-0">
           <Link
             href={`/public/${user.id}`}
-            className="block truncate text-2xl font-black uppercase tracking-wide transition hover:text-cyan-300"
+            className="block truncate text-[26px] font-black uppercase leading-tight tracking-wide transition hover:text-cyan-300 sm:text-2xl"
           >
             {user.name || user.nickname || "Player"}
           </Link>
@@ -488,7 +488,7 @@ function LeaderboardPodiumCard({
             Rank Score
           </div>
 
-          <div className="text-5xl font-black text-cyan-300">
+          <div className="text-5xl font-black leading-none text-cyan-300">
             {rankScore}
           </div>
 
@@ -497,7 +497,7 @@ function LeaderboardPodiumCard({
           </div>
         </div>
 
-        <div className="mt-6 grid w-full grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-5 grid w-full grid-cols-2 gap-3 sm:mt-6 sm:grid-cols-3">
           <MiniStat
             label="Win"
             value={wins}
@@ -550,13 +550,13 @@ function CompactRow({
   const rankScore = calculateGlobalRankScore(user);
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/20 px-5 py-4 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400/10 font-black text-cyan-300">
+    <div className="flex min-w-0 flex-col gap-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
+      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-400/10 font-black text-cyan-300">
           #{index}
         </div>
 
-        <div className="h-12 w-12 overflow-hidden rounded-xl border border-white/10">
+        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10">
           {photo ? (
             <img
               src={photo}
@@ -570,21 +570,21 @@ function CompactRow({
           )}
         </div>
 
-        <div>
+        <div className="min-w-0">
           <Link
             href={`/public/${user.id}`}
-            className="font-black hover:text-cyan-300"
+            className="block truncate font-black hover:text-cyan-300"
           >
             {user.name || user.nickname || "Player"}
           </Link>
 
-          <div className="text-sm capitalize text-slate-400">
+          <div className="truncate text-sm capitalize text-slate-400">
             {user.mainSport || "sport"}
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 text-center md:flex md:items-center md:gap-6">
+      <div className="grid grid-cols-4 gap-3 text-center md:flex md:items-center md:gap-6">
         <CompactStat
           label="Rank"
           value={rankScore}
@@ -624,7 +624,7 @@ function MiniStat({
 }) {
   return (
     <div className="rounded-2xl bg-black/25 p-3">
-      <div className="text-xs text-slate-400">
+      <div className="truncate text-xs text-slate-400">
         {label}
       </div>
 
@@ -645,12 +645,12 @@ function CompactStat({
   color: string;
 }) {
   return (
-    <div>
-      <div className="text-xs text-slate-500">
+    <div className="min-w-0">
+      <div className="truncate text-xs text-slate-500">
         {label}
       </div>
 
-      <div className={`font-black ${color}`}>
+      <div className={`truncate font-black ${color}`}>
         {value}
       </div>
     </div>
