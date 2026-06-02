@@ -443,7 +443,7 @@ function LeaderboardPodiumCard({
 
           <Link
             href={`/public/${user.id}`}
-            className="block max-w-full truncate text-[24px] font-black uppercase leading-tight tracking-wide transition hover:text-cyan-300 sm:text-3xl"
+            className="block max-w-full truncate text-[20px] font-black uppercase leading-tight tracking-wide transition hover:text-cyan-300 sm:text-2xl"
           >
             {user.name || user.nickname || "Player"}
           </Link>
