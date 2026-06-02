@@ -13,7 +13,8 @@ import {
   query,
 } from "firebase/firestore";
 
-import { db } from "../../lib/firebase";
+import { onAuthStateChanged} from "firebase/auth";
+import { auth, db } from "../../lib/firebase";
 
 import {
   ArrowLeft,
@@ -48,64 +49,85 @@ export default function RivalriesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const q = query(
-          collection(db, "rivalries"),
-          orderBy("updatedAt", "desc"),
-          limit(50)
-        );
-
-        const snap = await getDocs(q);
-
-        const rivalriesData = snap.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<Rivalry, "id">),
-        }));
-
-        setRivalries(rivalriesData);
-
-        const allUserIds = Array.from(
-          new Set(
-            rivalriesData.flatMap((rivalry) => {
-              const rivalrySafe = rivalry as any;
-
-              return Array.isArray(rivalrySafe.users)
-                ? rivalrySafe.users
-                : [];
-            })
-          )
-        );
-
-        const usersResult: Record<string, UserMini> = {};
-
-        await Promise.all(
-          allUserIds.map(async (uid) => {
-            const userSnap = await getDoc(doc(db, "users", uid));
-
-            if (userSnap.exists()) {
-              usersResult[uid] = {
-                id: uid,
-                ...(userSnap.data() as Omit<UserMini, "id">),
-              };
-            } else {
-              usersResult[uid] = {
-                id: uid,
-                name: "Player",
-                nickname: "Rivalo Player",
-              };
-            }
-          })
-        );
-
-        setUsersMap(usersResult);
-      } finally {
-        setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        window.location.href = "/login";
+        return;
       }
-    }
 
-    load();
+      await load(currentUser.uid);
+    });
+
+    return () => unsubscribe();
   }, []);
+
+  async function load(currentUserId: string) {
+    try {
+      setLoading(true);
+
+      const q = query(
+        collection(db, "rivalries"),
+        orderBy("updatedAt", "desc"),
+        limit(50)
+      );
+
+      const snap = await getDocs(q);
+
+      const allRivalriesData = snap.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<Rivalry, "id">),
+      }));
+
+      const rivalriesData = allRivalriesData.filter((rivalry) => {
+  const rivalrySafe = rivalry as any;
+
+  const users: string[] = Array.isArray(rivalrySafe.users)
+    ? rivalrySafe.users
+    : [];
+
+  return users.includes(currentUserId);
+});
+
+      setRivalries(rivalriesData);
+
+      const allUserIds = Array.from(
+        new Set(
+          rivalriesData.flatMap((rivalry) => {
+            const rivalrySafe = rivalry as any;
+
+            return Array.isArray(rivalrySafe.users)
+              ? rivalrySafe.users
+              : [];
+          })
+        )
+      );
+
+      const usersResult: Record<string, UserMini> = {};
+
+      await Promise.all(
+        allUserIds.map(async (uid) => {
+          const userSnap = await getDoc(doc(db, "users", uid));
+
+          if (userSnap.exists()) {
+            usersResult[uid] = {
+              id: uid,
+              ...(userSnap.data() as Omit<UserMini, "id">),
+            };
+          } else {
+            usersResult[uid] = {
+              id: uid,
+              name: "Player",
+              nickname: "Rivalo Player",
+            };
+          }
+        })
+      );
+
+      setUsersMap(usersResult);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#020617] px-4 py-7 text-white sm:px-5 sm:py-8">
@@ -164,7 +186,7 @@ export default function RivalriesPage() {
               </div>
             ) : rivalries.length === 0 ? (
               <div className="rounded-3xl border border-white/10 bg-black/20 p-6 text-slate-300">
-                Nessuna rivalità ancora. Conferma match tra squadre diverse per generarle.
+                Nessuna rivalità personale ancora. Le rivalità compariranno qui quando giocherai più match contro gli stessi player.
               </div>
             ) : (
               <div className="grid gap-5">
