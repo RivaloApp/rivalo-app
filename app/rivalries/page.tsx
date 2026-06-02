@@ -29,7 +29,9 @@ type Rivalry = {
   id: string;
   users?: string[];
   matchesPlayed?: number;
+  draws?: number;
   updatedAt?: any;
+  generatedFromMatches?: boolean;
   [key: string]: any;
 };
 
@@ -42,6 +44,11 @@ type UserMini = {
   rivalScore?: number;
 };
 
+type MatchData = {
+  id: string;
+  [key: string]: any;
+};
+
 export default function RivalriesPage() {
   const [rivalries, setRivalries] = useState<Rivalry[]>([]);
   const [usersMap, setUsersMap] = useState<Record<string, UserMini>>({});
@@ -50,31 +57,31 @@ export default function RivalriesPage() {
   useEffect(() => {
     async function load() {
       try {
-        const q = query(
-          collection(db, "rivalries"),
-          orderBy("updatedAt", "desc"),
-          limit(50)
-        );
+        const [storedRivalries, matches] = await Promise.all([
+          loadStoredRivalries(),
+          loadOfficialMatches(),
+        ]);
 
-        const snap = await getDocs(q);
+        const generatedRivalries = generateRivalriesFromMatches(matches);
 
-        const rivalriesData = snap.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<Rivalry, "id">),
-        }));
+        const finalRivalries =
+          generatedRivalries.length > 0 ? generatedRivalries : storedRivalries;
 
-        setRivalries(rivalriesData);
+        setRivalries(finalRivalries);
 
         const allUserIds = Array.from(
           new Set(
-            rivalriesData.flatMap((rivalry) => {
-              const rivalrySafe = rivalry as any;
+  finalRivalries.flatMap((rivalry) => {
+    const users = (rivalry as { users?: unknown }).users;
 
-              return Array.isArray(rivalrySafe.users)
-                ? rivalrySafe.users
-                : [];
-            })
-          )
+    return Array.isArray(users)
+      ? users.filter(
+          (userId): userId is string =>
+            typeof userId === "string" && userId.length > 0
+        )
+      : [];
+  })
+)
         );
 
         const usersResult: Record<string, UserMini> = {};
@@ -99,6 +106,8 @@ export default function RivalriesPage() {
         );
 
         setUsersMap(usersResult);
+      } catch (error) {
+        console.error("Errore caricamento rivalità:", error);
       } finally {
         setLoading(false);
       }
@@ -164,7 +173,8 @@ export default function RivalriesPage() {
               </div>
             ) : rivalries.length === 0 ? (
               <div className="rounded-3xl border border-white/10 bg-black/20 p-6 text-slate-300">
-                Nessuna rivalità ancora. Conferma match tra squadre diverse per generarle.
+                Nessuna rivalità ancora. Conferma match tra squadre diverse per
+                generarle.
               </div>
             ) : (
               <div className="grid gap-5">
@@ -182,6 +192,272 @@ export default function RivalriesPage() {
       </div>
     </main>
   );
+}
+
+async function loadStoredRivalries() {
+  try {
+    const q = query(
+      collection(db, "rivalries"),
+      orderBy("updatedAt", "desc"),
+      limit(50)
+    );
+
+    const snap = await getDocs(q);
+
+    return snap.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...(docSnap.data() as Omit<Rivalry, "id">),
+    }));
+  } catch (error) {
+    console.warn("Rivalità salvate non disponibili:", error);
+    return [];
+  }
+}
+
+async function loadOfficialMatches() {
+  try {
+    const q = query(
+      collection(db, "matches"),
+      orderBy("createdAt", "desc"),
+      limit(200)
+    );
+
+    const snap = await getDocs(q);
+
+    return snap.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...(docSnap.data() as Record<string, any>),
+    }));
+  } catch (error) {
+    console.warn("Match non disponibili per generare rivalità:", error);
+    return [];
+  }
+}
+
+function generateRivalriesFromMatches(matches: MatchData[]): Rivalry[] {
+  const rivalryMap = new Map<string, Rivalry>();
+
+  matches.forEach((match) => {
+    if (!isOfficialMatch(match)) return;
+
+    const players = extractPlayersFromMatch(match);
+    if (players.length < 2) return;
+
+    const result = extractMatchResult(match);
+
+    for (let i = 0; i < players.length; i += 1) {
+      for (let j = i + 1; j < players.length; j += 1) {
+        const first = players[i];
+        const second = players[j];
+
+        if (!first || !second || first === second) continue;
+
+        const sorted = [first, second].sort();
+        const rivalryId = sorted.join("_vs_");
+
+        const existing =
+          rivalryMap.get(rivalryId) ||
+          ({
+            id: rivalryId,
+            users: sorted,
+            matchesPlayed: 0,
+            draws: 0,
+            generatedFromMatches: true,
+          } as Rivalry);
+
+        existing.matchesPlayed = Number(existing.matchesPlayed || 0) + 1;
+
+        const winnerId = getWinnerForPair(match, result, first, second);
+
+        if (winnerId && sorted.includes(winnerId)) {
+          existing[winnerId] = Number(existing[winnerId] || 0) + 1;
+        } else {
+          existing.draws = Number(existing.draws || 0) + 1;
+        }
+
+        rivalryMap.set(rivalryId, existing);
+      }
+    }
+  });
+
+  return Array.from(rivalryMap.values())
+    .filter((rivalry) => Number(rivalry.matchesPlayed || 0) >= 2)
+    .sort((a, b) => Number(b.matchesPlayed || 0) - Number(a.matchesPlayed || 0))
+    .slice(0, 50);
+}
+
+function isOfficialMatch(match: MatchData) {
+  const status = String(match.status || match.resultStatus || "").toLowerCase();
+
+  if (status.includes("contest")) return false;
+  if (status.includes("pending")) return false;
+  if (status.includes("proposed")) return false;
+
+  if (match.official === true) return true;
+  if (match.isOfficial === true) return true;
+  if (match.confirmed === true) return true;
+  if (match.statsApplied === true) return true;
+  if (status.includes("official")) return true;
+  if (status.includes("confirmed")) return true;
+
+  return false;
+}
+
+function extractPlayersFromMatch(match: MatchData) {
+  const candidates = [
+    match.players,
+    match.playerIds,
+    match.participants,
+    match.participantIds,
+    match.selectedPlayers,
+    match.members,
+    match.memberIds,
+    match.teamAPlayers,
+    match.teamBPlayers,
+    match.homePlayers,
+    match.awayPlayers,
+  ];
+
+  const ids = new Set<string>();
+
+  candidates.forEach((candidate) => {
+    if (!Array.isArray(candidate)) return;
+
+    candidate.forEach((item) => {
+      const id =
+        typeof item === "string"
+          ? item
+          : item?.id ||
+            item?.uid ||
+            item?.userId ||
+            item?.playerId ||
+            item?.value;
+
+      if (typeof id === "string" && id.trim()) {
+        ids.add(id.trim());
+      }
+    });
+  });
+
+  if (match.playerStats && typeof match.playerStats === "object") {
+    if (Array.isArray(match.playerStats)) {
+      match.playerStats.forEach((item: any) => {
+        const id = item?.id || item?.uid || item?.userId || item?.playerId;
+        if (typeof id === "string" && id.trim()) ids.add(id.trim());
+      });
+    } else {
+      Object.keys(match.playerStats).forEach((id) => {
+        if (id.trim()) ids.add(id.trim());
+      });
+    }
+  }
+
+  return Array.from(ids);
+}
+
+function extractMatchResult(match: MatchData) {
+  const homeScore =
+    toNumberOrNull(match.homeScore) ??
+    toNumberOrNull(match.teamAScore) ??
+    toNumberOrNull(match.scoreA) ??
+    toNumberOrNull(match.goalsA) ??
+    toNumberOrNull(match.result?.home) ??
+    toNumberOrNull(match.result?.teamA) ??
+    toNumberOrNull(match.result?.a);
+
+  const awayScore =
+    toNumberOrNull(match.awayScore) ??
+    toNumberOrNull(match.teamBScore) ??
+    toNumberOrNull(match.scoreB) ??
+    toNumberOrNull(match.goalsB) ??
+    toNumberOrNull(match.result?.away) ??
+    toNumberOrNull(match.result?.teamB) ??
+    toNumberOrNull(match.result?.b);
+
+  return {
+    homeScore,
+    awayScore,
+  };
+}
+
+function getWinnerForPair(
+  match: MatchData,
+  result: { homeScore: number | null; awayScore: number | null },
+  first: string,
+  second: string
+) {
+  const directWinner =
+    match.winnerId ||
+    match.winnerUserId ||
+    match.winner ||
+    match.mvpWinnerId;
+
+  if (typeof directWinner === "string" && directWinner.trim()) {
+    return directWinner.trim();
+  }
+
+  if (result.homeScore === null || result.awayScore === null) {
+    return null;
+  }
+
+  if (result.homeScore === result.awayScore) {
+    return null;
+  }
+
+  const homePlayers = normalizePlayerList([
+    match.teamAPlayers,
+    match.homePlayers,
+    match.teamAPlayerIds,
+    match.homePlayerIds,
+  ]);
+
+  const awayPlayers = normalizePlayerList([
+    match.teamBPlayers,
+    match.awayPlayers,
+    match.teamBPlayerIds,
+    match.awayPlayerIds,
+  ]);
+
+  const firstIsHome = homePlayers.includes(first);
+  const secondIsHome = homePlayers.includes(second);
+  const firstIsAway = awayPlayers.includes(first);
+  const secondIsAway = awayPlayers.includes(second);
+
+  if (firstIsHome && secondIsAway) {
+    return result.homeScore > result.awayScore ? first : second;
+  }
+
+  if (firstIsAway && secondIsHome) {
+    return result.homeScore > result.awayScore ? second : first;
+  }
+
+  return null;
+}
+
+function normalizePlayerList(lists: any[]) {
+  const ids = new Set<string>();
+
+  lists.forEach((list) => {
+    if (!Array.isArray(list)) return;
+
+    list.forEach((item) => {
+      const id =
+        typeof item === "string"
+          ? item
+          : item?.id || item?.uid || item?.userId || item?.playerId;
+
+      if (typeof id === "string" && id.trim()) {
+        ids.add(id.trim());
+      }
+    });
+  });
+
+  return Array.from(ids);
+}
+
+function toNumberOrNull(value: any) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
 }
 
 function RivalryCard({
@@ -203,25 +479,11 @@ function RivalryCard({
   const firstUser = usersMap[firstUid];
   const secondUser = usersMap[secondUid];
 
-  const firstName =
-    firstUser?.nickname ||
-    firstUser?.name ||
-    "Player 1";
+  const firstName = firstUser?.nickname || firstUser?.name || "Player 1";
+  const secondName = secondUser?.nickname || secondUser?.name || "Player 2";
 
-  const secondName =
-    secondUser?.nickname ||
-    secondUser?.name ||
-    "Player 2";
-
-  const firstPhoto =
-    firstUser?.photoURL ||
-    firstUser?.photoUrl ||
-    "";
-
-  const secondPhoto =
-    secondUser?.photoURL ||
-    secondUser?.photoUrl ||
-    "";
+  const firstPhoto = firstUser?.photoURL || firstUser?.photoUrl || "";
+  const secondPhoto = secondUser?.photoURL || secondUser?.photoUrl || "";
 
   const firstWins = Number(rivalry[firstUid] || 0);
   const secondWins = Number(rivalry[secondUid] || 0);
@@ -258,7 +520,7 @@ function RivalryCard({
             <div className="flex min-w-0 items-center gap-2">
               <Swords className="shrink-0 text-red-300" size={20} />
 
-              <h2 className="min-w-0 truncate text-[1.65rem] font-black uppercase leading-none tracking-tight sm:text-4xl">
+              <h2 className="min-w-0 truncate text-[1.45rem] font-black uppercase leading-none tracking-tight sm:text-4xl">
                 {firstName} vs {secondName}
               </h2>
             </div>
@@ -326,11 +588,7 @@ function Avatar({ photo }: { photo: string }) {
   return (
     <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/30 shadow-[0_0_22px_rgba(34,211,238,0.08)] sm:h-[4.5rem] sm:w-[4.5rem]">
       {photo ? (
-        <img
-          src={photo}
-          alt="player"
-          className="h-full w-full object-cover"
-        />
+        <img src={photo} alt="player" className="h-full w-full object-cover" />
       ) : (
         <UserRound className="text-cyan-200" size={30} />
       )}
@@ -353,9 +611,7 @@ function CompactInfoBox({
 
   return (
     <div className="min-w-0 rounded-2xl border border-white/10 bg-black/25 px-3 py-4 text-center">
-      <div className={`flex justify-center ${color}`}>
-        {icon}
-      </div>
+      <div className={`flex justify-center ${color}`}>{icon}</div>
 
       <div className="mt-2 truncate text-lg font-black leading-none text-white sm:text-xl">
         {displayValue}
