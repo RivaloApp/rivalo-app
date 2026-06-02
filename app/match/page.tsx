@@ -580,7 +580,7 @@ awayScore: null,
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_6%,rgba(34,211,238,.17),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(217,70,239,.15),transparent_32%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
 
-      <section className="relative z-10 mx-auto max-w-7xl px-5 py-8">
+      <section className="relative z-10 mx-auto max-w-7xl overflow-x-hidden px-4 py-6 sm:px-5 sm:py-8">
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -589,30 +589,30 @@ awayScore: null,
           Torna alla dashboard
         </Link>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_.95fr]">
-          <section className="rounded-[2rem] border border-white/10 bg-[#071126]/75 p-7 shadow-2xl backdrop-blur">
-            <div className="mb-7 flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300">
+        <div className="mt-6 grid gap-6 lg:mt-8 lg:grid-cols-[1.05fr_.95fr] lg:gap-8">
+          <section className="rounded-[2rem] border border-white/10 bg-[#071126]/75 p-4 shadow-2xl backdrop-blur sm:p-7">
+            <div className="mb-6 flex items-start gap-3 sm:mb-7 sm:items-center sm:gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300 sm:h-14 sm:w-14">
                 <CalendarDays size={28} />
               </div>
 
               <div>
-                <div className="text-sm font-black uppercase tracking-[.3em] text-cyan-300">
+                <div className="text-xs font-black uppercase tracking-[.28em] text-cyan-300 sm:text-sm sm:tracking-[.3em]">
                   Rivalo Match
                 </div>
 
-                <h1 className="mt-2 text-4xl font-black">
+                <h1 className="mt-2 text-[34px] font-black leading-tight sm:text-4xl">
                   Match rapido / Amichevole
                 </h1>
               </div>
             </div>
 
-            <form onSubmit={createMatch} className="space-y-5">
+            <form onSubmit={createMatch} className="space-y-4 sm:space-y-5">
               <Field label="Gruppo collegato">
                 <select
                   value={groupId}
                   onChange={(e) => handleGroupChange(e.target.value)}
-                  className="w-full bg-[#0b1730] text-white outline-none"
+                  className="w-full min-w-0 bg-[#0b1730] text-white outline-none"
                 >
                   <option className="bg-[#020617] text-white" value="">
                     Nessun gruppo / Solo io
@@ -635,17 +635,17 @@ awayScore: null,
                   value={matchName}
                   onChange={(e) => setMatchName(e.target.value)}
                   placeholder="Es: Rival Team vs Black Sharks"
-                  className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                  className="w-full min-w-0 bg-transparent outline-none placeholder:text-slate-500"
                   required
                 />
               </Field>
 
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Sport">
                   <select
                     value={sport}
                     onChange={(e) => handleSportChange(e.target.value)}
-                    className="w-full bg-[#0b1730] text-white outline-none"
+                    className="w-full min-w-0 bg-[#0b1730] text-white outline-none"
                   >
                     <option className="bg-[#020617] text-white" value="calcetto">
                       Calcetto
@@ -663,7 +663,7 @@ awayScore: null,
                   <select
                     value={mode}
                     onChange={(e) => setMode(e.target.value)}
-                    className="w-full bg-[#0b1730] text-white outline-none"
+                    className="w-full min-w-0 bg-[#0b1730] text-white outline-none"
                   >
                     <option className="bg-[#020617] text-white" value="amichevole">
                       Amichevole
@@ -681,7 +681,7 @@ awayScore: null,
                   onChange={(e) =>
                     setCompetitionFormat(e.target.value as CompetitionFormat)
                   }
-                  className="w-full bg-[#0b1730] text-white outline-none"
+                  className="w-full min-w-0 bg-[#0b1730] text-white outline-none"
                 >
                   {sport === "calcetto" && (
                     <option className="bg-[#020617] text-white" value="squadre">
@@ -703,70 +703,70 @@ awayScore: null,
               </Field>
 
               {groupTeams.length > 0 && sport === "calcetto" && (
-  <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4">
-    <div className="text-sm font-black text-cyan-200">
-      {groupTeams.length} squadre trovate in questo gruppo.
-    </div>
+                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-3 sm:p-4">
+                  <div className="text-sm font-black text-cyan-200">
+                    {groupTeams.length} squadre trovate in questo gruppo.
+                  </div>
 
-    <div className="mt-4 grid gap-4 md:grid-cols-2">
-      <div>
-        <div className="mb-2 text-sm font-black text-slate-300">
-          Squadra 1
-        </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div>
+                      <div className="mb-2 text-sm font-black text-slate-300">
+                        Squadra 1
+                      </div>
 
-        <select
-          value={homeTeamId}
-          onChange={(e) => setHomeTeamId(e.target.value)}
-          className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
-        >
-          <option value="" className="bg-[#020617] text-white">
-            Seleziona squadra
-          </option>
+                      <select
+                        value={homeTeamId}
+                        onChange={(e) => setHomeTeamId(e.target.value)}
+                        className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
+                      >
+                        <option value="" className="bg-[#020617] text-white">
+                          Seleziona squadra
+                        </option>
 
-          {groupTeams.map((team) => (
-            <option
-              key={team.id}
-              value={team.id}
-              className="bg-[#020617] text-white"
-            >
-              {team.name || "Squadra Rivalo"} · {team.members?.length || 0} membri
-            </option>
-          ))}
-        </select>
-      </div>
+                        {groupTeams.map((team) => (
+                          <option
+                            key={team.id}
+                            value={team.id}
+                            className="bg-[#020617] text-white"
+                          >
+                            {team.name || "Squadra Rivalo"} · {team.members?.length || 0} membri
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-      <div>
-        <div className="mb-2 text-sm font-black text-slate-300">
-          Squadra 2
-        </div>
+                    <div>
+                      <div className="mb-2 text-sm font-black text-slate-300">
+                        Squadra 2
+                      </div>
 
-        <select
-          value={awayTeamId}
-          onChange={(e) => setAwayTeamId(e.target.value)}
-          className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
-        >
-          <option value="" className="bg-[#020617] text-white">
-            Seleziona squadra
-          </option>
+                      <select
+                        value={awayTeamId}
+                        onChange={(e) => setAwayTeamId(e.target.value)}
+                        className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
+                      >
+                        <option value="" className="bg-[#020617] text-white">
+                          Seleziona squadra
+                        </option>
 
-          {groupTeams.map((team) => (
-            <option
-              key={team.id}
-              value={team.id}
-              className="bg-[#020617] text-white"
-            >
-              {team.name || "Squadra Rivalo"} · {team.members?.length || 0} membri
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
+                        {groupTeams.map((team) => (
+                          <option
+                            key={team.id}
+                            value={team.id}
+                            className="bg-[#020617] text-white"
+                          >
+                            {team.name || "Squadra Rivalo"} · {team.members?.length || 0} membri
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-    <div className="mt-3 text-xs text-slate-300">
-      Se scegli due squadre, Rivalo userà automaticamente i giocatori presenti nelle rose.
-    </div>
-  </div>
-)}
+                  <div className="mt-3 text-xs leading-5 text-slate-300">
+                    Se scegli due squadre, Rivalo userà automaticamente i giocatori presenti nelle rose.
+                  </div>
+                </div>
+              )}
 
               <Field label="Giocatori del gruppo">
                 <div className="space-y-3">
@@ -783,10 +783,10 @@ awayScore: null,
                       return (
                         <label
                           key={availableUser.uid}
-                          className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+                          className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
                         >
-                          <div>
-                            <div className="font-black">
+                          <div className="min-w-0">
+                            <div className="break-words font-black">
                               {availableUser.name ||
                                 availableUser.nickname ||
                                 "Rivalo Player"}
@@ -828,7 +828,7 @@ awayScore: null,
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="Milano, Lecce, Roma..."
-                  className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                  className="w-full min-w-0 bg-transparent outline-none placeholder:text-slate-500"
                   required
                 />
               </Field>
@@ -838,18 +838,18 @@ awayScore: null,
                   value={field}
                   onChange={(e) => setField(e.target.value)}
                   placeholder="Centro sportivo, indirizzo..."
-                  className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                  className="w-full min-w-0 bg-transparent outline-none placeholder:text-slate-500"
                   required
                 />
               </Field>
 
-              <div className="grid gap-5 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-3">
                 <Field label="Data">
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full bg-transparent outline-none"
+                    className="w-full min-w-0 bg-transparent outline-none"
                     required
                   />
                 </Field>
@@ -859,7 +859,7 @@ awayScore: null,
                     type="time"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
-                    className="w-full bg-transparent outline-none"
+                    className="w-full min-w-0 bg-transparent outline-none"
                     required
                   />
                 </Field>
@@ -870,7 +870,7 @@ awayScore: null,
                     min="2"
                     value={slots}
                     onChange={(e) => setSlots(e.target.value)}
-                    className="w-full bg-transparent outline-none"
+                    className="w-full min-w-0 bg-transparent outline-none"
                     required
                   />
                 </Field>
@@ -893,7 +893,7 @@ awayScore: null,
             </form>
           </section>
 
-          <section className="space-y-6">
+          <section className="space-y-4 sm:space-y-6">
             <InfoCard
               icon={<Users size={28} />}
               title="Giocatori gruppo"
@@ -920,8 +920,8 @@ awayScore: null,
           </section>
         </div>
 
-        <section className="mt-8 rounded-[2rem] border border-white/10 bg-[#071126]/75 p-7 shadow-2xl backdrop-blur">
-          <div className="mb-6 grid gap-4 md:grid-cols-4">
+        <section className="mt-8 rounded-[2rem] border border-white/10 bg-[#071126]/75 p-4 shadow-2xl backdrop-blur sm:p-7">
+          <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4 sm:gap-4">
             <MatchSummaryBox label="Totali" value={totalMatches} tone="cyan" />
             <MatchSummaryBox label="Ufficiali" value={officialMatches} tone="lime" />
             <MatchSummaryBox
@@ -938,7 +938,7 @@ awayScore: null,
                 Match creati
               </div>
 
-              <h2 className="mt-2 text-3xl font-black">Le tue partite</h2>
+              <h2 className="mt-2 text-[34px] font-black leading-tight sm:text-3xl">Le tue partite</h2>
             </div>
 
             <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-black text-cyan-300">
@@ -981,7 +981,7 @@ awayScore: null,
           ) : filteredMatches.length === 0 ? (
             <EmptyBox text="Nessun match trovato con questo filtro." />
           ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid min-w-0 gap-4 lg:grid-cols-2">
               {filteredMatches.map((match) => (
                 <MatchCard key={match.id} match={match} />
               ))}
@@ -1001,12 +1001,12 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="mb-2 block text-sm font-black text-slate-300">
         {label}
       </span>
 
-      <div className="rounded-2xl border border-white/10 bg-[#0b1730] px-5 py-4">
+      <div className="min-w-0 rounded-2xl border border-white/10 bg-[#0b1730] px-4 py-3 text-base sm:px-5 sm:py-4">
         {children}
       </div>
     </label>
@@ -1023,15 +1023,19 @@ function InfoCard({
   text: string;
 }) {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-[#071126]/75 p-6 backdrop-blur">
-      <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300">
+    <div className="rounded-[1.7rem] border border-white/10 bg-[#071126]/75 p-4 backdrop-blur sm:rounded-[2rem] sm:p-6">
+      <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300 sm:h-14 sm:w-14">
           {icon}
         </div>
 
-        <div>
-          <div className="text-2xl font-black">{title}</div>
-          <div className="mt-1 text-slate-400">{text}</div>
+        <div className="min-w-0">
+          <div className="break-words text-[26px] font-black leading-tight sm:text-2xl">
+            {title}
+          </div>
+          <div className="mt-1 text-base leading-6 text-slate-400 sm:text-base">
+            {text}
+          </div>
         </div>
       </div>
     </div>
@@ -1081,19 +1085,19 @@ function MatchCard({ match }: { match: MatchDoc }) {
     : "border-white/10 bg-white/[.04] text-slate-300";
 
   return (
-    <div className="rounded-[1.7rem] border border-white/10 bg-[#0b1730] p-5 transition hover:scale-[1.02] hover:border-cyan-400/30 hover:bg-[#112041]">
-      <Link href={`/match/${match.id}`}>
-        <div className="flex items-start justify-between gap-4">
+    <div className="min-w-0 overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#0b1730] p-4 transition hover:border-cyan-400/30 hover:bg-[#112041] sm:p-5 lg:hover:scale-[1.02]">
+      <Link href={`/match/${match.id}`} className="block min-w-0">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="min-w-0">
-            <div className="truncate text-2xl font-black">
+            <div className="break-words text-[26px] font-black leading-tight sm:text-2xl">
               {match.name || "Match Rivalo"}
             </div>
 
-            <div className="mt-2 text-slate-400">
+            <div className="mt-2 break-words text-slate-400">
               {match.city || "Città non inserita"}
             </div>
 
-            <div className="mt-1 text-sm text-slate-500">
+            <div className="mt-1 break-words text-sm text-slate-500">
               {match.field || "Campo non inserito"}
             </div>
 
@@ -1105,14 +1109,14 @@ function MatchCard({ match }: { match: MatchDoc }) {
               )}
 
               {match.eventId && (
-                <span className="rounded-lg border border-fuchsia-400/20 bg-fuchsia-400/10 px-2 py-1 font-black text-fuchsia-200">
+                <span className="max-w-full truncate rounded-lg border border-fuchsia-400/20 bg-fuchsia-400/10 px-2 py-1 font-black text-fuchsia-200">
                   {match.eventTitle || "Evento"}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-black uppercase text-cyan-300">
+          <div className="w-fit rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-black uppercase text-cyan-300">
             {match.sport || "sport"}
           </div>
         </div>
@@ -1123,24 +1127,24 @@ function MatchCard({ match }: { match: MatchDoc }) {
               Risultato
             </div>
 
-            <div className="mt-1 text-4xl font-black text-white">
+            <div className="mt-1 text-4xl font-black leading-none text-white">
               {match.homeScore} - {match.awayScore}
             </div>
           </div>
         )}
 
-        <div className="mt-5 flex flex-wrap gap-3 text-sm">
+        <div className="mt-5 flex flex-wrap gap-2 text-sm sm:gap-3">
           <Badge>{match.date || "Data"}</Badge>
           <Badge>{match.time || "Ora"}</Badge>
           <Badge>{match.slots || 0} slot</Badge>
           <Badge>{match.mode || "modalità"}</Badge>
           <Badge>{match.competitionFormat || "formato"}</Badge>
 
-          <div className={`rounded-xl border px-3 py-2 font-black ${statusClass}`}>
+          <div className={`max-w-full rounded-xl border px-3 py-2 font-black ${statusClass}`}>
             {statusLabel}
           </div>
 
-          <div className={`rounded-xl border px-3 py-2 font-black ${statsClass}`}>
+          <div className={`max-w-full rounded-xl border px-3 py-2 font-black ${statsClass}`}>
             {statsLabel}
           </div>
         </div>
@@ -1212,10 +1216,10 @@ function MatchSummaryBox({
       : "border-cyan-400/20 bg-cyan-400/10 text-cyan-200";
 
   return (
-    <div className={`rounded-2xl border p-5 text-center ${toneClass}`}>
-      <div className="text-3xl font-black">{value}</div>
+    <div className={`rounded-2xl border p-4 text-center sm:p-5 ${toneClass}`}>
+      <div className="text-3xl font-black leading-none">{value}</div>
 
-      <div className="mt-2 text-xs font-black uppercase tracking-[0.16em]">
+      <div className="mt-2 break-words text-[10px] font-black uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.16em]">
         {label}
       </div>
     </div>
@@ -1224,7 +1228,7 @@ function MatchSummaryBox({
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-white/5 px-3 py-2 text-slate-300">
+    <div className="max-w-full break-words rounded-xl bg-white/5 px-3 py-2 text-slate-300">
       {children}
     </div>
   );
