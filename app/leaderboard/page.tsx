@@ -180,12 +180,7 @@ export default function LeaderboardPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
-                <StatPill
-                  label="Utenti totali"
-                  value={users.length}
-                  color="cyan"
-                />
-
+                <StatPill label="Utenti totali" value={users.length} color="cyan" />
                 <StatPill
                   label="In classifica"
                   value={rankedUsers.length}
@@ -418,21 +413,21 @@ function LeaderboardPodiumCard({
 
   return (
     <div
-      className={`relative min-w-0 overflow-hidden rounded-[1.5rem] border ${border} bg-gradient-to-br from-[#0f172a] to-[#111827] p-4 shadow-xl sm:rounded-[1.8rem] sm:p-5`}
+      className={`relative min-w-0 overflow-hidden rounded-[1.55rem] border ${border} bg-gradient-to-br from-[#0f172a] to-[#111827] p-4 shadow-xl sm:rounded-[1.8rem] sm:p-5`}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.12),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(217,70,239,.10),transparent_45%)]" />
 
       <div className="relative flex min-w-0 items-center gap-3">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 font-black text-cyan-200 sm:h-16 sm:w-16">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-400/10 text-xl font-black text-cyan-200 ring-1 ring-cyan-300/20 sm:h-16 sm:w-16">
           #{index + 1}
         </div>
 
-        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-2 border-cyan-400/30 bg-black/30 sm:h-16 sm:w-16">
+        <div className="h-[70px] w-[70px] shrink-0 overflow-hidden rounded-2xl border-2 border-cyan-400/35 bg-black/30 shadow-lg shadow-cyan-950/40 sm:h-20 sm:w-20">
           {photo ? (
             <img src={photo} alt="profile" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <UserRound className="h-8 w-8 text-cyan-200" />
+              <UserRound className="h-9 w-9 text-cyan-200" />
             </div>
           )}
         </div>
@@ -441,35 +436,41 @@ function LeaderboardPodiumCard({
           <div className="mb-1 flex items-center gap-2">
             <span className={`shrink-0 ${rankColor}`}>{medal}</span>
 
-            <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-black text-cyan-200">
+            <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-cyan-200">
               Top {index + 1}
             </span>
           </div>
 
           <Link
             href={`/public/${user.id}`}
-            className="block truncate text-xl font-black uppercase leading-tight tracking-wide transition hover:text-cyan-300 sm:text-2xl"
+            className="block max-w-full truncate text-[24px] font-black uppercase leading-tight tracking-wide transition hover:text-cyan-300 sm:text-3xl"
           >
             {user.name || user.nickname || "Player"}
           </Link>
 
-          <div className="truncate text-xs capitalize text-slate-400">
+          <div className="mt-0.5 truncate text-sm capitalize text-slate-400">
             {user.mainSport || "sport"}
-          </div>
-        </div>
-
-        <div className="shrink-0 text-right">
-          <div className="text-[10px] font-black uppercase tracking-[0.15em] text-cyan-300">
-            Rank
-          </div>
-
-          <div className="text-2xl font-black leading-none text-cyan-300 sm:text-3xl">
-            {rankScore}
           </div>
         </div>
       </div>
 
-      <div className="relative mt-4 grid grid-cols-4 gap-2 text-center sm:grid-cols-6">
+      <div className="relative mt-4 flex items-center justify-between gap-3 rounded-2xl border border-cyan-400/10 bg-black/15 px-4 py-3">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
+            Rank Score
+          </div>
+
+          <div className="text-[11px] text-slate-500">
+            RivalScore: {user.rivalScore || 1000}
+          </div>
+        </div>
+
+        <div className="text-4xl font-black leading-none text-cyan-300">
+          {rankScore}
+        </div>
+      </div>
+
+      <div className="relative mt-3 grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
         <MiniStat label="Win" value={wins} color="text-lime-300" />
         <MiniStat label="MVP" value={user.mvp || 0} color="text-yellow-200" />
         <MiniStat label="Partite" value={matches} color="text-cyan-200" />
@@ -548,7 +549,7 @@ function MiniStat({
   return (
     <div className="min-w-0 rounded-xl bg-black/25 px-2 py-2">
       <div className="truncate text-[10px] text-slate-400">{label}</div>
-      <div className={`truncate text-base font-black ${color}`}>{value}</div>
+      <div className={`truncate text-lg font-black ${color}`}>{value}</div>
     </div>
   );
 }
