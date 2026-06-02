@@ -140,21 +140,21 @@ export default function SeasonsPage() {
                     title="Leader"
                     value={rows[0]?.points || 0}
                     label={rows[0]?.playerName || "Player"}
-                    icon={<Crown size={22} className="text-yellow-300" />}
+                    icon={<Crown size={20} className="text-yellow-300" />}
                   />
 
                   <SeasonHighlight
                     title="Top gol"
                     value={topScorer?.goals || 0}
                     label={topScorer?.playerName || "Player"}
-                    icon={<Target size={22} className="text-cyan-300" />}
+                    icon={<Target size={20} className="text-cyan-300" />}
                   />
 
                   <SeasonHighlight
                     title="MVP"
                     value={topMvp?.mvp || 0}
                     label={topMvp?.playerName || "Player"}
-                    icon={<Star size={22} className="text-orange-300" />}
+                    icon={<Star size={20} className="text-orange-300" />}
                   />
                 </div>
 
@@ -197,20 +197,22 @@ function SeasonHighlight({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="relative min-w-0 rounded-[1.35rem] border border-white/10 bg-black/20 p-3 pr-8 sm:rounded-[2rem] sm:p-5 sm:pr-10">
-      <div className="absolute right-3 top-3 sm:right-5 sm:top-5">
-        {icon}
-      </div>
+    <div className="relative min-w-0 rounded-[1.35rem] border border-white/10 bg-black/20 p-3 sm:rounded-[2rem] sm:p-5">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <div className="min-w-0 whitespace-nowrap text-[10px] font-black uppercase leading-none tracking-[0.1em] text-slate-300 sm:text-xs sm:tracking-[0.18em]">
+          {title}
+        </div>
 
-      <div className="whitespace-nowrap text-[9px] font-black uppercase leading-none tracking-[0.12em] text-slate-300 sm:text-xs sm:tracking-[0.18em]">
-        {title}
+        <div className="shrink-0">
+          {icon}
+        </div>
       </div>
 
       <div className="mt-4 text-[34px] font-black leading-none text-white sm:text-5xl">
         {value}
       </div>
 
-      <div className="mt-2 truncate text-[11px] font-black uppercase text-cyan-300 sm:text-sm">
+      <div className="mt-2 whitespace-nowrap text-[10px] font-black uppercase leading-none text-cyan-300 sm:text-sm">
         {label}
       </div>
     </div>
