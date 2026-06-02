@@ -7,6 +7,8 @@ import { createActivity } from "../../lib/createActivity";
 import {
   addDoc,
   collection,
+  doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -42,11 +44,67 @@ type EventItem = {
   maxPlayers?: number;
   prize?: string;
   status?: string;
+  visibility?: string;
+  isPublic?: boolean;
   createdBy?: string;
   createdByName?: string;
   participants?: string[];
   teams?: any[];
 };
+
+type UserProfile = {
+  mainSport?: string;
+  sport?: string;
+  city?: string;
+  cityZone?: string;
+  zone?: string;
+};
+
+function normalizeText(value?: string) {
+  return (value || "")
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizeSport(value?: string) {
+  return normalizeText(value || "calcetto");
+}
+
+function sportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Padel";
+  if (sport === "tennis") return "Tennis";
+  return "Calcetto";
+}
+
+function isPublicEvent(event: EventItem) {
+  const visibility = normalizeText(event.visibility);
+
+  return (
+    event.isPublic === true ||
+    visibility === "public" ||
+    visibility === "pubblico" ||
+    visibility === "aperto"
+  );
+}
+
+function isSameSport(event: EventItem, userSport: string) {
+  return normalizeSport(event.sport) === normalizeSport(userSport);
+}
+
+function isSameCityOrCompatible(event: EventItem, userCity: string) {
+  const normalizedUserCity = normalizeText(userCity);
+  const normalizedEventCity = normalizeText(event.city);
+
+  if (!normalizedUserCity || !normalizedEventCity) {
+    return true;
+  }
+
+  return normalizedEventCity === normalizedUserCity;
+}
 
 function Background() {
   return (
@@ -59,6 +117,8 @@ function Background() {
 
 export default function EventsPage() {
   const [user, setUser] = useState<User | null>(null);
+  const [userSport, setUserSport] = useState("calcetto");
+  const [userCity, setUserCity] = useState("");
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -83,7 +143,25 @@ export default function EventsPage() {
       }
 
       setUser(currentUser);
-      await loadEvents();
+
+      const profileSnap = await getDoc(doc(db, "users", currentUser.uid));
+      const profile = profileSnap.exists()
+        ? (profileSnap.data() as UserProfile)
+        : null;
+
+      const currentUserSport = normalizeSport(
+        profile?.mainSport || profile?.sport || "calcetto"
+      );
+
+      const currentUserCity =
+        profile?.city || profile?.cityZone || profile?.zone || "";
+
+      setUserSport(currentUserSport);
+      setUserCity(currentUserCity);
+      handleSportChange(currentUserSport);
+      setCity(currentUserCity);
+
+      await loadEvents(currentUser.uid, currentUserSport, currentUserCity);
     });
 
     return () => unsub();
@@ -108,24 +186,43 @@ export default function EventsPage() {
     }
   }
 
-  async function loadEvents() {
+  async function loadEvents(currentUserId: string, currentUserSport: string, currentUserCity: string) {
     setLoading(true);
 
     try {
       const q = query(
         collection(db, "events"),
         orderBy("createdAt", "desc"),
-        limit(50)
+        limit(80)
       );
 
       const snap = await getDocs(q);
 
-      setEvents(
-        snap.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<EventItem, "id">),
-        }))
-      );
+      const allEvents = snap.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<EventItem, "id">),
+      }));
+
+      const filteredEvents = allEvents.filter((event) => {
+        const isMine = event.createdBy === currentUserId;
+        const canDiscover = isPublicEvent(event);
+
+        if (!isMine && !canDiscover) {
+          return false;
+        }
+
+        if (!isSameSport(event, currentUserSport)) {
+          return false;
+        }
+
+        if (isMine) {
+          return true;
+        }
+
+        return isSameCityOrCompatible(event, currentUserCity);
+      });
+
+      setEvents(filteredEvents);
     } finally {
       setLoading(false);
     }
@@ -153,6 +250,8 @@ export default function EventsPage() {
         maxPlayers: Number(maxPlayers || 0),
         prize,
         status: "aperto",
+        visibility: "public",
+        isPublic: true,
 
         participants: [user.uid],
         participantsInfo: [
@@ -179,7 +278,7 @@ export default function EventsPage() {
       });
 
       setTitle("");
-      setCity("");
+      setCity(userCity);
       setField("");
       setDate("");
       setTime("");
@@ -196,7 +295,7 @@ export default function EventsPage() {
         setCompetitionFormat("singolo");
       }
 
-      await loadEvents();
+      await loadEvents(user.uid, userSport, userCity);
     } finally {
       setSaving(false);
     }
@@ -219,7 +318,7 @@ export default function EventsPage() {
           <div className="mt-6 flex flex-col gap-5 lg:mt-8 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="text-xs font-black uppercase tracking-[0.28em] text-cyan-300 sm:text-sm sm:tracking-[0.35em]">
-                Rivalo Events
+                Rivalo Events · {sportLabel(userSport)}
               </div>
 
               <h1 className="mt-3 text-4xl font-black leading-tight tracking-tight sm:text-5xl md:text-6xl">
@@ -227,14 +326,14 @@ export default function EventsPage() {
               </h1>
 
               <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-                Crea tornei, sfide e campionati per calcetto, padel e tennis.
-                Scegli se giocare singolo, doppio o a squadre.
+                Scopri eventi pubblici compatibili con il tuo sport e la tua zona,
+                oppure crea il tuo torneo Rivalo.
               </p>
             </div>
 
             <div className="rounded-[1.5rem] border border-cyan-400/20 bg-cyan-400/10 px-5 py-4 sm:rounded-[2rem] sm:px-6">
               <div className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
-                Eventi attivi
+                Eventi visibili
               </div>
 
               <div className="mt-1 text-3xl font-black text-cyan-100">
@@ -317,35 +416,35 @@ export default function EventsPage() {
               </div>
 
               <Field label="Formato competizione">
-  <select
-    value={competitionFormat}
-    onChange={(e) =>
-      setCompetitionFormat(e.target.value as CompetitionFormat)
-    }
-    disabled={sport === "calcetto"}
-    className="w-full bg-[#020617] text-white outline-none disabled:cursor-not-allowed disabled:opacity-70"
-  >
-    {sport === "calcetto" ? (
-      <option className="bg-[#020617] text-white" value="squadre">
-        Squadre
-      </option>
-    ) : (
-      <>
-        <option className="bg-[#020617] text-white" value="singolo">
-          Singolo
-        </option>
-        <option className="bg-[#020617] text-white" value="doppio">
-          Doppio
-        </option>
-      </>
-    )}
-  </select>
+                <select
+                  value={competitionFormat}
+                  onChange={(e) =>
+                    setCompetitionFormat(e.target.value as CompetitionFormat)
+                  }
+                  disabled={sport === "calcetto"}
+                  className="w-full bg-[#020617] text-white outline-none disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {sport === "calcetto" ? (
+                    <option className="bg-[#020617] text-white" value="squadre">
+                      Squadre
+                    </option>
+                  ) : (
+                    <>
+                      <option className="bg-[#020617] text-white" value="singolo">
+                        Singolo
+                      </option>
+                      <option className="bg-[#020617] text-white" value="doppio">
+                        Doppio
+                      </option>
+                    </>
+                  )}
+                </select>
 
-  <div className="mt-3 text-xs leading-5 text-slate-400">
-    Scegli come si giocherà la competizione. In singolo partecipano i
-    player, in doppio o a squadre parteciperanno gruppi di giocatori.
-  </div>
-</Field>
+                <div className="mt-3 text-xs leading-5 text-slate-400">
+                  Scegli come si giocherà la competizione. In singolo partecipano i
+                  player, in doppio o a squadre parteciperanno gruppi di giocatori.
+                </div>
+              </Field>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Città">
@@ -463,9 +562,14 @@ export default function EventsPage() {
                 <h2 className="mt-2 text-3xl font-black leading-tight">
                   Eventi disponibili
                 </h2>
+
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Filtro attivo: {sportLabel(userSport)}
+                  {userCity ? ` · ${userCity}` : ""}
+                </p>
               </div>
 
-              <CalendarDays className="text-cyan-300" />
+              <CalendarDays className="shrink-0 text-cyan-300" />
             </div>
 
             {loading ? (
@@ -474,7 +578,7 @@ export default function EventsPage() {
               </div>
             ) : events.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-slate-400">
-                Nessun evento ancora. Crea il primo evento Rivalo.
+                Nessun evento disponibile per il tuo sport e la tua zona. Crea il primo evento Rivalo.
               </div>
             ) : (
               <div className="space-y-4">
