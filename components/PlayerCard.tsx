@@ -43,15 +43,6 @@ export default function PlayerCard({
       ? "RARE"
       : "COMMON";
 
-  const rarityStyle =
-    rarity === "legend"
-      ? "shadow-[0_0_90px_rgba(255,170,0,0.45)] sm:scale-[1.04] saturate-[1.25]"
-      : rarity === "elite"
-      ? "shadow-[0_0_80px_rgba(0,255,255,0.38)] sm:scale-[1.025] saturate-[1.18]"
-      : rarity === "rare"
-      ? "shadow-[0_0_65px_rgba(255,120,0,0.32)] sm:scale-[1.015] saturate-[1.12]"
-      : "shadow-[0_0_35px_rgba(120,180,255,0.18)]";
-
   const stats = [
     {
       label: "VEL",
@@ -72,22 +63,20 @@ export default function PlayerCard({
   ];
 
   return (
-    <div
-      className={`relative mx-auto w-full max-w-[258px] sm:max-w-[330px] ${rarityStyle}`}
-    >
-      {/* Effetti 3D sotto la card: riempiono gli spazi laterali senza creare cornici rettangolari */}
-      <div className="pointer-events-none absolute -left-12 top-16 h-44 w-20 rotate-[-18deg] rounded-full border-l-2 border-cyan-300/35 opacity-80 blur-[1px] sm:-left-16 sm:top-24 sm:h-64 sm:w-28" />
-      <div className="pointer-events-none absolute -right-12 top-20 h-48 w-20 rotate-[16deg] rounded-full border-r-2 border-fuchsia-400/35 opacity-80 blur-[1px] sm:-right-16 sm:top-28 sm:h-64 sm:w-28" />
-      <div className="pointer-events-none absolute -left-9 bottom-14 h-20 w-28 rounded-full border-b-2 border-yellow-300/35 opacity-70 blur-[1px] sm:-left-12 sm:bottom-20 sm:w-40" />
-      <div className="pointer-events-none absolute -right-9 bottom-16 h-20 w-28 rounded-full border-b-2 border-cyan-300/30 opacity-70 blur-[1px] sm:-right-12 sm:bottom-20 sm:w-40" />
+    <div className="relative mx-auto w-full max-w-[258px] sm:max-w-[330px]">
+      {/* Effetti 3D dietro la card: separati dalla card, senza box rettangolare */}
+      <div className="pointer-events-none absolute -left-16 top-10 h-72 w-28 rotate-[-16deg] rounded-full border-l-2 border-cyan-300/35 opacity-80 blur-[1px] sm:-left-20 sm:top-20 sm:h-96 sm:w-36" />
+      <div className="pointer-events-none absolute -right-16 top-12 h-72 w-28 rotate-[16deg] rounded-full border-r-2 border-fuchsia-400/35 opacity-80 blur-[1px] sm:-right-20 sm:top-24 sm:h-96 sm:w-36" />
+      <div className="pointer-events-none absolute -left-12 bottom-12 h-24 w-40 rounded-full border-b-2 border-yellow-300/35 opacity-80 blur-[1px] sm:-left-16 sm:bottom-20 sm:w-52" />
+      <div className="pointer-events-none absolute -right-12 bottom-12 h-24 w-40 rounded-full border-b-2 border-cyan-300/30 opacity-80 blur-[1px] sm:-right-16 sm:bottom-20 sm:w-52" />
 
-      <div className="pointer-events-none absolute -left-10 top-20 h-64 w-24 rounded-full bg-cyan-400/10 blur-3xl sm:-left-16 sm:top-28 sm:h-80 sm:w-32" />
-      <div className="pointer-events-none absolute -right-10 top-24 h-64 w-24 rounded-full bg-fuchsia-500/10 blur-3xl sm:-right-16 sm:top-32 sm:h-80 sm:w-32" />
-      <div className="pointer-events-none absolute inset-x-6 bottom-[-10px] h-20 rounded-full bg-yellow-300/10 blur-3xl sm:bottom-[-16px]" />
+      <div className="pointer-events-none absolute -left-14 top-20 h-72 w-28 rounded-full bg-cyan-400/12 blur-3xl sm:-left-20 sm:top-28 sm:h-96 sm:w-36" />
+      <div className="pointer-events-none absolute -right-14 top-24 h-72 w-28 rounded-full bg-fuchsia-500/12 blur-3xl sm:-right-20 sm:top-32 sm:h-96 sm:w-36" />
+      <div className="pointer-events-none absolute inset-x-8 bottom-[-14px] h-24 rounded-full bg-yellow-300/12 blur-3xl sm:bottom-[-20px]" />
 
-      {/* Glow della forma, non rettangolare */}
+      {/* Glow sagomato sulla forma della card. Niente shadow sul wrapper, quindi niente rettangolo. */}
       <div
-        className="pointer-events-none absolute -inset-2 bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.42),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.42),transparent_38%)] blur-2xl sm:-inset-4 sm:bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.62),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.58),transparent_38%)]"
+        className="pointer-events-none absolute -inset-3 bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.45),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.45),transparent_38%)] blur-2xl sm:-inset-5 sm:bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.62),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.58),transparent_38%)]"
         style={{
           clipPath:
             "polygon(9% 0%, 91% 0%, 100% 9%, 100% 81%, 50% 100%, 0% 81%, 0% 9%)",
@@ -104,13 +93,19 @@ export default function PlayerCard({
         />
 
         <div
-          className="relative m-[2px] overflow-hidden bg-[#050814]"
+          className="relative m-[2px] overflow-hidden"
           style={{
             clipPath:
               "polygon(10% 1%, 90% 1%, 98.5% 10%, 98.5% 79.5%, 50% 98.5%, 1.5% 79.5%, 1.5% 10%)",
           }}
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_48%,rgba(249,115,22,.48),transparent_33%),radial-gradient(circle_at_84%_42%,rgba(37,99,235,.48),transparent_34%),linear-gradient(135deg,#050814_0%,#070a16_44%,#12051c_100%)]" />
+          <div
+            className="absolute inset-0 bg-[radial-gradient(circle_at_14%_48%,rgba(249,115,22,.48),transparent_33%),radial-gradient(circle_at_84%_42%,rgba(37,99,235,.48),transparent_34%),linear-gradient(135deg,#050814_0%,#070a16_44%,#12051c_100%)]"
+            style={{
+              clipPath:
+                "polygon(10% 1%, 90% 1%, 98.5% 10%, 98.5% 79.5%, 50% 98.5%, 1.5% 79.5%, 1.5% 10%)",
+            }}
+          />
 
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_0%,rgba(255,255,255,.055)_42%,transparent_54%)]" />
           <div className="pointer-events-none absolute left-[-40%] top-[-20%] h-[160%] w-[70%] rotate-12 bg-cyan-300/[.035] blur-xl" />
@@ -158,7 +153,6 @@ export default function PlayerCard({
               </div>
             </div>
 
-            {/* Valori più alti: restano leggibili senza cambiare la forma della card */}
             <div className="mt-auto pb-10 pt-2 sm:pb-14 sm:pt-3">
               <div className="grid grid-cols-4 gap-1.5 text-center sm:gap-2">
                 {stats.map((stat) => (
