@@ -67,11 +67,31 @@ sourceType?: string;
   statsApplyingBy?: string;
   statsError?: boolean;
   statsErrorAt?: any;
+  participants?: string[];
   players?: MatchPlayer[];
   eventId?: string;
   eventTitle?: string;
   competitionFormat?: string;
 };
+
+function canAccessMatch(match: MatchDoc, uid: string) {
+  if (!uid) return false;
+
+  if (match.createdBy === uid) return true;
+
+  if (Array.isArray(match.participants) && match.participants.includes(uid)) {
+    return true;
+  }
+
+  if (
+    Array.isArray(match.players) &&
+    match.players.some((player) => player.uid === uid)
+  ) {
+    return true;
+  }
+
+  return false;
+}
 
 export default function MatchDetailsPage() {
   const params = useParams();
@@ -80,6 +100,7 @@ export default function MatchDetailsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [match, setMatch] = useState<MatchDoc | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unauthorized, setUnauthorized] = useState(false);
 
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
@@ -100,20 +121,28 @@ export default function MatchDetailsPage() {
       }
 
       setUser(currentUser);
-      await loadMatch();
+      await loadMatch(currentUser.uid);
     });
 
     return () => unsubscribe();
   }, [matchId]);
 
-  async function loadMatch() {
+  async function loadMatch(currentUserId?: string) {
     setLoading(true);
+    setUnauthorized(false);
 
     try {
       const snap = await getDoc(doc(db, "matches", matchId));
 
       if (snap.exists()) {
         const data = snap.data() as MatchDoc;
+        const safeUserId = currentUserId || user?.uid || "";
+
+        if (!canAccessMatch(data, safeUserId)) {
+          setUnauthorized(true);
+          setMatch(null);
+          return;
+        }
 
         setMatch(data);
         setHomeTeam(data.homeTeam || "");
@@ -391,6 +420,11 @@ export default function MatchDetailsPage() {
 
     if (!user || !match) return;
 
+    if (!canAccessMatch(match, user.uid)) {
+      setMessage("Non puoi modificare un match in cui non sei coinvolto.");
+      return;
+    }
+
     if (match.status === "ufficiale" || match.resultStatus === "confermato") {
       setMessage("Match già ufficiale. Non puoi modificare il risultato.");
       return;
@@ -423,7 +457,7 @@ export default function MatchDetailsPage() {
   } ${awayTeam || "Squadra 2"}. Controlla e conferma se è corretto.`,
 });
 
-await loadMatch();
+await loadMatch(user?.uid);
 setMessage("Risultato proposto. Ora puoi confermarlo.");
     } catch {
       setMessage("Errore durante il salvataggio del risultato.");
@@ -434,6 +468,11 @@ setMessage("Risultato proposto. Ora puoi confermarlo.");
 
   async function confirmResult() {
     if (!user || !match) return;
+
+    if (!canAccessMatch(match, user.uid)) {
+      setMessage("Non puoi confermare un match in cui non sei coinvolto.");
+      return;
+    }
 
     setSaving(true);
     setMessage("");
@@ -540,7 +579,7 @@ await updateDoc(matchRef, {
   } ${awayTeam || "Squadra 2"}. Statistiche aggiornate.`,
 });
 
-await loadMatch();
+await loadMatch(user?.uid);
 setMessage("Risultato confermato. Statistiche applicate una sola volta.");
     } catch (error: any) {
       console.error(error);
@@ -570,6 +609,11 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
   async function disputeResult() {
     if (!user || !match) return;
 
+    if (!canAccessMatch(match, user.uid)) {
+      setMessage("Non puoi contestare un match in cui non sei coinvolto.");
+      return;
+    }
+
     if (match.status === "ufficiale" || match.resultStatus === "confermato") {
       setMessage("Match già ufficiale. Non puoi contestarlo da qui.");
       return;
@@ -595,7 +639,7 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
   } ${awayTeam || "Squadra 2"}. Il risultato è stato contestato.`,
 });
 
-await loadMatch();
+await loadMatch(user?.uid);
 setMessage("Risultato contestato. Servirà revisione.");
     } catch {
       setMessage("Errore durante la contestazione.");
@@ -608,6 +652,29 @@ setMessage("Risultato contestato. Servirà revisione.");
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
         Caricamento partita...
+      </main>
+    );
+  }
+
+  if (unauthorized) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#020617] px-5 text-white">
+        <div className="max-w-md rounded-[2rem] border border-red-400/20 bg-red-500/10 p-7 text-center">
+          <div className="text-2xl font-black text-red-200">
+            Match non disponibile
+          </div>
+
+          <p className="mt-3 text-sm leading-6 text-slate-300">
+            Puoi aprire solo match creati da te o in cui sei tra i partecipanti.
+          </p>
+
+          <Link
+            href="/match"
+            className="mt-6 inline-flex rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-300"
+          >
+            Torna ai match
+          </Link>
+        </div>
       </main>
     );
   }
