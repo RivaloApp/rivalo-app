@@ -1,18 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
-import { ArrowLeft, Flame, Shield, Swords, Trophy, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Flame,
+  Shield,
+  Swords,
+  Trophy,
+  UserRound,
+} from "lucide-react";
 
 type Rivalry = {
   id: string;
   users?: string[];
   matchesPlayed?: number;
-  updatedAt?: any;
-  [key: string]: any;
+  updatedAt?: unknown;
+  [key: string]: unknown;
 };
 
 type UserMini = {
@@ -28,7 +35,7 @@ type UserMini = {
 
 export default function RivalryDetailPage() {
   const params = useParams();
-  const id = params?.id as string;
+  const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
 
   const [rivalry, setRivalry] = useState<Rivalry | null>(null);
   const [users, setUsers] = useState<UserMini[]>([]);
@@ -46,12 +53,18 @@ export default function RivalryDetailPage() {
 
         const rivalryData = {
           id: rivalrySnap.id,
-          ...(rivalrySnap.data() as any),
+          ...(rivalrySnap.data() as Record<string, unknown>),
         } as Rivalry;
 
         setRivalry(rivalryData);
 
-        const userIds = Array.isArray(rivalryData.users) ? rivalryData.users : [];
+        const userIds = Array.isArray(rivalryData.users)
+          ? rivalryData.users.filter(
+              (userId): userId is string =>
+                typeof userId === "string" && userId.length > 0
+            )
+          : [];
+
         const loadedUsers: UserMini[] = [];
 
         for (const uid of userIds) {
@@ -126,8 +139,8 @@ export default function RivalryDetailPage() {
     firstWins > secondWins
       ? firstName
       : secondWins > firstWins
-      ? secondName
-      : "Parità";
+        ? secondName
+        : "Parità";
 
   const intensity =
     matchesPlayed >= 10 ? "Leggendaria" : matchesPlayed >= 5 ? "Calda" : "Nuova";
@@ -145,27 +158,28 @@ export default function RivalryDetailPage() {
           Torna alle rivalità
         </Link>
 
-        <section className="mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[.04] shadow-2xl">
-          <div className="relative border-b border-white/10 px-6 py-8 sm:px-8 sm:py-10">
+        <section className="mt-8 overflow-hidden rounded-[2.2rem] border border-white/10 bg-white/[.04] shadow-2xl sm:rounded-[2.5rem]">
+          <div className="relative border-b border-white/10 px-5 py-7 sm:px-8 sm:py-10">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(248,113,113,0.24),transparent_62%)]" />
 
             <div className="relative mx-auto max-w-3xl text-center">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[2rem] border border-red-300/30 bg-red-500/10 text-red-300 shadow-[0_0_40px_rgba(248,113,113,0.16)]">
-                <Swords size={40} />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.5rem] border border-red-300/30 bg-red-500/10 text-red-300 shadow-[0_0_40px_rgba(248,113,113,0.16)] sm:h-20 sm:w-20 sm:rounded-[2rem]">
+                <Swords size={34} />
               </div>
 
-              <div className="mt-5 text-xs font-black uppercase tracking-[0.36em] text-red-300 sm:text-sm">
+              <div className="mt-5 text-[0.68rem] font-black uppercase tracking-[0.32em] text-red-300 sm:text-sm">
                 Rivalo Rivalry
               </div>
 
-              <h1 className="mx-auto mt-4 max-w-2xl text-center text-[2.35rem] font-black uppercase leading-[0.98] sm:text-6xl">
-                <span className="block truncate">{firstName}</span>
+              <h1 className="mx-auto mt-4 max-w-2xl text-center text-[2.25rem] font-black uppercase leading-[0.98] sm:text-6xl">
+                <span className="block break-words">{firstName}</span>
                 <span className="block text-red-200">VS</span>
-                <span className="block truncate">{secondName}</span>
+                <span className="block break-words">{secondName}</span>
               </h1>
 
-              <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-slate-300">
-                Storico competitivo tra questi player. Ogni match sposta il dominio.
+              <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
+                Storico competitivo tra questi player. Ogni match sposta il
+                dominio.
               </p>
             </div>
           </div>
@@ -173,7 +187,7 @@ export default function RivalryDetailPage() {
           <div className="px-5 py-7 sm:px-8">
             <div className="mx-auto max-w-3xl rounded-[2rem] border border-red-300/25 bg-red-500/10 px-6 py-5 text-center shadow-[0_0_45px_rgba(248,113,113,0.10)]">
               <div className="text-xs font-black uppercase tracking-[0.32em] text-red-300">
-                Score rivalità
+                Score
               </div>
 
               <div className="mt-3 text-6xl font-black leading-none sm:text-7xl">
@@ -182,34 +196,45 @@ export default function RivalryDetailPage() {
             </div>
 
             <div className="mt-7 grid gap-4 md:grid-cols-2">
-              <PlayerPanel user={firstUser} name={firstName} wins={firstWins} rivalryId={id} />
-              <PlayerPanel user={secondUser} name={secondName} wins={secondWins} rivalryId={id} />
+              <PlayerPanel
+                user={firstUser}
+                name={firstName}
+                wins={firstWins}
+                rivalryId={id}
+              />
+
+              <PlayerPanel
+                user={secondUser}
+                name={secondName}
+                wins={secondWins}
+                rivalryId={id}
+              />
             </div>
 
             <div className="mt-7 grid grid-cols-2 gap-4">
               <InfoBox
-                icon={<Trophy size={26} />}
+                icon={<Trophy size={25} />}
                 label="Match"
                 value={matchesPlayed}
                 color="text-cyan-300"
               />
 
               <InfoBox
-                icon={<Flame size={26} />}
+                icon={<Flame size={25} />}
                 label="Intensità"
                 value={intensity}
                 color="text-orange-300"
               />
 
               <InfoBox
-                icon={<Shield size={26} />}
+                icon={<Shield size={25} />}
                 label="Status"
                 value="Attiva"
                 color="text-pink-300"
               />
 
               <InfoBox
-                icon={<Swords size={26} />}
+                icon={<Swords size={25} />}
                 label="Dominio"
                 value={leader}
                 color="text-red-300"
@@ -236,32 +261,40 @@ function PlayerPanel({
   const photo = user?.photoURL || user?.photoUrl || "";
 
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-black/20 p-5">
+    <div className="rounded-[2rem] border border-white/10 bg-black/20 p-4 sm:p-5">
       <div className="flex items-center gap-4">
-        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/30">
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[1.3rem] border border-white/10 bg-black/30 sm:h-20 sm:w-20 sm:rounded-[1.5rem]">
           {photo ? (
-            <img src={photo} alt="player" className="h-full w-full object-cover" />
+            <img
+              src={photo}
+              alt={name}
+              className="h-full w-full object-cover"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <UserRound className="text-cyan-200" size={38} />
+              <UserRound className="text-cyan-200" size={34} />
             </div>
           )}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="truncate text-2xl font-black uppercase sm:text-3xl">
+          <div className="break-words text-[1.6rem] font-black uppercase leading-none sm:text-3xl">
             {name}
           </div>
 
-          <div className="mt-1 text-xs font-black uppercase tracking-[0.24em] text-slate-400">
+          <div className="mt-2 text-xs font-black uppercase tracking-[0.24em] text-slate-400">
             {wins} vittorie
           </div>
         </div>
       </div>
 
       <Link
-        href={user?.id ? `/public/${user.id}?from=rivalry&rivalryId=${rivalryId}` : "/rivalries"}
-        className="mt-5 flex w-full items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-5 py-3 text-center text-sm font-black uppercase tracking-[0.2em] text-cyan-200 transition hover:border-cyan-300/70 hover:bg-cyan-400/20"
+        href={
+          user?.id
+            ? `/public/${user.id}?from=rivalry&rivalryId=${rivalryId}`
+            : "/rivalries"
+        }
+        className="mt-5 flex w-full items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-5 py-3 text-center text-sm font-black uppercase tracking-[0.18em] text-cyan-200 transition hover:border-cyan-300/70 hover:bg-cyan-400/20"
       >
         Apri profilo
       </Link>
@@ -275,20 +308,20 @@ function InfoBox({
   value,
   color,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string | number;
   color: string;
 }) {
   return (
-    <div className="min-h-[8.5rem] rounded-[1.75rem] border border-white/10 bg-black/20 p-4 text-center">
+    <div className="min-h-[7.5rem] rounded-[1.6rem] border border-white/10 bg-black/20 p-4 text-center sm:min-h-[8.5rem] sm:rounded-[1.75rem]">
       <div className={`flex justify-center ${color}`}>{icon}</div>
 
-      <div className="mx-auto mt-3 max-w-full break-words text-2xl font-black leading-tight sm:text-3xl">
+      <div className="mx-auto mt-3 max-w-full break-words text-xl font-black leading-tight sm:text-3xl">
         {value}
       </div>
 
-      <div className="mt-2 text-[0.68rem] font-black uppercase tracking-[0.22em] text-slate-400">
+      <div className="mt-2 text-[0.62rem] font-black uppercase tracking-[0.2em] text-slate-400 sm:text-[0.68rem]">
         {label}
       </div>
     </div>
