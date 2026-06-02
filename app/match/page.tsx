@@ -51,6 +51,37 @@ type UserOption = {
   photoURL?: string;
 };
 
+type UserProfile = {
+  name?: string;
+  nickname?: string;
+  mainSport?: string;
+  sport?: string;
+  city?: string;
+  cityZone?: string;
+  zone?: string;
+};
+
+function applySportDefaults(
+  nextSport: string,
+  setCompetitionFormat: (value: CompetitionFormat) => void,
+  setSlots: (value: string) => void
+) {
+  if (nextSport === "padel") {
+    setCompetitionFormat("doppio");
+    setSlots("4");
+    return;
+  }
+
+  if (nextSport === "tennis") {
+    setCompetitionFormat("singolo");
+    setSlots("2");
+    return;
+  }
+
+  setCompetitionFormat("squadre");
+  setSlots("10");
+}
+
 type MatchDoc = {
   id: string;
   groupId?: string;
@@ -150,6 +181,23 @@ const [awayTeamId, setAwayTeamId] = useState("");
     setLoadingData(true);
 
     try {
+      const profileSnap = await getDoc(doc(db, "users", uid));
+      const profileData = profileSnap.exists()
+        ? (profileSnap.data() as UserProfile)
+        : null;
+
+      const profileSport =
+        profileData?.mainSport || profileData?.sport || "calcetto";
+
+      const profileCity =
+        profileData?.city || profileData?.cityZone || profileData?.zone || "";
+
+      const profileName =
+        profileData?.name ||
+        profileData?.nickname ||
+        fallbackName ||
+        "Rivalo Player";
+
       let loadedGroups: GroupDoc[] = [];
 
       try {
@@ -175,25 +223,22 @@ const [awayTeamId, setAwayTeamId] = useState("");
           loadedGroups.find((group) => group.id === preferredGroupId) ||
           loadedGroups[0];
 
+        const selectedSport = selectedGroup.sport || profileSport || "calcetto";
+
         setGroupId(selectedGroup.id);
-        setSport(selectedGroup.sport || "calcetto");
-        setCity(selectedGroup.city || "");
+        setSport(selectedSport);
+        setCity(selectedGroup.city || profileCity || "");
+        applySportDefaults(selectedSport, setCompetitionFormat, setSlots);
 
-        if (selectedGroup.sport === "padel") {
-          setCompetitionFormat("doppio");
-          setSlots("4");
-        } else if (selectedGroup.sport === "tennis") {
-          setCompetitionFormat("singolo");
-          setSlots("2");
-        } else {
-          setCompetitionFormat("squadre");
-          setSlots("10");
-        }
-
-        await loadGroupMembers(selectedGroup.id, uid, fallbackName);
+        await loadGroupMembers(selectedGroup.id, uid, profileName);
         await loadGroupTeams(selectedGroup.id);
       } else {
-        await loadGroupMembers("", uid, fallbackName);
+        setGroupId("");
+        setSport(profileSport);
+        setCity(profileCity);
+        applySportDefaults(profileSport, setCompetitionFormat, setSlots);
+
+        await loadGroupMembers("", uid, profileName);
         await loadGroupTeams("");
       }
 
@@ -338,23 +383,7 @@ async function loadGroupTeams(nextGroupId: string) {
 
   function handleSportChange(nextSport: string) {
     setSport(nextSport);
-
-    if (nextSport === "calcetto") {
-      setCompetitionFormat("squadre");
-      setSlots("10");
-      return;
-    }
-
-    if (nextSport === "padel") {
-      setCompetitionFormat("doppio");
-      setSlots("4");
-      return;
-    }
-
-    if (nextSport === "tennis") {
-      setCompetitionFormat("singolo");
-      setSlots("2");
-    }
+    applySportDefaults(nextSport, setCompetitionFormat, setSlots);
   }
 
   async function handleGroupChange(nextGroupId: string) {
