@@ -1020,6 +1020,9 @@ setMessage("");
 
     let homeTeamName = "Home";
     let awayTeamName = "Away";
+    let matchHomeTeamId = "";
+    let matchAwayTeamId = "";
+    let sourceType = "event";
 
     let sourceBracketIndex = -1;
     let sourceLeagueIndex = -1;
@@ -1042,6 +1045,9 @@ setMessage("");
 
       homeTeamName = participantsInfo[0]?.name || "Player 1";
       awayTeamName = participantsInfo[1]?.name || "Player 2";
+      matchHomeTeamId = participantsInfo[0]?.uid || "";
+      matchAwayTeamId = participantsInfo[1]?.uid || "";
+      sourceType = "eventParticipants";
     } else {
       const teams = event.teams || [];
 
@@ -1106,6 +1112,10 @@ setMessage("");
         return;
       }
 
+      matchHomeTeamId = homeTeam.id;
+      matchAwayTeamId = awayTeam.id;
+      sourceType = "eventTeams";
+
       players = [
         ...homeTeam.players.map((player) => ({
           uid: player.uid,
@@ -1154,6 +1164,9 @@ setMessage("");
 
       homeTeam: homeTeamName,
       awayTeam: awayTeamName,
+      homeTeamId: matchHomeTeamId,
+      awayTeamId: matchAwayTeamId,
+      sourceType,
       homeScore: null,
       awayScore: null,
 
