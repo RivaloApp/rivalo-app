@@ -593,7 +593,7 @@ function TopIcons({
   }
 
   return (
-    <div className="flex shrink-0 items-center justify-end gap-3 sm:gap-4">
+    <div className="flex w-full items-center justify-between gap-3">
       <button
         type="button"
         onClick={onOpenMenu}
@@ -604,37 +604,39 @@ function TopIcons({
         <Menu size={22} />
       </button>
 
-      <Link
-        href="/notifications"
-        className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
-        title="Notifiche"
-      >
-        <Bell size={22} />
+      <div className="flex shrink-0 items-center justify-end gap-3 sm:gap-4">
+        <Link
+          href="/notifications"
+          className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
+          title="Notifiche"
+        >
+          <Bell size={22} />
 
-        {unreadNotificationsCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-fuchsia-500 px-1 text-[10px] font-black text-white">
-            {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
-          </span>
-        )}
-      </Link>
+          {unreadNotificationsCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-fuchsia-500 px-1 text-[10px] font-black text-white">
+              {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
+            </span>
+          )}
+        </Link>
 
-      <Link
-        href="/profile"
-        className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
-        title="Profilo"
-        aria-label="Profilo"
-      >
-        <Settings size={22} />
-      </Link>
+        <Link
+          href="/profile"
+          className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
+          title="Profilo"
+          aria-label="Profilo"
+        >
+          <Settings size={22} />
+        </Link>
 
-      <button
-        type="button"
-        onClick={handleLogout}
-        className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-red-100 transition hover:bg-red-500/20 lg:hidden"
-        title="Esci"
-      >
-        <LogOut size={22} />
-      </button>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-red-100 transition hover:bg-red-500/20 lg:hidden"
+          title="Esci"
+        >
+          <LogOut size={22} />
+        </button>
+      </div>
     </div>
   );
 }
