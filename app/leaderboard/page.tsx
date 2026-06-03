@@ -61,6 +61,30 @@ function sportLabel(filter: SportFilter) {
   return "Tutti gli sport";
 }
 
+function rankScoreLabel(filter: SportFilter) {
+  if (filter === "calcetto") return "Football Score";
+  if (filter === "padel") return "Padel Score";
+  if (filter === "tennis") return "Tennis Score";
+
+  return "Rivalo Score";
+}
+
+function rankingDescription(filter: SportFilter) {
+  if (filter === "calcetto") {
+    return "Peso maggiore a vittorie, RivalScore, MVP, costanza, gol e assist.";
+  }
+
+  if (filter === "padel") {
+    return "Peso maggiore a vittorie, win rate, streak, MVP e costanza. Gol e assist non contano.";
+  }
+
+  if (filter === "tennis") {
+    return "Peso maggiore a vittorie, win rate, streak, RivalScore e costanza. Gol e assist non contano.";
+  }
+
+  return "Ranking generale Rivalo: confronta tutti gli sport usando criteri tecnici separati.";
+}
+
 function isActiveUser(user: UserRow) {
   return Number(user.matchesPlayed || 0) > 0;
 }
@@ -131,10 +155,52 @@ function calculateCalcettoRankScore(user: UserRow) {
   );
 }
 
-function calculateSportRankScore(user: UserRow, filter: SportFilter) {
-  if (filter === "calcetto") return calculateCalcettoRankScore(user);
+function calculateRacketRankScore(user: UserRow, sport: "padel" | "tennis") {
+  const matches = Number(user.matchesPlayed || 0);
+  const wins = Number(user.wins || 0);
+  const losses = Number(user.losses || 0);
+  const draws = Number(user.draws || 0);
+  const mvp = Number(user.mvp || 0);
+  const winStreak = Number(user.winStreak || 0);
+  const rivalScore = Number(user.rivalScore || 1000);
+  const xp = Number(user.xp || 0);
+  const level = Number(user.level || 1);
 
-  return calculateUniversalRankScore(user);
+  if (matches <= 0) return 0;
+
+  const winRate = wins / matches;
+  const consistencyBonus = Math.min(matches, 40) * (sport === "padel" ? 22 : 24);
+  const winRateBonus = Math.round(winRate * (sport === "padel" ? 260 : 285));
+  const streakBonus = Math.min(winStreak, 12) * (sport === "padel" ? 32 : 36);
+  const mvpBonus = mvp * (sport === "padel" ? 70 : 65);
+  const levelBonus = Math.min(level, 80) * 6;
+
+  const score =
+    wins * (sport === "padel" ? 135 : 145) +
+    draws * 20 +
+    consistencyBonus +
+    winRateBonus +
+    streakBonus +
+    mvpBonus +
+    levelBonus +
+    Math.max(0, rivalScore - 1000) * 0.5 +
+    Math.min(xp, 6000) * 0.02 -
+    losses * (sport === "padel" ? 28 : 30);
+
+  return Math.max(0, Math.round(score));
+}
+
+function calculateSportRankScore(user: UserRow, filter: SportFilter) {
+  const userSport = getUserSport(user);
+
+  if (filter === "calcetto") return calculateCalcettoRankScore(user);
+  if (filter === "padel") return calculateRacketRankScore(user, "padel");
+  if (filter === "tennis") return calculateRacketRankScore(user, "tennis");
+
+  if (userSport === "padel") return calculateRacketRankScore(user, "padel");
+  if (userSport === "tennis") return calculateRacketRankScore(user, "tennis");
+
+  return calculateCalcettoRankScore(user);
 }
 
 function compareUsers(a: UserRow, b: UserRow, filter: SportFilter) {
@@ -148,15 +214,30 @@ function compareUsers(a: UserRow, b: UserRow, filter: SportFilter) {
   const scoreA = calculateSportRankScore(a, filter);
   const scoreB = calculateSportRankScore(b, filter);
 
-  return (
+  const matchesA = Number(a.matchesPlayed || 0);
+  const matchesB = Number(b.matchesPlayed || 0);
+  const winRateA = matchesA > 0 ? Number(a.wins || 0) / matchesA : 0;
+  const winRateB = matchesB > 0 ? Number(b.wins || 0) / matchesB : 0;
+
+  const baseCompare =
     scoreB - scoreA ||
     Number(b.rivalScore || 1000) - Number(a.rivalScore || 1000) ||
     Number(b.wins || 0) - Number(a.wins || 0) ||
+    winRateB - winRateA ||
     Number(b.mvp || 0) - Number(a.mvp || 0) ||
-    Number(b.matchesPlayed || 0) - Number(a.matchesPlayed || 0) ||
-    Number(b.goals || 0) - Number(a.goals || 0) ||
-    Number(b.assists || 0) - Number(a.assists || 0)
-  );
+    matchesB - matchesA ||
+    Number(b.winStreak || 0) - Number(a.winStreak || 0);
+
+  if (baseCompare !== 0) return baseCompare;
+
+  if (filter === "calcetto" || filter === "all") {
+    return (
+      Number(b.goals || 0) - Number(a.goals || 0) ||
+      Number(b.assists || 0) - Number(a.assists || 0)
+    );
+  }
+
+  return 0;
 }
 
 function topBy(
@@ -243,6 +324,7 @@ export default function LeaderboardPage() {
   }, [filteredUsers, sportFilter]);
 
   const isCalcettoView = sportFilter === "calcetto" || sportFilter === "all";
+  const isRacketView = sportFilter === "padel" || sportFilter === "tennis";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] px-4 py-6 text-white sm:px-5 sm:py-8">
@@ -327,8 +409,11 @@ export default function LeaderboardPage() {
             <div className="mb-6 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.06] p-4 text-sm leading-6 text-cyan-100">
               Vista attiva: <span className="font-black">{sportLabel(sportFilter)}</span>.
               {sportFilter === "all"
-                ? " Classifica generale Rivalo, con ranking universale e utenti attivi sempre in alto."
+                ? " Classifica generale Rivalo con criteri separati per sport."
                 : " Classifica filtrata solo per questo sport."}
+              <span className="block pt-1 text-cyan-200/90">
+                {rankingDescription(sportFilter)}
+              </span>
             </div>
 
             {loading ? (
@@ -361,14 +446,14 @@ export default function LeaderboardPage() {
                   ) : (
                     <>
                       <CategoryCard
-                        title="Top Vittorie"
-                        value={topWins?.wins || 0}
-                        user={topWins}
-                        icon={<Target className="text-lime-300" />}
+                        title={sportFilter === "padel" ? "Padel Score" : "Tennis Score"}
+                        value={topRankScore ? calculateSportRankScore(topRankScore, sportFilter) : 0}
+                        user={topRankScore}
+                        icon={<Medal className="text-yellow-300" />}
                       />
 
                       <CategoryCard
-                        title="Top WR%"
+                        title="Win Rate"
                         value={
                           topWinRate
                             ? Math.round(
@@ -380,15 +465,16 @@ export default function LeaderboardPage() {
                         }
                         user={topWinRate}
                         icon={<ShieldCheck className="text-cyan-300" />}
+                        suffix="%"
                       />
                     </>
                   )}
 
                   <CategoryCard
-                    title="MVP King"
-                    value={topMvp?.mvp || 0}
-                    user={topMvp}
-                    icon={<Crown className="text-yellow-200" />}
+                    title={isRacketView ? "Top Vittorie" : "MVP King"}
+                    value={isRacketView ? topWins?.wins || 0 : topMvp?.mvp || 0}
+                    user={isRacketView ? topWins : topMvp}
+                    icon={isRacketView ? <Target className="text-lime-300" /> : <Crown className="text-yellow-200" />}
                   />
 
                   <CategoryCard
@@ -497,11 +583,13 @@ function CategoryCard({
   value,
   user,
   icon,
+  suffix = "",
 }: {
   title: string;
   value: number;
   user?: UserRow;
   icon: React.ReactNode;
+  suffix?: string;
 }) {
   return (
     <div className="rounded-[1.35rem] border border-white/10 bg-black/20 p-4 sm:rounded-[1.6rem]">
@@ -514,7 +602,7 @@ function CategoryCard({
       </div>
 
       <div className="mt-3 text-4xl font-black leading-none text-white sm:text-5xl">
-        {value}
+        {value}{suffix}
       </div>
 
       <div className="mt-2 truncate text-sm text-cyan-300">
@@ -614,7 +702,7 @@ function LeaderboardPodiumCard({
       <div className="relative mt-4 flex items-center justify-between gap-3 rounded-2xl border border-cyan-400/10 bg-black/15 px-4 py-3">
         <div>
           <div className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
-            Rank Score
+            {rankScoreLabel(sportFilter)}
           </div>
 
           <div className="text-[11px] text-slate-500">
@@ -663,6 +751,10 @@ function CompactRow({
   const displayName = getDisplayName(user);
   const rankScore = calculateSportRankScore(user, sportFilter);
   const isActive = isActiveUser(user);
+  const matches = Number(user.matchesPlayed || 0);
+  const wins = Number(user.wins || 0);
+  const winRate = matches > 0 ? Math.round((wins / matches) * 100) : 0;
+  const isRacketView = sportFilter === "padel" || sportFilter === "tennis";
 
   return (
     <div
@@ -710,11 +802,15 @@ function CompactRow({
 
       <div className="grid grid-cols-4 gap-3 text-center md:flex md:items-center md:gap-6">
         <CompactStat label="Rank" value={rankScore} color="text-cyan-300" />
-        <CompactStat label="Win" value={user.wins || 0} color="text-lime-300" />
-        <CompactStat label="MVP" value={user.mvp || 0} color="text-yellow-100" />
+        <CompactStat label="Win" value={wins} color="text-lime-300" />
         <CompactStat
-          label="Partite"
-          value={user.matchesPlayed || 0}
+          label={isRacketView ? "WR%" : "MVP"}
+          value={isRacketView ? winRate : user.mvp || 0}
+          color={isRacketView ? "text-cyan-200" : "text-yellow-100"}
+        />
+        <CompactStat
+          label={isRacketView ? "Streak" : "Partite"}
+          value={isRacketView ? user.winStreak || 0 : matches}
           color="text-slate-200"
         />
       </div>
