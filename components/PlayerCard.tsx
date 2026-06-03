@@ -276,7 +276,7 @@ export default function PlayerCard({
           <div className="pointer-events-none absolute left-[-40%] top-[-20%] h-[160%] w-[70%] rotate-12 bg-cyan-300/[.035] blur-xl" />
           <div className="pointer-events-none absolute right-[-36%] top-[10%] h-[130%] w-[70%] rotate-[-10deg] bg-fuchsia-400/[.04] blur-xl" />
 
-          <div className="relative z-10 flex h-[365px] flex-col px-4 pb-6 pt-4 sm:h-[465px] sm:px-5 sm:pb-7 sm:pt-5">
+          <div className="relative z-10 flex h-[385px] flex-col px-4 pb-6 pt-4 sm:h-[485px] sm:px-5 sm:pb-7 sm:pt-5">
             <div className="flex items-start justify-between">
               <div>
                 <div className={`text-4xl font-black leading-none ${theme.ratingText} sm:text-5xl`}>
@@ -293,15 +293,15 @@ export default function PlayerCard({
               </div>
             </div>
 
-            <div className="relative mt-1 flex h-[92px] items-center justify-center sm:mt-3 sm:h-[140px]">
+            <div className="relative mt-1 flex h-[84px] items-center justify-center sm:mt-3 sm:h-[132px]">
               {displayPhoto ? (
                 <img
                   src={displayPhoto}
                   alt="Foto profilo"
-                  className="relative z-10 h-[88px] w-[88px] rounded-[1rem] object-cover shadow-[0_0_18px_rgba(255,255,255,.10)] sm:h-[132px] sm:w-[132px] sm:rounded-[1.25rem] sm:shadow-[0_0_22px_rgba(255,255,255,.12)]"
+                  className="relative z-10 h-[82px] w-[82px] rounded-[1rem] object-cover shadow-[0_0_18px_rgba(255,255,255,.10)] sm:h-[126px] sm:w-[126px] sm:rounded-[1.25rem] sm:shadow-[0_0_22px_rgba(255,255,255,.12)]"
                 />
               ) : (
-                <div className="relative z-10 flex h-[88px] w-[88px] items-center justify-center rounded-[1rem] border border-cyan-300/20 bg-black/25 sm:h-[132px] sm:w-[132px] sm:rounded-[1.25rem]">
+                <div className="relative z-10 flex h-[82px] w-[82px] items-center justify-center rounded-[1rem] border border-cyan-300/20 bg-black/25 sm:h-[126px] sm:w-[126px] sm:rounded-[1.25rem]">
                   <UserRound size={48} className="text-cyan-200 sm:hidden" />
                   <UserRound size={70} className="hidden text-cyan-200 sm:block" />
                 </div>
@@ -322,7 +322,7 @@ export default function PlayerCard({
               </div>
             </div>
 
-            <div className="mt-auto pb-8 pt-2 sm:pb-12 sm:pt-3">
+            <div className="mt-3 pb-16 pt-1 sm:mt-4 sm:pb-20 sm:pt-2">
               <div className="grid grid-cols-3 gap-1.5 text-center sm:gap-2">
                 {stats.map((stat) => (
                   <CardStat
@@ -351,12 +351,12 @@ function CardStat({
   theme: ReturnType<typeof getSportTheme>;
 }) {
   return (
-    <div className={`min-w-0 rounded-lg border ${theme.statBorder} bg-black/35 px-0.5 py-1.5 shadow-[0_0_14px_rgba(0,0,0,.24)]`}>
-      <div className={`text-[13px] font-black leading-none ${theme.statText} sm:text-[15px]`}>
+    <div className={`min-w-0 rounded-lg border ${theme.statBorder} bg-black/35 px-0.5 py-1 shadow-[0_0_14px_rgba(0,0,0,.24)]`}>
+      <div className={`text-[12px] font-black leading-none ${theme.statText} sm:text-[15px]`}>
         {value}
       </div>
 
-      <div className={`mt-1 text-[7px] font-black uppercase ${theme.statLabel} sm:text-[8px]`}>
+      <div className={`mt-0.5 text-[7px] font-black uppercase ${theme.statLabel} sm:mt-1 sm:text-[8px]`}>
         {label}
       </div>
     </div>
