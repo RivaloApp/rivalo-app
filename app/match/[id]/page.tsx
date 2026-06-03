@@ -74,6 +74,35 @@ sourceType?: string;
   competitionFormat?: string;
 };
 
+type UserProfile = {
+  mainSport?: string;
+  sport?: string;
+};
+
+function normalizeSport(value?: string) {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+  return "calcetto";
+}
+
+function sportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Padel";
+  if (sport === "tennis") return "Tennis";
+  return "Calcetto";
+}
+
+function isSameUserSport(match: MatchDoc, userSport: string) {
+  return normalizeSport(match.sport) === normalizeSport(userSport);
+}
+
+function canUseMatch(match: MatchDoc, uid: string, userSport: string) {
+  return canAccessMatch(match, uid) && isSameUserSport(match, userSport);
+}
+
 function canAccessMatch(match: MatchDoc, uid: string) {
   if (!uid) return false;
 
@@ -98,9 +127,11 @@ export default function MatchDetailsPage() {
   const matchId = params.id as string;
 
   const [user, setUser] = useState<User | null>(null);
+  const [userSport, setUserSport] = useState("calcetto");
   const [match, setMatch] = useState<MatchDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
+  const [sportMismatch, setSportMismatch] = useState(false);
 
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
@@ -130,6 +161,7 @@ export default function MatchDetailsPage() {
   async function loadMatch(currentUserId?: string) {
     setLoading(true);
     setUnauthorized(false);
+    setSportMismatch(false);
 
     try {
       const snap = await getDoc(doc(db, "matches", matchId));
@@ -138,9 +170,29 @@ export default function MatchDetailsPage() {
         const data = snap.data() as MatchDoc;
         const safeUserId = currentUserId || user?.uid || "";
 
+        const profileSnap = safeUserId
+          ? await getDoc(doc(db, "users", safeUserId))
+          : null;
+
+        const profile = profileSnap?.exists()
+          ? (profileSnap.data() as UserProfile)
+          : null;
+
+        const currentUserSport = normalizeSport(
+          profile?.mainSport || profile?.sport || "calcetto"
+        );
+
+        setUserSport(currentUserSport);
+
         if (!canAccessMatch(data, safeUserId)) {
           setUnauthorized(true);
           setMatch(null);
+          return;
+        }
+
+        if (!isSameUserSport(data, currentUserSport)) {
+          setSportMismatch(true);
+          setMatch(data);
           return;
         }
 
@@ -425,6 +477,11 @@ export default function MatchDetailsPage() {
       return;
     }
 
+    if (!canUseMatch(match, user.uid, userSport)) {
+      setMessage("Questo match appartiene a un altro sport. Usa un profilo sport compatibile.");
+      return;
+    }
+
     if (match.status === "ufficiale" || match.resultStatus === "confermato") {
       setMessage("Match già ufficiale. Non puoi modificare il risultato.");
       return;
@@ -474,6 +531,11 @@ setMessage("Risultato proposto. Ora puoi confermarlo.");
       return;
     }
 
+    if (!canUseMatch(match, user.uid, userSport)) {
+      setMessage("Questo match appartiene a un altro sport. Non puoi confermare né applicare statistiche.");
+      return;
+    }
+
     setSaving(true);
     setMessage("");
 
@@ -490,6 +552,10 @@ setMessage("Risultato proposto. Ora puoi confermarlo.");
 
         const freshMatch = freshSnap.data() as MatchDoc;
         matchForStats = freshMatch;
+
+        if (!canUseMatch(freshMatch, user.uid, userSport)) {
+          throw new Error("SPORT_MISMATCH");
+        }
 
         if (freshMatch.statsApplied) {
           throw new Error("STATS_ALREADY_APPLIED");
@@ -556,6 +622,9 @@ setMessage("Risultato proposto. Ora puoi confermarlo.");
   eventId: safeMatch.eventId,
   homeTeam,
   awayTeam,
+  homeTeamId: safeMatch.homeTeamId,
+  awayTeamId: safeMatch.awayTeamId,
+  sport: safeMatch.sport,
   homeScore: Number(homeScore || 0),
   awayScore: Number(awayScore || 0),
 });
@@ -592,6 +661,10 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
         setMessage(
           "Aggiornamento statistiche già in corso. Attendi qualche secondo."
         );
+      } else if (error?.message === "SPORT_MISMATCH") {
+        setMessage(
+          "Questo match appartiene a un altro sport. Statistiche non applicate."
+        );
       } else {
         await updateDoc(matchRef, {
           statsApplying: false,
@@ -611,6 +684,11 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
 
     if (!canAccessMatch(match, user.uid)) {
       setMessage("Non puoi contestare un match in cui non sei coinvolto.");
+      return;
+    }
+
+    if (!canUseMatch(match, user.uid, userSport)) {
+      setMessage("Questo match appartiene a un altro sport. Usa un profilo sport compatibile.");
       return;
     }
 
@@ -679,6 +757,33 @@ setMessage("Risultato contestato. Servirà revisione.");
     );
   }
 
+  if (sportMismatch && match) {
+    return (
+      <main className="min-h-screen bg-[#020617] px-5 py-8 text-white">
+        <section className="relative z-10 mx-auto max-w-2xl">
+          <Link
+            href="/match"
+            className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
+          >
+            <ArrowLeft size={17} />
+            Torna ai match
+          </Link>
+
+          <div className="mt-8 rounded-[2rem] border border-red-400/20 bg-red-500/10 p-7 text-center">
+            <div className="text-3xl font-black text-red-100">
+              Match non compatibile
+            </div>
+
+            <p className="mt-4 leading-7 text-slate-300">
+              Questo match è dedicato a {sportLabel(match.sport)}, mentre il tuo profilo attivo è {sportLabel(userSport)}.
+              Per usare un altro sport servirà un profilo sport separato.
+            </p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   if (!match) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
@@ -716,7 +821,7 @@ setMessage("Risultato contestato. Servirà revisione.");
             <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[.22em] text-cyan-200">
-                  {match.sport}
+                  {sportLabel(match.sport)}
                 </div>
 
                 <h1 className="mt-5 text-5xl font-black tracking-tight md:text-6xl">
