@@ -406,7 +406,7 @@ export default function PlayerCard({
                 ))}
               </div>
 
-              <div className="mt-1.5 grid grid-cols-3 gap-1.5 text-center sm:mt-2 sm:gap-2">
+              <div className="mx-3 mt-1.5 grid grid-cols-3 gap-1.5 text-center sm:mx-4 sm:mt-2 sm:gap-2">
                 {bottomStats.map((stat) => (
                   <CardFact
                     key={stat.label}
