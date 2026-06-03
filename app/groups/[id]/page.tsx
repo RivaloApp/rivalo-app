@@ -99,6 +99,8 @@ type JoinRequest = {
 type UserProfile = {
   mainSport?: string;
   sport?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 function normalizeSport(value?: string) {
@@ -115,6 +117,14 @@ function sportLabel(value?: string) {
   if (sport === "padel") return "Padel";
   if (sport === "tennis") return "Tennis";
   return "Calcetto";
+}
+
+function isProfileDeletionRequested(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted" ||
+      profile?.deletionRequested
+  );
 }
 
 function getProfileName(profile?: MemberProfile) {
@@ -154,6 +164,7 @@ export default function GroupDetailsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [userSport, setUserSport] = useState("calcetto");
   const [sportMismatch, setSportMismatch] = useState(false);
+  const [accountLocked, setAccountLocked] = useState(false);
   const [memberProfiles, setMemberProfiles] = useState<MemberProfile[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
   const [addingMember, setAddingMember] = useState(false);
@@ -189,6 +200,7 @@ const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   async function loadGroup(currentUserId = user?.uid || "") {
     setLoading(true);
     setSportMismatch(false);
+    setAccountLocked(false);
 
     try {
       const ref = doc(db, "groups", groupId);
@@ -227,6 +239,7 @@ const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
       );
 
       setUserSport(currentUserSport);
+      setAccountLocked(isProfileDeletionRequested(profile));
       setGroup(loadedGroup);
 
       if (normalizeSport(loadedGroup.sport) !== currentUserSport) {
@@ -332,6 +345,11 @@ setJoinRequests(requestsResult);
 
     if (!user || !group) return;
 
+    if (accountLocked) {
+      setMessage("Profilo segnato per rimozione: non puoi aggiungere membri al gruppo.");
+      return;
+    }
+
     const search = memberSearch.trim();
 
     if (!search) {
@@ -435,6 +453,11 @@ setJoinRequests(requestsResult);
 
     if (!user || !group) return;
 
+    if (accountLocked) {
+      setMessage("Profilo segnato per rimozione: non puoi creare squadre gruppo.");
+      return;
+    }
+
     if (sportMismatch || normalizeSport(group.sport) !== userSport) {
       setMessage("Non puoi creare squadre in un gruppo di un altro sport.");
       return;
@@ -488,6 +511,11 @@ setJoinRequests(requestsResult);
 
   async function addMemberToTeam(teamId: string, memberUid: string) {
     if (!user || !group) return;
+
+    if (accountLocked) {
+      setMessage("Profilo segnato per rimozione: non puoi modificare squadre gruppo.");
+      return;
+    }
 
     if (sportMismatch || normalizeSport(group.sport) !== userSport) {
       setMessage("Non puoi modificare squadre in un gruppo di un altro sport.");
@@ -553,6 +581,11 @@ setJoinRequests(requestsResult);
   }
 
   async function acceptJoinRequest(request: JoinRequest) {
+  if (accountLocked) {
+    setMessage("Profilo segnato per rimozione: non puoi gestire richieste ingresso.");
+    return;
+  }
+
   if (!request.fromUid) {
     setMessage("Richiesta non valida.");
     return;
@@ -614,6 +647,11 @@ setJoinRequests(requestsResult);
 }
 
 async function rejectJoinRequest(request: JoinRequest) {
+  if (accountLocked) {
+    setMessage("Profilo segnato per rimozione: non puoi gestire richieste ingresso.");
+    return;
+  }
+
   if (!request.fromUid) {
     setMessage("Richiesta non valida.");
     return;
@@ -750,7 +788,8 @@ async function rejectJoinRequest(request: JoinRequest) {
       match.resultStatus === "proposto"
   ).length;
   const canManageGroup =
-  user?.uid === group.ownerId || Boolean(group.admins?.includes(user?.uid || ""));
+  !accountLocked &&
+  (user?.uid === group.ownerId || Boolean(group.admins?.includes(user?.uid || "")));
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
@@ -806,12 +845,18 @@ async function rejectJoinRequest(request: JoinRequest) {
           </div>
         </section>
 
+        {accountLocked && (
+          <div className="mt-6 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+            Profilo segnato per rimozione: creazione match, inviti, richieste, squadre e modifiche gruppo sono bloccati.
+          </div>
+        )}
+
         <section className="mt-8 grid gap-5 lg:grid-cols-4">
           <ActionCard
-            href={`/match?groupId=${groupId}`}
+            href={accountLocked ? undefined : `/match?groupId=${groupId}`}
             icon={<CalendarDays />}
             title="Crea partita"
-            text="Organizza match del gruppo."
+            text={accountLocked ? "Azione bloccata per profilo in rimozione." : "Organizza match del gruppo."}
           />
 
           <ActionCard
@@ -913,7 +958,7 @@ async function rejectJoinRequest(request: JoinRequest) {
 
                 <button
                   type="submit"
-                  disabled={addingMember}
+                  disabled={addingMember || accountLocked}
                   className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
                 >
                   {addingMember ? "Aggiunta..." : "Aggiungi al gruppo"}
@@ -972,7 +1017,8 @@ async function rejectJoinRequest(request: JoinRequest) {
               <button
                 type="button"
                 onClick={() => acceptJoinRequest(request)}
-                className="rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-sm font-black text-lime-200"
+                disabled={accountLocked}
+                className="rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-sm font-black text-lime-200 disabled:opacity-60"
               >
                 Accetta
               </button>
@@ -980,7 +1026,8 @@ async function rejectJoinRequest(request: JoinRequest) {
               <button
                 type="button"
                 onClick={() => rejectJoinRequest(request)}
-                className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-sm font-black text-red-200"
+                disabled={accountLocked}
+                className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-sm font-black text-red-200 disabled:opacity-60"
               >
                 Rifiuta
               </button>
@@ -1009,12 +1056,18 @@ async function rejectJoinRequest(request: JoinRequest) {
               </p>
             </div>
 
-            <Link
-              href={`/match?groupId=${groupId}`}
-              className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-200"
-            >
-              Crea match gruppo
-            </Link>
+            {accountLocked ? (
+              <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-5 py-3 text-sm font-black text-yellow-100">
+                Creazione match bloccata
+              </div>
+            ) : (
+              <Link
+                href={`/match?groupId=${groupId}`}
+                className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-sm font-black text-cyan-200"
+              >
+                Crea match gruppo
+              </Link>
+            )}
           </div>
 
           {groupMatches.length === 0 ? (
@@ -1085,11 +1138,13 @@ async function rejectJoinRequest(request: JoinRequest) {
                   const displayCaptain =
                     team.captainName || getProfileName(captainProfile);
 
-                  const canManageSelectedTeam = canManageTeam({
-                    userId: user?.uid,
-                    group,
-                    team,
-                  });
+                  const canManageSelectedTeam =
+                    !accountLocked &&
+                    canManageTeam({
+                      userId: user?.uid,
+                      group,
+                      team,
+                    });
 
                   const availableTeamMembers = memberProfiles.filter(
                     (member) => !team.members?.includes(member.uid)
@@ -1239,7 +1294,7 @@ async function rejectJoinRequest(request: JoinRequest) {
 
               <button
                 type="submit"
-                disabled={creatingTeam}
+                disabled={creatingTeam || accountLocked}
                 className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
               >
                 {creatingTeam ? "Creazione..." : "Crea squadra"}
@@ -1267,8 +1322,11 @@ async function rejectJoinRequest(request: JoinRequest) {
                 e gestione quote evento.
               </p>
 
-              <button className="mt-5 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black">
-                Attiva campionato
+              <button
+                disabled={accountLocked}
+                className="mt-5 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
+              >
+                {accountLocked ? "Azione bloccata" : "Attiva campionato"}
                 <ChevronRight size={20} />
               </button>
             </div>

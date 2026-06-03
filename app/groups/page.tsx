@@ -44,6 +44,8 @@ type UserProfile = {
   city?: string;
   cityZone?: string;
   zone?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 function normalizeSport(value?: string) {
@@ -62,6 +64,14 @@ function sportLabel(value?: string) {
   return "Calcetto";
 }
 
+function isProfileDeletionRequested(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted" ||
+      profile?.deletionRequested
+  );
+}
+
 export default function GroupsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [userSport, setUserSport] = useState("calcetto");
@@ -73,6 +83,7 @@ export default function GroupsPage() {
   const [mode, setMode] = useState("amichevole");
   const [privacy, setPrivacy] = useState("privato");
   const [saving, setSaving] = useState(false);
+  const [accountLocked, setAccountLocked] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -99,6 +110,7 @@ export default function GroupsPage() {
 
       setUserSport(currentUserSport);
       setUserCity(currentUserCity);
+      setAccountLocked(isProfileDeletionRequested(profile));
       setSport(currentUserSport);
       setCity(currentUserCity);
 
@@ -137,6 +149,11 @@ export default function GroupsPage() {
     e.preventDefault();
 
     if (!user) return;
+
+    if (accountLocked) {
+      setMessage("Profilo segnato per rimozione: non puoi creare nuovi gruppi.");
+      return;
+    }
 
     const lockedSport = normalizeSport(userSport);
 
@@ -224,6 +241,13 @@ export default function GroupsPage() {
             </div>
 
             <div className="space-y-4">
+              {accountLocked && (
+                <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                  Profilo segnato per rimozione: la creazione di nuovi gruppi è bloccata.
+                </div>
+              )}
+
+              <fieldset disabled={accountLocked || saving} className="space-y-4 disabled:opacity-60">
               <Field label="Nome gruppo">
                 <input
                   required
@@ -277,20 +301,21 @@ export default function GroupsPage() {
                 <option value="su-invito">Solo su invito</option>
               </Select>
 
+              <button
+                type="submit"
+                disabled={saving || accountLocked}
+                className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black shadow-[0_0_30px_rgba(34,211,238,.18)] disabled:opacity-60"
+              >
+                {accountLocked ? "Creazione bloccata" : saving ? "Creazione..." : "Crea gruppo Rivalo"}
+                <ChevronRight className="transition group-hover:translate-x-1" />
+              </button>
+              </fieldset>
+
               {message && (
                 <div className="rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3 text-sm font-bold text-slate-200">
                   {message}
                 </div>
               )}
-
-              <button
-                type="submit"
-                disabled={saving}
-                className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black shadow-[0_0_30px_rgba(34,211,238,.18)] disabled:opacity-60"
-              >
-                {saving ? "Creazione..." : "Crea gruppo Rivalo"}
-                <ChevronRight className="transition group-hover:translate-x-1" />
-              </button>
             </div>
           </form>
         </div>
