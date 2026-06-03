@@ -10,6 +10,7 @@ import {
   increment,
   runTransaction,
   serverTimestamp,
+  Timestamp,
   updateDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -51,6 +52,12 @@ type MatchDoc = {
   status?: string;
   resultStatus?: string;
   fairPlayStatus?: string;
+  resultProposedBy?: string;
+  resultProposedTeam?: "home" | "away" | "";
+  resultConfirmRequiredTeam?: "home" | "away" | "";
+  resultProposalExpiresAt?: any;
+  confirmedBy?: string[];
+  disputedBy?: string[];
   homeTeam?: string;
   awayTeam?: string;
   homeTeamId?: string;
@@ -120,6 +127,63 @@ function canAccessMatch(match: MatchDoc, uid: string) {
   }
 
   return false;
+}
+
+function getUserTeam(match: MatchDoc, uid: string): "home" | "away" | "" {
+  if (!uid) return "";
+
+  const playerTeam = (match.players || []).find(
+    (player) => player.uid === uid
+  )?.team;
+
+  if (playerTeam === "home" || playerTeam === "away") {
+    return playerTeam;
+  }
+
+  return "";
+}
+
+function getOpponentTeam(team: "home" | "away" | ""): "home" | "away" | "" {
+  if (team === "home") return "away";
+  if (team === "away") return "home";
+  return "";
+}
+
+function getTeamName(match: MatchDoc, team: "home" | "away" | "") {
+  if (team === "home") return match.homeTeam || "Squadra 1";
+  if (team === "away") return match.awayTeam || "Squadra 2";
+  return "Squadra";
+}
+
+function isProposalExpired(match: MatchDoc) {
+  const rawDeadline = match.resultProposalExpiresAt;
+
+  if (!rawDeadline) return false;
+
+  const deadline =
+    typeof rawDeadline?.toDate === "function"
+      ? rawDeadline.toDate()
+      : new Date(rawDeadline);
+
+  return deadline.getTime() <= Date.now();
+}
+
+function formatDeadline(match: MatchDoc) {
+  const rawDeadline = match.resultProposalExpiresAt;
+
+  if (!rawDeadline) return "";
+
+  const deadline =
+    typeof rawDeadline?.toDate === "function"
+      ? rawDeadline.toDate()
+      : new Date(rawDeadline);
+
+  return deadline.toLocaleString("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function MatchDetailsPage() {
@@ -482,6 +546,21 @@ export default function MatchDetailsPage() {
       return;
     }
 
+    const userTeam = getUserTeam(match, user.uid);
+    const requiredTeam = match.resultConfirmRequiredTeam || "";
+
+    if (match.resultStatus === "proposto" && (!userTeam || userTeam !== requiredTeam)) {
+      setMessage(
+        `Solo ${getTeamName(match, requiredTeam)} può contestare questa proposta.`
+      );
+      return;
+    }
+
+    if (match.resultProposedBy === user.uid) {
+      setMessage("Chi propone il risultato non può contestare la propria proposta.");
+      return;
+    }
+
     if (match.status === "ufficiale" || match.resultStatus === "confermato") {
       setMessage("Match già ufficiale. Non puoi modificare il risultato.");
       return;
@@ -491,6 +570,19 @@ export default function MatchDetailsPage() {
     setMessage("");
 
     try {
+      const proposerTeam = getUserTeam(match, user.uid);
+
+      if (!proposerTeam) {
+        setMessage("Per proporre il risultato devi essere assegnato a Squadra 1 o Squadra 2.");
+        setSaving(false);
+        return;
+      }
+
+      const requiredTeam = getOpponentTeam(proposerTeam);
+      const expiresAt = Timestamp.fromDate(
+        new Date(Date.now() + 24 * 60 * 60 * 1000)
+      );
+
       await updateDoc(doc(db, "matches", matchId), {
         homeTeam,
         awayTeam,
@@ -503,6 +595,9 @@ export default function MatchDetailsPage() {
         resultStatus: "proposto",
         fairPlayStatus: "in_attesa",
         resultProposedBy: user.uid,
+        resultProposedTeam: proposerTeam,
+        resultConfirmRequiredTeam: requiredTeam,
+        resultProposalExpiresAt: expiresAt,
         resultProposedAt: serverTimestamp(),
       });
 
@@ -515,7 +610,9 @@ export default function MatchDetailsPage() {
 });
 
 await loadMatch(user?.uid);
-setMessage("Risultato proposto. Ora puoi confermarlo.");
+setMessage(
+  `Risultato proposto da ${getTeamName(match, proposerTeam)}. Ora deve confermare o contestare ${getTeamName(match, requiredTeam)} entro 24 ore.`
+);
     } catch {
       setMessage("Errore durante il salvataggio del risultato.");
     } finally {
@@ -533,6 +630,27 @@ setMessage("Risultato proposto. Ora puoi confermarlo.");
 
     if (!canUseMatch(match, user.uid, userSport)) {
       setMessage("Questo match appartiene a un altro sport. Non puoi confermare né applicare statistiche.");
+      return;
+    }
+
+    if (match.resultStatus !== "proposto") {
+      setMessage("Prima deve essere proposto un risultato.");
+      return;
+    }
+
+    const userTeam = getUserTeam(match, user.uid);
+    const requiredTeam = match.resultConfirmRequiredTeam || "";
+    const autoConfirmAllowed = isProposalExpired(match);
+
+    if (!autoConfirmAllowed && (!userTeam || userTeam !== requiredTeam)) {
+      setMessage(
+        `Solo ${getTeamName(match, requiredTeam)} può confermare questo risultato.`
+      );
+      return;
+    }
+
+    if (!autoConfirmAllowed && match.resultProposedBy === user.uid) {
+      setMessage("Chi propone il risultato non può confermarlo da solo.");
       return;
     }
 
@@ -557,6 +675,29 @@ setMessage("Risultato proposto. Ora puoi confermarlo.");
           throw new Error("SPORT_MISMATCH");
         }
 
+        const freshUserTeam = getUserTeam(freshMatch, user.uid);
+        const freshRequiredTeam = freshMatch.resultConfirmRequiredTeam || "";
+        const freshAutoConfirmAllowed = isProposalExpired(freshMatch);
+
+       if (freshMatch.resultStatus === "contestato") {
+  throw new Error("RESULT_DISPUTED");
+}
+
+if (freshMatch.resultStatus !== "proposto") {
+  throw new Error("NO_RESULT_PROPOSAL");
+}
+
+if (
+  !freshAutoConfirmAllowed &&
+  (!freshUserTeam || freshUserTeam !== freshRequiredTeam)
+) {
+  throw new Error("WRONG_TEAM_CONFIRMATION");
+}
+
+if (!freshAutoConfirmAllowed && freshMatch.resultProposedBy === user.uid) {
+  throw new Error("PROPOSER_CANNOT_CONFIRM");
+}
+
         if (freshMatch.statsApplied) {
           throw new Error("STATS_ALREADY_APPLIED");
         }
@@ -567,9 +708,10 @@ setMessage("Risultato proposto. Ora puoi confermarlo.");
 
         transaction.update(matchRef, {
           confirmedBy: arrayUnion(user.uid),
+          confirmedTeam: freshAutoConfirmAllowed ? "auto_24h" : freshUserTeam,
           status: "ufficiale",
           resultStatus: "confermato",
-          fairPlayStatus: "confermato",
+          fairPlayStatus: freshAutoConfirmAllowed ? "auto_confermato_24h" : "confermato",
           confirmedAt: serverTimestamp(),
           statsApplying: true,
           statsApplyingBy: user.uid,
@@ -665,6 +807,14 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
         setMessage(
           "Questo match appartiene a un altro sport. Statistiche non applicate."
         );
+      } else if (error?.message === "NO_RESULT_PROPOSAL") {
+        setMessage("Prima deve essere proposto un risultato.");
+      } else if (error?.message === "WRONG_TEAM_CONFIRMATION") {
+        setMessage("Solo la squadra avversaria può confermare questo risultato.");
+      } else if (error?.message === "PROPOSER_CANNOT_CONFIRM") {
+        setMessage("Chi propone il risultato non può confermarlo da solo.");
+      } else if (error?.message === "RESULT_DISPUTED") {
+        setMessage("Il risultato è contestato. Serve revisione prima della conferma.");
       } else {
         await updateDoc(matchRef, {
           statsApplying: false,
@@ -703,6 +853,7 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
     try {
       await updateDoc(doc(db, "matches", matchId), {
         disputedBy: arrayUnion(user.uid),
+        disputedTeam: getUserTeam(match, user.uid),
         status: "contestato",
         resultStatus: "contestato",
         fairPlayStatus: "contestato",
@@ -1004,6 +1155,14 @@ setMessage("Risultato contestato. Servirà revisione.");
                 />
               </Field>
 
+              {match.resultStatus === "proposto" && (
+                <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-3 text-sm font-bold text-yellow-100">
+                  Proposta inviata da {getTeamName(match, match.resultProposedTeam || "")}. Deve confermare o contestare {getTeamName(match, match.resultConfirmRequiredTeam || "")}
+                  {formatDeadline(match) ? ` entro ${formatDeadline(match)}` : ""}.
+                  Dopo 24 ore senza contestazione, il risultato può essere confermato automaticamente.
+                </div>
+              )}
+
               {message && (
                 <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold text-cyan-200">
                   {message}
@@ -1098,7 +1257,9 @@ setMessage("Risultato contestato. Servirà revisione.");
                   disabled={saving || isOfficial || statsLocked}
                   className="rounded-2xl border border-lime-300/30 bg-lime-400/10 px-6 py-4 font-black text-lime-200 disabled:opacity-60"
                 >
-                  Conferma risultato
+                  {match.resultStatus === "proposto" && isProposalExpired(match)
+                    ? "Conferma automatica 24h"
+                    : "Conferma risultato"}
                 </button>
 
                 <button
@@ -1115,12 +1276,11 @@ setMessage("Risultato contestato. Servirà revisione.");
 
           <div className="space-y-5">
             <Panel icon={<ShieldCheck />} title="Sistema anti-fake">
-              Risultato proposto → conferma → match ufficiale → statistiche
-              aggiornate.
+              Una squadra propone il risultato. Solo la squadra avversaria può confermare o contestare.
             </Panel>
 
             <Panel icon={<Users />} title="Conferme">
-              La contestazione mette il match in revisione.
+              Se nessuno contesta entro 24 ore, la proposta può diventare ufficiale con conferma automatica.
             </Panel>
 
             <Panel icon={<Trophy />} title="Ranking">
