@@ -94,6 +94,27 @@ type JoinRequest = {
   status?: string;
 };
 
+type UserProfile = {
+  mainSport?: string;
+  sport?: string;
+};
+
+function normalizeSport(value?: string) {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+  return "calcetto";
+}
+
+function sportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Padel";
+  if (sport === "tennis") return "Tennis";
+  return "Calcetto";
+}
+
 export default function GroupDetailsPage() {
   const params = useParams();
 
@@ -106,6 +127,8 @@ export default function GroupDetailsPage() {
 
   const [group, setGroup] = useState<RivaloGroup | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [userSport, setUserSport] = useState("calcetto");
+  const [sportMismatch, setSportMismatch] = useState(false);
   const [memberProfiles, setMemberProfiles] = useState<MemberProfile[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
   const [addingMember, setAddingMember] = useState(false);
@@ -127,7 +150,7 @@ const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
       setUser(currentUser);
 
       if (groupId) {
-        await loadGroup();
+        await loadGroup(currentUser.uid);
       }
     });
 
@@ -138,8 +161,9 @@ const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
     setMounted(true);
   }, []);
 
-  async function loadGroup() {
+  async function loadGroup(currentUserId = user?.uid || "") {
     setLoading(true);
+    setSportMismatch(false);
 
     try {
       const ref = doc(db, "groups", groupId);
@@ -153,17 +177,41 @@ const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
       const data = snap.data();
       const members = Array.isArray(data.members) ? data.members : [];
 
-      setGroup({
-  name: data.name || "Gruppo Rivalo",
-  city: data.city || "Nessuna città",
-  sport: data.sport || "Sport",
-  mode: data.mode || "Amichevole",
-  privacy: data.privacy || "public",
-  premiumPlan: data.premiumPlan || "free",
-  members,
-  ownerId: data.ownerId || "",
-  admins: Array.isArray(data.admins) ? data.admins : [],
-});
+      const loadedGroup: RivaloGroup = {
+        name: data.name || "Gruppo Rivalo",
+        city: data.city || "Nessuna città",
+        sport: normalizeSport(data.sport || "calcetto"),
+        mode: data.mode || "Amichevole",
+        privacy: data.privacy || "public",
+        premiumPlan: data.premiumPlan || "free",
+        members,
+        ownerId: data.ownerId || "",
+        admins: Array.isArray(data.admins) ? data.admins : [],
+      };
+
+      const profileSnap = currentUserId
+        ? await getDoc(doc(db, "users", currentUserId))
+        : null;
+
+      const profile = profileSnap?.exists()
+        ? (profileSnap.data() as UserProfile)
+        : null;
+
+      const currentUserSport = normalizeSport(
+        profile?.mainSport || profile?.sport || "calcetto"
+      );
+
+      setUserSport(currentUserSport);
+      setGroup(loadedGroup);
+
+      if (normalizeSport(loadedGroup.sport) !== currentUserSport) {
+        setSportMismatch(true);
+        setMemberProfiles([]);
+        setGroupMatches([]);
+        setGroupTeams([]);
+        setJoinRequests([]);
+        return;
+      }
 
       const profiles: MemberProfile[] = [];
 
@@ -305,6 +353,22 @@ setJoinRequests(requestsResult);
         return;
       }
 
+      const foundUserSnap = await getDoc(doc(db, "users", foundUser.uid));
+      const foundUserData = foundUserSnap.exists()
+        ? (foundUserSnap.data() as UserProfile)
+        : null;
+
+      const foundUserSport = normalizeSport(
+        foundUserData?.mainSport || foundUserData?.sport || "calcetto"
+      );
+
+      if (foundUserSport !== normalizeSport(group.sport)) {
+        setMessage(
+          `Non puoi aggiungere un utente ${sportLabel(foundUserSport)} a un gruppo ${sportLabel(group.sport)}.`
+        );
+        return;
+      }
+
       if (group.members?.includes(foundUser.uid)) {
         setMessage("Questo utente è già nel gruppo.");
         return;
@@ -332,7 +396,7 @@ setJoinRequests(requestsResult);
       setMemberSearch("");
       setMessage("Membro aggiunto al gruppo.");
 
-      await loadGroup();
+      await loadGroup(user?.uid || "");
     } catch (error) {
       console.error(error);
       setMessage("Errore durante l'aggiunta del membro.");
@@ -345,6 +409,11 @@ setJoinRequests(requestsResult);
     e.preventDefault();
 
     if (!user || !group) return;
+
+    if (sportMismatch || normalizeSport(group.sport) !== userSport) {
+      setMessage("Non puoi creare squadre in un gruppo di un altro sport.");
+      return;
+    }
 
     const cleanName = teamName.trim();
 
@@ -377,7 +446,7 @@ setJoinRequests(requestsResult);
       setTeamName("");
       setMessage("Squadra creata nel gruppo.");
 
-      await loadGroup();
+      await loadGroup(user?.uid || "");
     } catch (error) {
       console.error(error);
       setMessage("Errore durante la creazione della squadra.");
@@ -388,6 +457,11 @@ setJoinRequests(requestsResult);
 
   async function addMemberToTeam(teamId: string, memberUid: string) {
     if (!user || !group) return;
+
+    if (sportMismatch || normalizeSport(group.sport) !== userSport) {
+      setMessage("Non puoi modificare squadre in un gruppo di un altro sport.");
+      return;
+    }
 
     if (!memberUid) {
       setMessage("Seleziona un membro da aggiungere alla squadra.");
@@ -425,7 +499,7 @@ setJoinRequests(requestsResult);
 
       setMessage("Membro aggiunto alla squadra.");
 
-      await loadGroup();
+      await loadGroup(user?.uid || "");
     } catch (error) {
       console.error(error);
       setMessage("Errore durante l'aggiunta del membro alla squadra.");
@@ -441,6 +515,22 @@ setJoinRequests(requestsResult);
   setMessage("");
 
   try {
+    const requestUserSnap = await getDoc(doc(db, "users", request.fromUid));
+    const requestUserData = requestUserSnap.exists()
+      ? (requestUserSnap.data() as UserProfile)
+      : null;
+
+    const requestUserSport = normalizeSport(
+      requestUserData?.mainSport || requestUserData?.sport || "calcetto"
+    );
+
+    if (group && requestUserSport !== normalizeSport(group.sport)) {
+      setMessage(
+        `Richiesta bloccata: utente ${sportLabel(requestUserSport)} non compatibile con gruppo ${sportLabel(group.sport)}.`
+      );
+      return;
+    }
+
     await updateDoc(doc(db, "groups", groupId), {
       members: arrayUnion(request.fromUid),
       updatedAt: serverTimestamp(),
@@ -470,7 +560,7 @@ setJoinRequests(requestsResult);
 
     setMessage("Richiesta accettata. Membro aggiunto al gruppo.");
 
-    await loadGroup();
+    await loadGroup(user?.uid || "");
   } catch (error) {
     console.error(error);
     setMessage("Errore durante l'accettazione della richiesta.");
@@ -510,7 +600,7 @@ async function rejectJoinRequest(request: JoinRequest) {
 
     setMessage("Richiesta rifiutata.");
 
-    await loadGroup();
+    await loadGroup(user?.uid || "");
   } catch (error) {
     console.error(error);
     setMessage("Errore durante il rifiuto della richiesta.");
@@ -537,6 +627,35 @@ async function rejectJoinRequest(request: JoinRequest) {
         <div className="rounded-3xl border border-red-400/20 bg-red-500/10 px-8 py-5 font-black text-red-200">
           Gruppo non trovato.
         </div>
+      </main>
+    );
+  }
+
+  if (sportMismatch) {
+    return (
+      <main className="min-h-screen bg-[#020617] px-5 py-8 text-white">
+        <Background />
+
+        <section className="relative z-10 mx-auto max-w-2xl">
+          <Link
+            href="/groups"
+            className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
+          >
+            <ArrowLeft size={17} />
+            Torna ai gruppi
+          </Link>
+
+          <div className="mt-8 rounded-[2rem] border border-red-400/20 bg-red-500/10 p-7 text-center">
+            <div className="text-3xl font-black text-red-100">
+              Gruppo non compatibile
+            </div>
+
+            <p className="mt-4 leading-7 text-slate-300">
+              Questo gruppo è dedicato a {sportLabel(group.sport)}, mentre il tuo profilo attivo è {sportLabel(userSport)}.
+              Per usare questo sport servirà un profilo sport separato.
+            </p>
+          </div>
+        </section>
       </main>
     );
   }
@@ -608,7 +727,7 @@ async function rejectJoinRequest(request: JoinRequest) {
             <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[.22em] text-cyan-200">
-                  {group.sport}
+                  {sportLabel(group.sport)}
                 </div>
 
                 <h1 className="mt-5 text-5xl font-black tracking-tight md:text-6xl">
