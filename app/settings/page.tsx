@@ -35,6 +35,7 @@ type UserProfile = {
   photoUrl?: string;
   deletionRequested?: boolean;
   deletionRequestedAt?: any;
+  accountStatus?: string;
 };
 
 function normalizeSport(value?: string) {
@@ -51,6 +52,31 @@ function sportLabel(value?: string) {
   if (sport === "padel") return "Padel";
   if (sport === "tennis") return "Tennis";
   return "Calcetto";
+}
+
+function isDeletionActive(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.deletionRequested ||
+      profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted"
+  );
+}
+
+function formatDeletionDate(value: any) {
+  if (!value) return "";
+
+  const date =
+    typeof value?.toDate === "function"
+      ? value.toDate()
+      : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleDateString("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 export default function SettingsPage() {
@@ -96,6 +122,8 @@ export default function SettingsPage() {
   const wins = profile?.wins ?? 0;
   const losses = profile?.losses ?? 0;
   const mvp = profile?.mvp ?? 0;
+  const deletionActive = isDeletionActive(profile);
+  const deletionDate = formatDeletionDate(profile?.deletionRequestedAt);
 
   async function requestAccountDeletion() {
     if (!user) return;
@@ -120,11 +148,13 @@ export default function SettingsPage() {
       setProfile((current) => ({
         ...(current || {}),
         deletionRequested: true,
+        accountStatus: "deletion_requested",
+        deletionRequestedAt: new Date(),
       }));
 
       setDeleteConfirmText("");
       setMessage(
-        "Richiesta di eliminazione registrata. Il profilo è segnato per rimozione sicura."
+        "Richiesta registrata. Da ora il profilo è bloccato per nuove azioni e i dati pubblici verranno mostrati come profilo non attivo."
       );
     } catch (error) {
       console.error(error);
@@ -190,6 +220,26 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {deletionActive && (
+          <div className="mt-6 rounded-[2rem] border border-yellow-300/20 bg-yellow-400/10 p-5 text-yellow-100">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 shrink-0" size={22} />
+
+              <div>
+                <div className="text-lg font-black">
+                  Richiesta eliminazione attiva
+                </div>
+
+                <p className="mt-2 text-sm font-bold leading-6">
+                  Il profilo è bloccato per nuove azioni su match, eventi e gruppi.
+                  Le statistiche storiche restano conservate per mantenere corrette classifiche e risultati.
+                  {deletionDate ? ` Richiesta registrata il ${deletionDate}.` : ""}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <section className="mt-7 grid gap-6 lg:grid-cols-[1fr_.9fr]">
           <div className="space-y-6">
             <SettingsCard
@@ -200,14 +250,24 @@ export default function SettingsPage() {
               <InfoRow label="Nome" value={displayName} />
               <InfoRow label="Email" value={email} />
               <InfoRow label="Città" value={city} />
+              <InfoRow
+                label="Stato profilo"
+                value={deletionActive ? "Profilo non attivo" : "Attivo"}
+              />
 
-              <Link
-                href="/profile"
-                className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200 transition hover:bg-cyan-400/20"
-              >
-                Apri profilo
-                <ChevronRight size={18} />
-              </Link>
+              {deletionActive ? (
+                <div className="mt-5 rounded-2xl border border-slate-400/20 bg-slate-400/10 px-5 py-3 text-sm font-bold text-slate-200">
+                  Le modifiche del profilo sono bloccate.
+                </div>
+              ) : (
+                <Link
+                  href="/profile"
+                  className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200 transition hover:bg-cyan-400/20"
+                >
+                  Apri profilo
+                  <ChevronRight size={18} />
+                </Link>
+              )}
             </SettingsCard>
 
             <SettingsCard
@@ -247,8 +307,11 @@ export default function SettingsPage() {
               title="Privacy"
               text="Controlli base sul profilo e sui contenuti visibili."
             >
-              <InfoRow label="Profilo pubblico" value="In preparazione" />
-              <InfoRow label="Ranking globale" value="Attivo" />
+              <InfoRow
+                label="Profilo pubblico"
+                value={deletionActive ? "Nascosto" : "Visibile"}
+              />
+              <InfoRow label="Ranking globale" value="Storico mantenuto" />
               <InfoRow label="Eventi pubblici" value="Filtrati per sport/zona" />
             </SettingsCard>
 
@@ -259,7 +322,10 @@ export default function SettingsPage() {
             >
               <InfoRow label="Email account" value={email} />
               <InfoRow label="Provider" value="Firebase Auth" />
-              <InfoRow label="Sessione" value="Attiva" />
+              <InfoRow
+                label="Sessione"
+                value={deletionActive ? "Limitata" : "Attiva"}
+              />
             </SettingsCard>
 
             <SettingsCard
@@ -268,10 +334,29 @@ export default function SettingsPage() {
               text="Richiedi la rimozione sicura del tuo profilo Rivalo."
               danger
             >
-              {profile?.deletionRequested ? (
-                <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-                  Richiesta di eliminazione già registrata. Il profilo è segnato
-                  per rimozione sicura.
+              {deletionActive ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                    Richiesta già registrata. Il profilo è ora non attivo per nuove operazioni.
+                  </div>
+
+                  <InfoRow label="Stato account" value="Rimozione richiesta" />
+                  <InfoRow
+                    label="Azioni operative"
+                    value="Bloccate"
+                  />
+                  <InfoRow
+                    label="Dati storici"
+                    value="Conservati"
+                  />
+
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-4 font-black text-cyan-200 transition hover:bg-cyan-400/20"
+                  >
+                    Torna alla dashboard
+                    <ChevronRight size={18} />
+                  </Link>
                 </div>
               ) : (
                 <>
@@ -281,9 +366,9 @@ export default function SettingsPage() {
                       Azione delicata
                     </div>
 
-                    Questa richiesta non cancella automaticamente match, eventi
-                    o statistiche storiche già collegate. Serve a segnare il profilo
-                    per una rimozione sicura senza rompere classifiche e dati esistenti.
+                    Dopo la richiesta, il profilo non potrà più creare o modificare
+                    match, eventi e gruppi. Le statistiche storiche resteranno salvate
+                    per mantenere corretti risultati e classifiche.
                   </div>
 
                   <label className="mt-4 block">
