@@ -24,6 +24,8 @@ const [playStyle, setPlayStyle] = useState("");
 const [availability, setAvailability] = useState("");
 const [photoUrl, setPhotoUrl] = useState("");
 const [message, setMessage] = useState("");
+const [accountStatus, setAccountStatus] = useState("");
+const [deletionRequested, setDeletionRequested] = useState(false);
 
   const [rivalScore, setRivalScore] = useState(1000);
   const [level, setLevel] = useState(1);
@@ -60,6 +62,8 @@ const [message, setMessage] = useState("");
 setRole(data.role || "");
 setPlayStyle(data.playStyle || "");
 setAvailability(data.availability || "");
+setAccountStatus(data.accountStatus || "");
+setDeletionRequested(Boolean(data.deletionRequested));
 
           setPhotoUrl(
             data.photoUrl ||
@@ -87,6 +91,8 @@ setAvailability(data.availability || "");
 setRole("");
 setPlayStyle("");
 setAvailability("");
+setAccountStatus("");
+setDeletionRequested(false);
           setRivalScore(1000);
           setLevel(1);
           setXp(0);
@@ -190,6 +196,12 @@ setAvailability("");
 
       if (!user) return;
 
+      if (accountStatus === "deletion_requested" || deletionRequested) {
+        setMessage("Profilo segnato per rimozione: modifiche bloccate.");
+        setSaving(false);
+        return;
+      }
+
       await setDoc(
   doc(db, "users", user.uid),
   {
@@ -241,6 +253,12 @@ setAvailability("");
           </Link>
         </div>
 
+        {(accountStatus === "deletion_requested" || deletionRequested) && (
+          <div className="mb-6 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+            Profilo segnato per rimozione sicura. Le modifiche sono bloccate e i dati pubblici verranno mostrati come profilo non attivo.
+          </div>
+        )}
+
         <div className="grid min-w-0 gap-8 xl:grid-cols-[360px_1fr]">
           <div className="relative overflow-hidden rounded-[2rem] border border-cyan-400/20 bg-[#071120] p-3 sm:p-6">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,.22),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(249,115,22,.18),transparent_30%)]" />
@@ -263,6 +281,7 @@ setAvailability("");
                 value={name}
                 setValue={setName}
                 placeholder="Antonio"
+                disabled={accountStatus === "deletion_requested" || deletionRequested}
               />
 
               <Field
@@ -270,6 +289,7 @@ setAvailability("");
                 value={nickname}
                 setValue={setNickname}
                 placeholder="Tony10"
+                disabled={accountStatus === "deletion_requested" || deletionRequested}
               />
             </div>
 
@@ -281,7 +301,8 @@ setAvailability("");
               <select
                 value={sport}
                 onChange={(e) => setSport(e.target.value)}
-                className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
+                disabled={accountStatus === "deletion_requested" || deletionRequested}
+                className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400 disabled:opacity-60"
               >
                 <option value="calcetto">Calcetto</option>
                 <option value="padel">Padel</option>
@@ -291,6 +312,7 @@ setAvailability("");
 <div className="mt-5 grid gap-5 md:grid-cols-2">
   <Field
     label="Città / zona"
+    disabled={accountStatus === "deletion_requested" || deletionRequested}
     value={city}
     setValue={setCity}
     placeholder="Es. Lecce"
@@ -298,6 +320,7 @@ setAvailability("");
 
   <Field
     label="Ruolo o posizione"
+    disabled={accountStatus === "deletion_requested" || deletionRequested}
     value={role}
     setValue={setRole}
     placeholder="Es. Attaccante, difensore, destro..."
@@ -307,6 +330,7 @@ setAvailability("");
 <div className="mt-5 grid gap-5 md:grid-cols-2">
   <Field
     label="Stile di gioco"
+    disabled={accountStatus === "deletion_requested" || deletionRequested}
     value={playStyle}
     setValue={setPlayStyle}
     placeholder="Es. tecnico, veloce, competitivo..."
@@ -314,6 +338,7 @@ setAvailability("");
 
   <Field
     label="Disponibilità"
+    disabled={accountStatus === "deletion_requested" || deletionRequested}
     value={availability}
     setValue={setAvailability}
     placeholder="Es. sera, weekend, 2 volte a settimana..."
@@ -342,6 +367,7 @@ setAvailability("");
                   type="file"
                   accept="image/*"
                   className="hidden"
+                  disabled={accountStatus === "deletion_requested" || deletionRequested}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) uploadPhoto(file);
@@ -393,7 +419,7 @@ setAvailability("");
 
             <button
               onClick={saveProfile}
-              disabled={saving}
+              disabled={saving || accountStatus === "deletion_requested" || deletionRequested}
               className="mt-6 w-full rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-4 text-base font-black uppercase transition hover:scale-[1.02] disabled:opacity-60 sm:text-lg"
             >
               {saving ? "Salvataggio..." : "Salva profilo"}
@@ -410,11 +436,13 @@ function Field({
   value,
   setValue,
   placeholder,
+  disabled = false,
 }: {
   label: string;
   value: string;
   setValue: (v: string) => void;
   placeholder: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="min-w-0">
@@ -425,7 +453,8 @@ function Field({
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
+        disabled={disabled}
+        className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400 disabled:opacity-60"
         placeholder={placeholder}
       />
     </div>

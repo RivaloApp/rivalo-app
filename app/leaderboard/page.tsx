@@ -36,6 +36,8 @@ type UserRow = {
   photoUrl?: string;
   xp?: number;
   winStreak?: number;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 type SportFilter = "all" | "calcetto" | "padel" | "tennis";
@@ -61,6 +63,27 @@ function sportLabel(filter: SportFilter) {
 
 function isActiveUser(user: UserRow) {
   return Number(user.matchesPlayed || 0) > 0;
+}
+
+function isRemovedUser(user?: UserRow) {
+  return Boolean(
+    user?.accountStatus === "deletion_requested" ||
+      user?.accountStatus === "deleted" ||
+      user?.deletionRequested
+  );
+}
+
+function getDisplayName(user?: UserRow) {
+  if (!user) return "Nessun attivo";
+  if (isRemovedUser(user)) return "Utente rimosso";
+
+  return user.name || user.nickname || "Player";
+}
+
+function getDisplayPhoto(user?: UserRow) {
+  if (!user || isRemovedUser(user)) return "";
+
+  return user.photoURL || user.photoUrl || "";
 }
 
 function calculateUniversalRankScore(user: UserRow) {
@@ -495,7 +518,7 @@ function CategoryCard({
       </div>
 
       <div className="mt-2 truncate text-sm text-cyan-300">
-        {user ? user.name || user.nickname || "Player" : "Nessun attivo"}
+        {getDisplayName(user)}
       </div>
     </div>
   );
@@ -510,7 +533,9 @@ function LeaderboardPodiumCard({
   index: number;
   sportFilter: SportFilter;
 }) {
-  const photo = user.photoURL || user.photoUrl || "";
+  const isRemoved = isRemovedUser(user);
+  const photo = getDisplayPhoto(user);
+  const displayName = getDisplayName(user);
   const matches = Number(user.matchesPlayed || 0);
   const wins = Number(user.wins || 0);
   const rankScore = calculateSportRankScore(user, sportFilter);
@@ -558,17 +583,27 @@ function LeaderboardPodiumCard({
           <div className="mb-1 flex items-center gap-2">
             <span className={`shrink-0 ${rankColor}`}>{medal}</span>
 
-            <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-cyan-200">
-              {isActive ? `Top ${index + 1}` : "Non attivo"}
+            <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${
+              isRemoved
+                ? "border-slate-400/20 bg-slate-400/10 text-slate-300"
+                : "border-cyan-300/20 bg-cyan-400/10 text-cyan-200"
+            }`}>
+              {isRemoved ? "Profilo non attivo" : isActive ? `Top ${index + 1}` : "Non attivo"}
             </span>
           </div>
 
-          <Link
-            href={`/public/${user.id}`}
-            className="block max-w-full truncate text-[20px] font-black uppercase leading-tight tracking-wide transition hover:text-cyan-300 sm:text-2xl"
-          >
-            {user.name || user.nickname || "Player"}
-          </Link>
+          {isRemoved ? (
+            <div className="block max-w-full truncate text-[20px] font-black uppercase leading-tight tracking-wide text-slate-300 sm:text-2xl">
+              {displayName}
+            </div>
+          ) : (
+            <Link
+              href={`/public/${user.id}`}
+              className="block max-w-full truncate text-[20px] font-black uppercase leading-tight tracking-wide transition hover:text-cyan-300 sm:text-2xl"
+            >
+              {displayName}
+            </Link>
+          )}
 
           <div className="mt-0.5 truncate text-sm capitalize text-slate-400">
             {getUserSport(user)}
@@ -623,7 +658,9 @@ function CompactRow({
   index: number;
   sportFilter: SportFilter;
 }) {
-  const photo = user.photoURL || user.photoUrl || "";
+  const isRemoved = isRemovedUser(user);
+  const photo = getDisplayPhoto(user);
+  const displayName = getDisplayName(user);
   const rankScore = calculateSportRankScore(user, sportFilter);
   const isActive = isActiveUser(user);
 
@@ -651,16 +688,22 @@ function CompactRow({
         </div>
 
         <div className="min-w-0">
-          <Link
-            href={`/public/${user.id}`}
-            className="block truncate font-black hover:text-cyan-300"
-          >
-            {user.name || user.nickname || "Player"}
-          </Link>
+          {isRemoved ? (
+            <div className="block truncate font-black text-slate-300">
+              {displayName}
+            </div>
+          ) : (
+            <Link
+              href={`/public/${user.id}`}
+              className="block truncate font-black hover:text-cyan-300"
+            >
+              {displayName}
+            </Link>
+          )}
 
           <div className="truncate text-sm capitalize text-slate-400">
             {getUserSport(user)}
-            {!isActive ? " · 0 partite" : ""}
+            {isRemoved ? " · profilo non attivo" : !isActive ? " · 0 partite" : ""}
           </div>
         </div>
       </div>

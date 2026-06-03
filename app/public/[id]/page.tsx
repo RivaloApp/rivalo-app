@@ -38,7 +38,17 @@ type UserProfile = {
   xp?: number;
   winStreak?: number;
   bestStreak?: number;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
+
+function isRemovedProfile(user?: UserProfile | null) {
+  return Boolean(
+    user?.accountStatus === "deletion_requested" ||
+      user?.accountStatus === "deleted" ||
+      user?.deletionRequested
+  );
+}
 
 export default function PublicProfilePage() {
   const params = useParams();
@@ -127,10 +137,13 @@ export default function PublicProfilePage() {
     );
   }
 
-  const photo =
-    user.photoURL ||
-    user.photoUrl ||
-    "";
+  const isRemoved = isRemovedProfile(user);
+
+  const photo = isRemoved
+    ? ""
+    : user.photoURL ||
+      user.photoUrl ||
+      "";
 
   const xp = user.xp || 0;
 
@@ -179,8 +192,8 @@ export default function PublicProfilePage() {
               <div className="relative flex w-full justify-center overflow-visible">
                 <div className="origin-top scale-[0.82] sm:scale-100">
                   <PlayerCard
-                    name={user.name || "Player"}
-                    nickname={user.nickname || ""}
+                    name={isRemoved ? "Utente rimosso" : user.name || "Player"}
+                    nickname={isRemoved ? "Profilo non attivo" : user.nickname || ""}
                     rivalScore={user.rivalScore || 0}
                     mainSport={user.mainSport || "Sport"}
                     photo={photo}
@@ -201,6 +214,12 @@ export default function PublicProfilePage() {
                 ))}
 
               </div>
+
+              {isRemoved && (
+                <div className="mt-4 rounded-2xl border border-slate-400/20 bg-slate-400/10 px-5 py-3 text-sm font-bold text-slate-200">
+                  Profilo non attivo. Le statistiche storiche restano visibili per non alterare ranking e match già giocati.
+                </div>
+              )}
 
               <div
                 className={`
