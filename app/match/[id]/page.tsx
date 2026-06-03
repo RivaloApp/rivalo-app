@@ -61,8 +61,10 @@ type MatchDoc = {
   homeTeam?: string;
   awayTeam?: string;
   homeTeamId?: string;
-awayTeamId?: string;
-sourceType?: string;
+  awayTeamId?: string;
+  homeCaptainId?: string;
+  awayCaptainId?: string;
+  sourceType?: string;
   homeScore?: number | null;
   awayScore?: number | null;
   mvpName?: string;
@@ -141,6 +143,44 @@ function getUserTeam(match: MatchDoc, uid: string): "home" | "away" | "" {
   }
 
   return "";
+}
+
+function getCaptainTeam(match: MatchDoc, uid: string): "home" | "away" | "" {
+  if (!uid) return "";
+
+  if (match.homeCaptainId && match.homeCaptainId === uid) return "home";
+  if (match.awayCaptainId && match.awayCaptainId === uid) return "away";
+
+  return "";
+}
+
+function hasCaptainRules(match: MatchDoc) {
+  return Boolean(match.homeCaptainId || match.awayCaptainId);
+}
+
+function getUserConfirmationTeam(match: MatchDoc, uid: string): "home" | "away" | "" {
+  const captainTeam = getCaptainTeam(match, uid);
+
+  if (captainTeam) return captainTeam;
+
+  if (hasCaptainRules(match)) return "";
+
+  return getUserTeam(match, uid);
+}
+
+function getPermissionLabel(match: MatchDoc) {
+  return hasCaptainRules(match)
+    ? "Solo i capitani possono proporre, confermare o contestare."
+    : "Match vecchio: conferma consentita ai partecipanti della squadra avversaria.";
+}
+
+function getOpponentCaptainLabel(match: MatchDoc, team: "home" | "away" | "") {
+  if (!hasCaptainRules(match)) return getTeamName(match, team);
+
+  if (team === "home") return `capitano ${match.homeTeam || "Squadra 1"}`;
+  if (team === "away") return `capitano ${match.awayTeam || "Squadra 2"}`;
+
+  return "capitano avversario";
 }
 
 function getOpponentTeam(team: "home" | "away" | ""): "home" | "away" | "" {
@@ -546,18 +586,8 @@ export default function MatchDetailsPage() {
       return;
     }
 
-    const userTeam = getUserTeam(match, user.uid);
-    const requiredTeam = match.resultConfirmRequiredTeam || "";
-
-    if (match.resultStatus === "proposto" && (!userTeam || userTeam !== requiredTeam)) {
-      setMessage(
-        `Solo ${getTeamName(match, requiredTeam)} può contestare questa proposta.`
-      );
-      return;
-    }
-
-    if (match.resultProposedBy === user.uid) {
-      setMessage("Chi propone il risultato non può contestare la propria proposta.");
+    if (match.resultStatus === "proposto") {
+      setMessage("Esiste già una proposta risultato. La squadra avversaria deve confermare o contestare.");
       return;
     }
 
@@ -570,10 +600,14 @@ export default function MatchDetailsPage() {
     setMessage("");
 
     try {
-      const proposerTeam = getUserTeam(match, user.uid);
+      const proposerTeam = getUserConfirmationTeam(match, user.uid);
 
       if (!proposerTeam) {
-        setMessage("Per proporre il risultato devi essere assegnato a Squadra 1 o Squadra 2.");
+        setMessage(
+          hasCaptainRules(match)
+            ? "Solo il capitano di Squadra 1 o Squadra 2 può proporre il risultato."
+            : "Per proporre il risultato devi essere assegnato a Squadra 1 o Squadra 2."
+        );
         setSaving(false);
         return;
       }
@@ -638,13 +672,13 @@ setMessage(
       return;
     }
 
-    const userTeam = getUserTeam(match, user.uid);
+    const userTeam = getUserConfirmationTeam(match, user.uid);
     const requiredTeam = match.resultConfirmRequiredTeam || "";
     const autoConfirmAllowed = isProposalExpired(match);
 
     if (!autoConfirmAllowed && (!userTeam || userTeam !== requiredTeam)) {
       setMessage(
-        `Solo ${getTeamName(match, requiredTeam)} può confermare questo risultato.`
+        `Solo ${getOpponentCaptainLabel(match, requiredTeam)} può confermare questo risultato.`
       );
       return;
     }
@@ -675,7 +709,7 @@ setMessage(
           throw new Error("SPORT_MISMATCH");
         }
 
-        const freshUserTeam = getUserTeam(freshMatch, user.uid);
+        const freshUserTeam = getUserConfirmationTeam(freshMatch, user.uid);
         const freshRequiredTeam = freshMatch.resultConfirmRequiredTeam || "";
         const freshAutoConfirmAllowed = isProposalExpired(freshMatch);
 
@@ -810,7 +844,7 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
       } else if (error?.message === "NO_RESULT_PROPOSAL") {
         setMessage("Prima deve essere proposto un risultato.");
       } else if (error?.message === "WRONG_TEAM_CONFIRMATION") {
-        setMessage("Solo la squadra avversaria può confermare questo risultato.");
+        setMessage("Solo il capitano della squadra avversaria può confermare questo risultato.");
       } else if (error?.message === "PROPOSER_CANNOT_CONFIRM") {
         setMessage("Chi propone il risultato non può confermarlo da solo.");
       } else if (error?.message === "RESULT_DISPUTED") {
@@ -842,6 +876,21 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
       return;
     }
 
+    const userTeam = getUserConfirmationTeam(match, user.uid);
+    const requiredTeam = match.resultConfirmRequiredTeam || "";
+
+    if (match.resultStatus === "proposto" && (!userTeam || userTeam !== requiredTeam)) {
+      setMessage(
+        `Solo ${getOpponentCaptainLabel(match, requiredTeam)} può contestare questa proposta.`
+      );
+      return;
+    }
+
+    if (match.resultProposedBy === user.uid) {
+      setMessage("Chi propone il risultato non può contestare la propria proposta.");
+      return;
+    }
+
     if (match.status === "ufficiale" || match.resultStatus === "confermato") {
       setMessage("Match già ufficiale. Non puoi contestarlo da qui.");
       return;
@@ -853,7 +902,7 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
     try {
       await updateDoc(doc(db, "matches", matchId), {
         disputedBy: arrayUnion(user.uid),
-        disputedTeam: getUserTeam(match, user.uid),
+        disputedTeam: getUserConfirmationTeam(match, user.uid),
         status: "contestato",
         resultStatus: "contestato",
         fairPlayStatus: "contestato",
@@ -1155,9 +1204,13 @@ setMessage("Risultato contestato. Servirà revisione.");
                 />
               </Field>
 
+              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold text-cyan-100">
+                {getPermissionLabel(match)}
+              </div>
+
               {match.resultStatus === "proposto" && (
                 <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-3 text-sm font-bold text-yellow-100">
-                  Proposta inviata da {getTeamName(match, match.resultProposedTeam || "")}. Deve confermare o contestare {getTeamName(match, match.resultConfirmRequiredTeam || "")}
+                  Proposta inviata da {getTeamName(match, match.resultProposedTeam || "")}. Deve confermare o contestare {getOpponentCaptainLabel(match, match.resultConfirmRequiredTeam || "")}
                   {formatDeadline(match) ? ` entro ${formatDeadline(match)}` : ""}.
                   Dopo 24 ore senza contestazione, il risultato può essere confermato automaticamente.
                 </div>
@@ -1276,7 +1329,7 @@ setMessage("Risultato contestato. Servirà revisione.");
 
           <div className="space-y-5">
             <Panel icon={<ShieldCheck />} title="Sistema anti-fake">
-              Una squadra propone il risultato. Solo la squadra avversaria può confermare o contestare.
+              Nei nuovi match propongono, confermano e contestano solo i capitani delle due squadre.
             </Panel>
 
             <Panel icon={<Users />} title="Conferme">
