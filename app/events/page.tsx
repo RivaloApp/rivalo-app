@@ -58,6 +58,8 @@ type UserProfile = {
   city?: string;
   cityZone?: string;
   zone?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 function normalizeText(value?: string) {
@@ -99,6 +101,14 @@ function isCancelledEvent(event: EventItem) {
   return event.status === "annullato";
 }
 
+function isProfileDeletionRequested(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted" ||
+      profile?.deletionRequested
+  );
+}
+
 function isSameCityOrCompatible(event: EventItem, userCity: string) {
   const normalizedUserCity = normalizeText(userCity);
   const normalizedEventCity = normalizeText(event.city);
@@ -126,6 +136,8 @@ export default function EventsPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [accountLocked, setAccountLocked] = useState(false);
+  const [message, setMessage] = useState("");
 
   const [title, setTitle] = useState("");
   const [sport, setSport] = useState("calcetto");
@@ -162,6 +174,7 @@ export default function EventsPage() {
 
       setUserSport(currentUserSport);
       setUserCity(currentUserCity);
+      setAccountLocked(isProfileDeletionRequested(profile));
       handleSportChange(currentUserSport);
       setCity(currentUserCity);
 
@@ -237,6 +250,11 @@ export default function EventsPage() {
 
     if (!user || !title.trim()) return;
 
+    if (accountLocked) {
+      setMessage("Profilo segnato per rimozione: non puoi creare nuovi eventi.");
+      return;
+    }
+
     const lockedSport = normalizeSport(userSport);
 
     if (sport !== lockedSport) {
@@ -244,6 +262,7 @@ export default function EventsPage() {
     }
 
     setSaving(true);
+    setMessage("");
 
     try {
       const creatorName = user.displayName || "Rivalo Player";
@@ -306,6 +325,9 @@ export default function EventsPage() {
       }
 
       await loadEvents(user.uid, userSport, userCity);
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante la creazione dell'evento.");
     } finally {
       setSaving(false);
     }
@@ -372,6 +394,13 @@ export default function EventsPage() {
             </div>
 
             <div className="space-y-4">
+              {accountLocked && (
+                <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                  Profilo segnato per rimozione: la creazione di nuovi eventi è bloccata.
+                </div>
+              )}
+
+              <fieldset disabled={accountLocked || saving} className="space-y-4 disabled:opacity-60">
               <Field label="Titolo evento">
                 <input
                   value={title}
@@ -551,12 +580,19 @@ export default function EventsPage() {
 
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || accountLocked}
                 className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black transition hover:scale-[1.01] disabled:opacity-60"
               >
-                {saving ? "Creazione..." : "Crea evento"}
+                {accountLocked ? "Creazione bloccata" : saving ? "Creazione..." : "Crea evento"}
                 <ChevronRight size={20} />
               </button>
+              </fieldset>
+
+              {message && (
+                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200">
+                  {message}
+                </div>
+              )}
             </div>
           </form>
 

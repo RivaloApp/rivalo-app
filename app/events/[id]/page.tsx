@@ -158,6 +158,8 @@ leagueFixtures?: LeagueFixture[];
 type UserProfile = {
   mainSport?: string;
   sport?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 function normalizeSport(value?: string) {
@@ -174,6 +176,14 @@ function formatSportLabel(value?: string) {
   if (sport === "padel") return "Padel";
   if (sport === "tennis") return "Tennis";
   return "Calcetto";
+}
+
+function isProfileDeletionRequested(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted" ||
+      profile?.deletionRequested
+  );
 }
 
 function getParticipantName(participant?: ParticipantInfo) {
@@ -265,6 +275,7 @@ export default function EventDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [userSport, setUserSport] = useState("calcetto");
   const [sportMismatch, setSportMismatch] = useState(false);
+  const [accountLocked, setAccountLocked] = useState(false);
   const [event, setEvent] = useState<EventData | null>(null);
   const [participantsInfo, setParticipantsInfo] = useState<ParticipantInfo[]>([]);
   const [eventStats, setEventStats] = useState<EventStat[]>([]);
@@ -302,6 +313,7 @@ export default function EventDetailPage() {
 
     setLoading(true);
     setSportMismatch(false);
+    setAccountLocked(false);
 
     try {
       const snap = await getDoc(doc(db, "events", id));
@@ -329,6 +341,7 @@ export default function EventDetailPage() {
       );
 
       setUserSport(currentUserSport);
+      setAccountLocked(isProfileDeletionRequested(profile));
       setCancellationReason(eventData.cancellationReason || "");
       setEvent(eventData);
 
@@ -461,6 +474,11 @@ setTeamStats(teamStatsResult);
   async function joinEvent() {
     if (!user || !event) return;
 
+    if (accountLocked) {
+      setMessage("Profilo segnato per rimozione: non puoi iscriverti agli eventi.");
+      return;
+    }
+
     if (sportMismatch || normalizeSport(event.sport) !== userSport) {
       setMessage("Questo evento appartiene a un altro sport. Usa un profilo sport compatibile.");
       return;
@@ -590,6 +608,11 @@ if (competitionStarted) {
 
  async function createTeam() {
   if (!user || !event) return;
+
+  if (accountLocked) {
+    setMessage("Profilo segnato per rimozione: non puoi creare squadre o coppie.");
+    return;
+  }
 
   if (sportMismatch || normalizeSport(event.sport) !== userSport) {
     setMessage("Non puoi creare squadre/coppie in un evento di un altro sport.");
@@ -880,6 +903,11 @@ function isTeamValid(team: TeamInfo) {
 async function generateTournamentBracket() {
   if (!user || !event) return;
 
+  if (accountLocked) {
+    setMessage("Profilo segnato per rimozione: non puoi generare tabelloni.");
+    return;
+  }
+
   if (sportMismatch || normalizeSport(event.sport) !== userSport) {
     setMessage("Non puoi generare tabelloni per eventi di un altro sport.");
     return;
@@ -994,6 +1022,11 @@ setMessage("Tabellone generato.");
 
 async function generateLeagueSchedule() {
   if (!user || !event) return;
+
+  if (accountLocked) {
+    setMessage("Profilo segnato per rimozione: non puoi generare calendari.");
+    return;
+  }
 
   if (sportMismatch || normalizeSport(event.sport) !== userSport) {
     setMessage("Non puoi generare calendari per eventi di un altro sport.");
@@ -1162,6 +1195,11 @@ setMessage("Calendario campionato generato.");
 
 async function createMatchFromEvent() {
   if (!user || !event) return;
+
+  if (accountLocked) {
+    setMessage("Profilo segnato per rimozione: non puoi creare match evento.");
+    return;
+  }
 
   if (sportMismatch || normalizeSport(event.sport) !== userSport) {
     setMessage("Non puoi creare match da un evento di un altro sport.");
@@ -1456,6 +1494,11 @@ await Promise.all(
 async function cancelEvent() {
   if (!user || !event) return;
 
+  if (accountLocked) {
+    setMessage("Profilo segnato per rimozione: non puoi annullare eventi.");
+    return;
+  }
+
   if (user.uid !== event.createdBy) {
     setMessage("Solo il creator può annullare questo evento.");
     return;
@@ -1615,7 +1658,7 @@ async function cancelEvent() {
 
   const isFull = maxPlayers > 0 && participants.length >= maxPlayers;
 
-  const canJoin = !isCancelled && !isJoined && !isFull && event.status !== "completo";
+  const canJoin = !accountLocked && !isCancelled && !isJoined && !isFull && event.status !== "completo";
 
   const sportLabel =
     event.sport === "padel"
@@ -1671,7 +1714,7 @@ const isCompetitionCompleted =
   event.status === "campionato completato";
 
 const canCreateEventMatch =
-  isCancelled || isCompetitionCompleted
+  accountLocked || isCancelled || isCompetitionCompleted
     ? false
     : event.type === "torneo"
     ? hasPendingTournamentMatch
@@ -1802,6 +1845,12 @@ const pendingCompetitionMatches = Math.max(
           {isCancelled && (
             <div className="border-b border-red-400/20 bg-red-500/10 px-6 py-4 text-sm font-bold text-red-100">
               Evento annullato. Motivo: {event.cancellationReason || "Non specificato"}.
+            </div>
+          )}
+
+          {accountLocked && (
+            <div className="border-b border-yellow-300/20 bg-yellow-400/10 px-6 py-4 text-sm font-bold text-yellow-100">
+              Profilo segnato per rimozione: iscrizioni, squadre, tabelloni, calendari, match e annullamento evento sono bloccati.
             </div>
           )}
 
@@ -1996,7 +2045,7 @@ const pendingCompetitionMatches = Math.max(
 </div>
                   </div>
 
-                  {isCreator && !isCancelled && !competitionStarted && (
+                  {isCreator && !accountLocked && !isCancelled && !competitionStarted && (
                     <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
                       <Field label={competitionFormat === "doppio" ? "Nome coppia" : "Nome squadra"}>
                         <input
@@ -2071,6 +2120,12 @@ const pendingCompetitionMatches = Math.max(
                   {isCreator && isCancelled && (
   <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm font-bold text-red-100">
     Evento annullato: gestione squadre/coppie bloccata.
+  </div>
+)}
+
+                  {isCreator && accountLocked && (
+  <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold text-yellow-100">
+    Profilo segnato per rimozione: gestione squadre/coppie bloccata.
   </div>
 )}
 
@@ -2413,11 +2468,13 @@ const pendingCompetitionMatches = Math.max(
               {!isTeamCompetition && (
                 <button
                   onClick={joinEvent}
-                  disabled={joining || !canJoin}
+                  disabled={joining || accountLocked || !canJoin}
                   className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black transition hover:scale-[1.01] disabled:opacity-60"
                 >
                   <UserPlus size={18} />
-                  {isCancelled
+                  {accountLocked
+                    ? "Azione bloccata"
+                    : isCancelled
                     ? "Evento annullato"
                     : isJoined
                     ? "Già iscritto"
@@ -2441,12 +2498,14 @@ const pendingCompetitionMatches = Math.max(
   <>
     <button
       onClick={createMatchFromEvent}
-      disabled={creatingMatch || isCancelled || !canCreateEventMatch}
+      disabled={creatingMatch || accountLocked || isCancelled || !canCreateEventMatch}
       className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/10 px-6 py-4 font-black text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
     >
       <PlayCircle size={18} />
       {creatingMatch
   ? "Creazione match..."
+  : accountLocked
+  ? "Azione bloccata"
   : isCancelled
   ? "Evento annullato"
   : isCompetitionCompleted
@@ -2465,6 +2524,7 @@ const pendingCompetitionMatches = Math.max(
         onClick={generateTournamentBracket}
         disabled={
   generatingBracket ||
+  accountLocked ||
   isCancelled ||
   Boolean(event.bracket?.length) ||
   !hasEnoughValidTeams
@@ -2486,6 +2546,7 @@ const pendingCompetitionMatches = Math.max(
     onClick={generateLeagueSchedule}
     disabled={
   generatingLeague ||
+  accountLocked ||
   isCancelled ||
   Boolean(event.leagueFixtures?.length) ||
   !hasEnoughValidTeams
@@ -2521,7 +2582,7 @@ const pendingCompetitionMatches = Math.max(
       <textarea
         value={cancellationReason}
         onChange={(e) => setCancellationReason(e.target.value)}
-        disabled={isCancelled || !canCancelSafely}
+        disabled={accountLocked || isCancelled || !canCancelSafely}
         placeholder="Motivo annullamento"
         className="mt-3 min-h-[90px] w-full resize-none rounded-2xl border border-white/10 bg-[#020617]/80 px-4 py-3 text-white outline-none placeholder:text-slate-500 disabled:opacity-60"
       />
@@ -2529,11 +2590,13 @@ const pendingCompetitionMatches = Math.max(
       <button
         type="button"
         onClick={cancelEvent}
-        disabled={isCancelled || !canCancelSafely}
+        disabled={accountLocked || isCancelled || !canCancelSafely}
         className="mt-3 w-full rounded-2xl border border-red-300/30 bg-red-500/10 px-6 py-4 font-black text-red-200 disabled:opacity-60"
       >
         {isCancelled
           ? "Evento già annullato"
+          : accountLocked
+          ? "Azione bloccata"
           : canCancelSafely
           ? "Annulla evento"
           : "Annullamento bloccato"}
