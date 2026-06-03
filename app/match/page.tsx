@@ -127,6 +127,8 @@ function MatchPageContent() {
   const requestedGroupId = searchParams.get("groupId") || "";
 
   const [user, setUser] = useState<User | null>(null);
+  const [userSport, setUserSport] = useState("calcetto");
+  const [userCity, setUserCity] = useState("");
   const [groups, setGroups] = useState<GroupDoc[]>([]);
   const [matches, setMatches] = useState<MatchDoc[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
@@ -187,10 +189,15 @@ const [awayTeamId, setAwayTeamId] = useState("");
         : null;
 
       const profileSport =
-        profileData?.mainSport || profileData?.sport || "calcetto";
+        (profileData?.mainSport || profileData?.sport || "calcetto")
+          .toLowerCase()
+          .trim();
 
       const profileCity =
         profileData?.city || profileData?.cityZone || profileData?.zone || "";
+
+      setUserSport(profileSport);
+      setUserCity(profileCity);
 
       const profileName =
         profileData?.name ||
@@ -215,6 +222,10 @@ const [awayTeamId, setAwayTeamId] = useState("");
       } catch {
         loadedGroups = [];
       }
+
+      loadedGroups = loadedGroups.filter(
+        (group) => !group.sport || group.sport.toLowerCase().trim() === profileSport
+      );
 
       setGroups(loadedGroups);
 
@@ -389,16 +400,37 @@ async function loadGroupTeams(nextGroupId: string) {
   async function handleGroupChange(nextGroupId: string) {
     setGroupId(nextGroupId);
     setHomeTeamId("");
-setAwayTeamId("");
+    setAwayTeamId("");
+
+    if (!nextGroupId) {
+      handleSportChange(userSport);
+      setCity(userCity);
+      await loadGroupMembers("");
+      await loadGroupTeams("");
+      return;
+    }
 
     const selectedGroup = groups.find((group) => group.id === nextGroupId);
 
-    if (selectedGroup?.sport) {
-      handleSportChange(selectedGroup.sport);
+    if (
+      selectedGroup?.sport &&
+      selectedGroup.sport.toLowerCase().trim() !== userSport
+    ) {
+      setMessage("Questo gruppo appartiene a un altro sport. Usa un profilo sport compatibile.");
+      setGroupId("");
+      handleSportChange(userSport);
+      setCity(userCity);
+      await loadGroupMembers("");
+      await loadGroupTeams("");
+      return;
     }
+
+    handleSportChange(selectedGroup?.sport || userSport);
 
     if (selectedGroup?.city) {
       setCity(selectedGroup.city);
+    } else {
+      setCity(userCity);
     }
 
     await loadGroupMembers(nextGroupId);
@@ -409,6 +441,12 @@ setAwayTeamId("");
     e.preventDefault();
 
     if (!user) return;
+
+    if (sport !== userSport) {
+      setMessage("Puoi creare match solo per lo sport del profilo attivo.");
+      handleSportChange(userSport);
+      return;
+    }
 
    const selectedHomeTeam = groupTeams.find((team) => team.id === homeTeamId);
 const selectedAwayTeam = groupTeams.find((team) => team.id === awayTeamId);
@@ -670,22 +708,20 @@ awayScore: null,
               </Field>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Sport">
-                  <select
-                    value={sport}
-                    onChange={(e) => handleSportChange(e.target.value)}
-                    className="w-full min-w-0 bg-[#0b1730] text-white outline-none"
-                  >
-                    <option className="bg-[#020617] text-white" value="calcetto">
-                      Calcetto
-                    </option>
-                    <option className="bg-[#020617] text-white" value="padel">
-                      Padel
-                    </option>
-                    <option className="bg-[#020617] text-white" value="tennis">
-                      Tennis
-                    </option>
-                  </select>
+                <Field label="Sport profilo">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-black capitalize text-cyan-200">
+                      {sport}
+                    </div>
+
+                    <span className="rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200">
+                      Bloccato
+                    </span>
+                  </div>
+
+                  <div className="mt-2 text-xs leading-5 text-slate-400">
+                    Per creare match in un altro sport servirà un profilo sport separato.
+                  </div>
                 </Field>
 
                 <Field label="Modalità">
@@ -931,8 +967,8 @@ awayScore: null,
 
             <InfoCard
               icon={<Trophy size={28} />}
-              title="Sport reali"
-              text="Calcetto a squadre, padel e tennis in singolo o doppio."
+              title="Sport profilo"
+              text="Il match rapido usa solo lo sport del profilo attivo, senza mischiare statistiche."
             />
 
             <InfoCard
