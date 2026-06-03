@@ -75,6 +75,8 @@ type GroupTeam = {
   city?: string;
   sport?: string;
   createdBy?: string;
+  captainId?: string;
+  captainName?: string;
   members?: string[];
   wins?: number;
   losses?: number;
@@ -113,6 +115,29 @@ function sportLabel(value?: string) {
   if (sport === "padel") return "Padel";
   if (sport === "tennis") return "Tennis";
   return "Calcetto";
+}
+
+function getProfileName(profile?: MemberProfile) {
+  return profile?.name || profile?.nickname || "Rivalo Player";
+}
+
+function canManageTeam({
+  userId,
+  group,
+  team,
+}: {
+  userId?: string;
+  group: RivaloGroup;
+  team: GroupTeam;
+}) {
+  if (!userId) return false;
+
+  if (userId === group.ownerId) return true;
+  if (Boolean(group.admins?.includes(userId))) return true;
+  if (userId === team.captainId) return true;
+  if (!team.captainId && userId === team.createdBy) return true;
+
+  return false;
 }
 
 export default function GroupDetailsPage() {
@@ -426,13 +451,19 @@ setJoinRequests(requestsResult);
     setMessage("");
 
     try {
+      const creatorProfile = memberProfiles.find(
+        (member) => member.uid === user.uid
+      );
+
       await addDoc(collection(db, "groupTeams"), {
         groupId,
         name: cleanName,
         city: group.city || "",
         sport: group.sport || "calcetto",
         createdBy: user.uid,
-        members: [],
+        captainId: user.uid,
+        captainName: getProfileName(creatorProfile),
+        members: [user.uid],
         wins: 0,
         losses: 0,
         draws: 0,
@@ -473,6 +504,21 @@ setJoinRequests(requestsResult);
     try {
       const teamRef = doc(db, "groupTeams", teamId);
       const selectedTeam = groupTeams.find((team) => team.id === teamId);
+
+      if (!selectedTeam) {
+        setMessage("Squadra non trovata.");
+        return;
+      }
+
+      if (!canManageTeam({ userId: user.uid, group, team: selectedTeam })) {
+        setMessage("Solo capitano, owner o admin gruppo possono modificare questa squadra.");
+        return;
+      }
+
+      if (selectedTeam.members?.includes(memberUid)) {
+        setMessage("Questo membro è già nella squadra.");
+        return;
+      }
 
       await updateDoc(teamRef, {
         members: arrayUnion(memberUid),
@@ -1032,6 +1078,19 @@ async function rejectJoinRequest(request: JoinRequest) {
                     team.members?.includes(member.uid)
                   );
 
+                  const captainProfile = memberProfiles.find(
+                    (member) => member.uid === team.captainId
+                  );
+
+                  const displayCaptain =
+                    team.captainName || getProfileName(captainProfile);
+
+                  const canManageSelectedTeam = canManageTeam({
+                    userId: user?.uid,
+                    group,
+                    team,
+                  });
+
                   const availableTeamMembers = memberProfiles.filter(
                     (member) => !team.members?.includes(member.uid)
                   );
@@ -1064,6 +1123,10 @@ async function rejectJoinRequest(request: JoinRequest) {
                             {team.sport || group.sport} ·{" "}
                             {team.members?.length || 0} membri · {points} punti
                           </div>
+
+                          <div className="mt-2 inline-flex rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-3 py-1 text-xs font-black text-yellow-100">
+                            Capitano: {displayCaptain}
+                          </div>
                         </div>
 
                         <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200">
@@ -1094,15 +1157,21 @@ async function rejectJoinRequest(request: JoinRequest) {
                           teamMembers.map((member) => (
                             <div
                               key={member.uid}
-                              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-bold"
+                              className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-bold"
                             >
-                              {member.name || member.nickname || "Rivalo Player"}
+                              <span>{member.name || member.nickname || "Rivalo Player"}</span>
+
+                              {member.uid === team.captainId && (
+                                <span className="rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-yellow-100">
+                                  Capitano
+                                </span>
+                              )}
                             </div>
                           ))
                         )}
                       </div>
 
-                      {canManageGroup && (
+                      {canManageSelectedTeam && (
   <div className="mt-5">
     <div className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
       Aggiungi membro
@@ -1140,6 +1209,12 @@ async function rejectJoinRequest(request: JoinRequest) {
     )}
   </div>
 )}
+
+                      {!canManageSelectedTeam && (
+                        <div className="mt-5 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-400">
+                          Solo capitano, owner o admin gruppo possono modificare questa squadra.
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -1150,7 +1225,7 @@ async function rejectJoinRequest(request: JoinRequest) {
           {canManageGroup && (
   <Panel
     title="Crea squadra"
-    subtitle="Aggiungi una squadra stabile al gruppo."
+    subtitle="Chi crea la squadra diventa capitano e può gestire la rosa."
   >
             <form onSubmit={createGroupTeam} className="space-y-4">
               <div className="rounded-2xl border border-white/10 bg-[#061126]/80 px-4 py-4">
