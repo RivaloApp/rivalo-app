@@ -81,6 +81,8 @@ type TeamInfo = {
   name: string;
   players: ParticipantInfo[];
   createdBy?: string;
+  captainId?: string;
+  captainName?: string;
 };
 
 type UserOption = {
@@ -169,6 +171,28 @@ function formatSportLabel(value?: string) {
   if (sport === "padel") return "Padel";
   if (sport === "tennis") return "Tennis";
   return "Calcetto";
+}
+
+function getParticipantName(participant?: ParticipantInfo) {
+  return participant?.name || "Rivalo Player";
+}
+
+function canManageEventTeam({
+  userId,
+  event,
+  team,
+}: {
+  userId?: string;
+  event: EventData;
+  team: TeamInfo;
+}) {
+  if (!userId) return false;
+
+  if (userId === event.createdBy) return true;
+  if (userId === team.captainId) return true;
+  if (!team.captainId && userId === team.createdBy) return true;
+
+  return false;
 }
 
 export default function EventDetailPage() {
@@ -593,6 +617,11 @@ if (competitionStarted) {
     return;
   }
 
+  if (!selectedPlayerIds.includes(user.uid)) {
+    setMessage("Chi crea la squadra/coppia deve essere incluso nella rosa e diventa capitano.");
+    return;
+  }
+
   const selectedPlayers: ParticipantInfo[] = selectedPlayerIds.map((uid) => {
     const selectedUser = availableUsers.find((u) => u.uid === uid);
 
@@ -603,11 +632,17 @@ if (competitionStarted) {
     };
   });
 
+  const captainPlayer =
+    selectedPlayers.find((player) => player.uid === user.uid) ||
+    selectedPlayers[0];
+
   const newTeam: TeamInfo = {
     id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
     name: cleanTeamName,
     players: selectedPlayers,
     createdBy: user.uid,
+    captainId: captainPlayer?.uid || user.uid,
+    captainName: getParticipantName(captainPlayer),
   };
 
   const nextTeams = [...currentTeams, newTeam];
@@ -658,7 +693,7 @@ if (competitionStarted) {
     setParticipantsInfo(mergedParticipantsInfo);
     setTeamName("");
     setSelectedPlayerIds([]);
-    setMessage("Squadra creata.");
+    setMessage("Squadra creata. Il creator è stato impostato come capitano.");
   } catch (error) {
     console.error(error);
     setMessage("Errore durante la creazione della squadra.");
@@ -1094,6 +1129,8 @@ setMessage("");
     let matchHomeTeamId = "";
     let matchAwayTeamId = "";
     let sourceType = "event";
+    let homeTeam: TeamInfo | undefined;
+    let awayTeam: TeamInfo | undefined;
 
     let sourceBracketIndex = -1;
     let sourceLeagueIndex = -1;
@@ -1127,9 +1164,6 @@ setMessage("");
         setCreatingMatch(false);
         return;
       }
-
-      let homeTeam: TeamInfo | undefined;
-      let awayTeam: TeamInfo | undefined;
 
       if (event.type === "torneo" && event.bracket?.length) {
         const nextBracketIndex = event.bracket.findIndex(
@@ -1207,6 +1241,11 @@ setMessage("");
       ];
     }
 
+    const homeCaptainId =
+      homeTeam?.captainId || homeTeam?.createdBy || players[0]?.uid || "";
+    const awayCaptainId =
+      awayTeam?.captainId || awayTeam?.createdBy || players[1]?.uid || "";
+
     const matchRef = await addDoc(collection(db, "matches"), {
       createdBy: user.uid,
       createdByName: user.displayName || "Rivalo Player",
@@ -1237,6 +1276,8 @@ setMessage("");
       awayTeam: awayTeamName,
       homeTeamId: matchHomeTeamId,
       awayTeamId: matchAwayTeamId,
+      homeCaptainId,
+      awayCaptainId,
       sourceType,
       homeScore: null,
       awayScore: null,
@@ -1827,8 +1868,9 @@ const pendingCompetitionMatches = Math.max(
                           ))}
                         </select>
 
-                        <div className="mt-2 text-xs text-slate-400">
+                        <div className="mt-2 text-xs leading-5 text-slate-400">
                          Puoi selezionare solo giocatori già iscritti all'evento. Un giocatore non può stare in due squadre.
+                         Chi crea la squadra/coppia deve selezionare anche sé stesso: diventerà capitano.
                         </div>
                       </div>
 
@@ -2323,11 +2365,23 @@ function TeamCard({
   validationLabel: string;
   valid: boolean;
 }) {
+  const captain =
+    team.players.find((player) => player.uid === team.captainId) ||
+    team.players.find((player) => player.uid === team.createdBy);
+
+  const captainName = team.captainName || captain?.name || "Rivalo Player";
+
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[.03] p-4">
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-        <div className="text-xl font-black uppercase text-cyan-200">
-          {team.name}
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+        <div>
+          <div className="text-xl font-black uppercase text-cyan-200">
+            {team.name}
+          </div>
+
+          <div className="mt-2 inline-flex rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-3 py-1 text-xs font-black text-yellow-100">
+            Capitano: {captainName}
+          </div>
         </div>
 
         <div
@@ -2345,23 +2399,32 @@ function TeamCard({
         {team.players.map((player) => (
           <div
             key={player.uid}
-            className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3"
+            className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 p-3"
           >
-            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black/30">
-              {player.photoUrl ? (
-                <img
-                  src={player.photoUrl}
-                  alt="Player"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <UserRound className="text-cyan-200" size={18} />
-              )}
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black/30">
+                {player.photoUrl ? (
+                  <img
+                    src={player.photoUrl}
+                    alt="Player"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserRound className="text-cyan-200" size={18} />
+                )}
+              </div>
+
+              <div className="truncate font-bold">
+                {player.name || "Rivalo Player"}
+              </div>
             </div>
 
-            <div className="font-bold">
-              {player.name || "Rivalo Player"}
-            </div>
+            {(player.uid === team.captainId ||
+              (!team.captainId && player.uid === team.createdBy)) && (
+              <span className="shrink-0 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-yellow-100">
+                Capitano
+              </span>
+            )}
           </div>
         ))}
       </div>
