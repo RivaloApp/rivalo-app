@@ -233,6 +233,12 @@ export default function EventsPage() {
 
     if (!user || !title.trim()) return;
 
+    const lockedSport = normalizeSport(userSport);
+
+    if (sport !== lockedSport) {
+      handleSportChange(lockedSport);
+    }
+
     setSaving(true);
 
     try {
@@ -240,7 +246,7 @@ export default function EventsPage() {
 
       await addDoc(collection(db, "events"), {
         title,
-        sport,
+        sport: userSport,
         type,
         competitionFormat,
         city,
@@ -284,10 +290,10 @@ export default function EventsPage() {
       setTime("");
       setPrize("");
 
-      if (sport === "calcetto") {
+      if (userSport === "calcetto") {
         setMaxPlayers("10");
         setCompetitionFormat("squadre");
-      } else if (sport === "padel") {
+      } else if (userSport === "padel") {
         setMaxPlayers("4");
         setCompetitionFormat("doppio");
       } else {
@@ -356,7 +362,7 @@ export default function EventsPage() {
               <div>
                 <h2 className="text-2xl font-black sm:text-3xl">Crea evento</h2>
                 <p className="mt-1 text-sm leading-6 text-slate-400 sm:text-base">
-                  Scegli sport, formato e tipo competizione.
+                  Lo sport è bloccato sul profilo attivo: {sportLabel(userSport)}.
                 </p>
               </div>
             </div>
@@ -396,22 +402,20 @@ export default function EventsPage() {
                   </select>
                 </Field>
 
-                <Field label="Sport">
-                  <select
-                    value={sport}
-                    onChange={(e) => handleSportChange(e.target.value)}
-                    className="w-full bg-[#020617] text-white outline-none"
-                  >
-                    <option className="bg-[#020617] text-white" value="calcetto">
-                      Calcetto
-                    </option>
-                    <option className="bg-[#020617] text-white" value="padel">
-                      Padel
-                    </option>
-                    <option className="bg-[#020617] text-white" value="tennis">
-                      Tennis
-                    </option>
-                  </select>
+                <Field label="Sport profilo">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-black text-cyan-200">
+                      {sportLabel(userSport)}
+                    </div>
+
+                    <span className="rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200">
+                      Bloccato
+                    </span>
+                  </div>
+
+                  <div className="mt-2 text-xs leading-5 text-slate-400">
+                    Per creare eventi in un altro sport servirà un profilo sport separato.
+                  </div>
                 </Field>
               </div>
 
