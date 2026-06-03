@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowLeft,
   Bell,
   ChevronRight,
@@ -14,7 +15,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 
 type UserProfile = {
@@ -32,6 +33,8 @@ type UserProfile = {
   mvp?: number;
   photoURL?: string;
   photoUrl?: string;
+  deletionRequested?: boolean;
+  deletionRequestedAt?: any;
 };
 
 function normalizeSport(value?: string) {
@@ -55,6 +58,8 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [requestingDeletion, setRequestingDeletion] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -92,10 +97,41 @@ export default function SettingsPage() {
   const losses = profile?.losses ?? 0;
   const mvp = profile?.mvp ?? 0;
 
-  function handleDeletePlaceholder() {
-    setMessage(
-      "La rimozione profilo/account è in roadmap. Verrà attivata con conferma forte e logica sicura Firebase Auth + dati utente."
-    );
+  async function requestAccountDeletion() {
+    if (!user) return;
+
+    if (deleteConfirmText.trim().toUpperCase() !== "ELIMINA") {
+      setMessage("Per confermare devi scrivere ELIMINA nel campo dedicato.");
+      return;
+    }
+
+    setRequestingDeletion(true);
+    setMessage("");
+
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        deletionRequested: true,
+        deletionRequestedAt: serverTimestamp(),
+        deletionRequestedBy: user.uid,
+        accountStatus: "deletion_requested",
+        updatedAt: serverTimestamp(),
+      });
+
+      setProfile((current) => ({
+        ...(current || {}),
+        deletionRequested: true,
+      }));
+
+      setDeleteConfirmText("");
+      setMessage(
+        "Richiesta di eliminazione registrata. Il profilo è segnato per rimozione sicura."
+      );
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante la richiesta di eliminazione account.");
+    } finally {
+      setRequestingDeletion(false);
+    }
   }
 
   if (loading) {
@@ -185,8 +221,8 @@ export default function SettingsPage() {
               <InfoRow label="Partite" value={String(matchesPlayed)} />
 
               <div className="mt-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm leading-6 text-yellow-100">
-                Cambio sport e multi-profilo sono in roadmap: le statistiche non
-                verranno mischiate tra calcetto, padel e tennis.
+                Le statistiche restano separate per sport, così ranking e card
+                rimangono coerenti con il profilo attivo.
               </div>
             </SettingsCard>
 
@@ -229,22 +265,55 @@ export default function SettingsPage() {
             <SettingsCard
               icon={<Trash2 />}
               title="Rimuovi profilo/account"
-              text="Area delicata: va gestita con conferma forte e cancellazione sicura."
+              text="Richiedi la rimozione sicura del tuo profilo Rivalo."
               danger
             >
-              <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm leading-6 text-red-100">
-                Questa funzione verrà completata in uno step dedicato: dovrà
-                liberare l’email, gestire Firebase Auth e proteggere dati storici
-                collegati a match, eventi e statistiche.
-              </div>
+              {profile?.deletionRequested ? (
+                <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                  Richiesta di eliminazione già registrata. Il profilo è segnato
+                  per rimozione sicura.
+                </div>
+              ) : (
+                <>
+                  <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm leading-6 text-red-100">
+                    <div className="mb-2 flex items-center gap-2 font-black">
+                      <AlertTriangle size={18} />
+                      Azione delicata
+                    </div>
 
-              <button
-                type="button"
-                onClick={handleDeletePlaceholder}
-                className="mt-5 w-full rounded-2xl border border-red-300/30 bg-red-500/10 px-5 py-4 font-black text-red-100 transition hover:bg-red-500/20"
-              >
-                Rimuovi profilo/account
-              </button>
+                    Questa richiesta non cancella automaticamente match, eventi
+                    o statistiche storiche già collegate. Serve a segnare il profilo
+                    per una rimozione sicura senza rompere classifiche e dati esistenti.
+                  </div>
+
+                  <label className="mt-4 block">
+                    <span className="mb-2 block text-sm font-black text-slate-300">
+                      Scrivi ELIMINA per confermare
+                    </span>
+
+                    <input
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="ELIMINA"
+                      className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-black text-white outline-none placeholder:text-slate-500"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={requestAccountDeletion}
+                    disabled={
+                      requestingDeletion ||
+                      deleteConfirmText.trim().toUpperCase() !== "ELIMINA"
+                    }
+                    className="mt-5 w-full rounded-2xl border border-red-300/30 bg-red-500/10 px-5 py-4 font-black text-red-100 transition hover:bg-red-500/20 disabled:opacity-60"
+                  >
+                    {requestingDeletion
+                      ? "Registrazione richiesta..."
+                      : "Richiedi eliminazione profilo"}
+                  </button>
+                </>
+              )}
             </SettingsCard>
           </div>
         </section>
