@@ -246,6 +246,31 @@ function canCancelMatch(match: MatchDoc, uid: string) {
   return false;
 }
 
+function canCancelWithoutRollback(match: MatchDoc) {
+  if (isMatchCancelled(match)) return false;
+  if (match.statsApplied || match.statsApplying) return false;
+  if (match.status === "ufficiale") return false;
+  if (match.resultStatus === "confermato") return false;
+
+  return true;
+}
+
+function getCancelBlockedReason(match: MatchDoc) {
+  if (isMatchCancelled(match)) {
+    return "Match già annullato.";
+  }
+
+  if (match.statsApplying) {
+    return "Statistiche in aggiornamento. Non puoi annullare questo match.";
+  }
+
+  if (match.statsApplied || match.status === "ufficiale" || match.resultStatus === "confermato") {
+    return "Questo match ha già statistiche applicate o risultato ufficiale. Per annullarlo servirà una fase futura con rollback statistiche sicuro.";
+  }
+
+  return "";
+}
+
 export default function MatchDetailsPage() {
   const params = useParams();
   const matchId = params.id as string;
@@ -987,8 +1012,8 @@ setMessage("Risultato contestato. Servirà revisione.");
       return;
     }
 
-    if (isMatchCancelled(match)) {
-      setMessage("Match già annullato.");
+    if (!canCancelWithoutRollback(match)) {
+      setMessage(getCancelBlockedReason(match));
       return;
     }
 
@@ -1006,13 +1031,10 @@ setMessage("Risultato contestato. Servirà revisione.");
       await updateDoc(doc(db, "matches", matchId), {
         status: "annullato",
         resultStatus: "annullato",
-        fairPlayStatus: match.statsApplied
-          ? "annullato_stats_da_verificare"
-          : "annullato",
+        fairPlayStatus: "annullato",
         cancellationReason: reason,
         cancelledBy: user.uid,
         cancelledAt: serverTimestamp(),
-        statsReverted: false,
         updatedAt: serverTimestamp(),
       });
 
@@ -1026,11 +1048,7 @@ setMessage("Risultato contestato. Servirà revisione.");
 
       await loadMatch(user.uid);
 
-      setMessage(
-        match.statsApplied
-          ? "Match annullato. Le statistiche erano già applicate: servirà rollback statistiche nel prossimo step."
-          : "Match annullato. Nessuna statistica era stata applicata."
-      );
+      setMessage("Match annullato. Nessuna statistica era stata applicata.");
     } catch (error) {
       console.error(error);
       setMessage("Errore durante l'annullamento del match.");
@@ -1111,6 +1129,8 @@ setMessage("Risultato contestato. Servirà revisione.");
     match.status === "ufficiale" || match.resultStatus === "confermato";
 
   const canCancelCurrentMatch = user ? canCancelMatch(match, user.uid) : false;
+  const canCancelSafely = canCancelWithoutRollback(match);
+  const cancelBlockedReason = getCancelBlockedReason(match);
 
   const statsLocked = Boolean(match.statsApplied || match.statsApplying);
 
@@ -1327,9 +1347,6 @@ setMessage("Risultato contestato. Servirà revisione.");
               {isCancelled && (
                 <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">
                   Match annullato. Motivo: {match.cancellationReason || "Non specificato"}.
-                  {match.statsApplied && !match.statsReverted
-                    ? " Le statistiche risultano applicate: rollback da completare nello step successivo."
-                    : ""}
                 </div>
               )}
 
@@ -1463,14 +1480,20 @@ setMessage("Risultato contestato. Servirà revisione.");
                   </div>
 
                   <p className="mt-2 text-sm leading-6 text-slate-300">
-                    Usa questa azione solo per match creati per errore, interrotti o non validi.
-                    Se le statistiche sono già state applicate, il rollback verrà gestito nello step successivo.
+                    Puoi annullare solo match non ancora ufficiali e senza statistiche applicate.
+                    Se il match è già confermato, l'annullamento diretto viene bloccato per proteggere ranking e statistiche.
                   </p>
+
+                  {!canCancelSafely && cancelBlockedReason && (
+                    <div className="mt-3 rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-3 py-2 text-sm font-bold text-yellow-100">
+                      {cancelBlockedReason}
+                    </div>
+                  )}
 
                   <textarea
                     value={cancellationReason}
                     onChange={(e) => setCancellationReason(e.target.value)}
-                    disabled={saving || isCancelled}
+                    disabled={saving || isCancelled || !canCancelSafely}
                     placeholder="Motivo annullamento"
                     className="mt-3 min-h-[90px] w-full resize-none rounded-2xl border border-white/10 bg-[#020617]/80 px-4 py-3 text-white outline-none placeholder:text-slate-500 disabled:opacity-60"
                   />
@@ -1478,10 +1501,14 @@ setMessage("Risultato contestato. Servirà revisione.");
                   <button
                     type="button"
                     onClick={cancelMatch}
-                    disabled={saving || isCancelled}
+                    disabled={saving || isCancelled || !canCancelSafely}
                     className="mt-3 w-full rounded-2xl border border-red-300/30 bg-red-500/10 px-6 py-4 font-black text-red-200 disabled:opacity-60"
                   >
-                    {isCancelled ? "Match già annullato" : "Annulla match"}
+                    {isCancelled
+                      ? "Match già annullato"
+                      : canCancelSafely
+                      ? "Annulla match"
+                      : "Annullamento bloccato"}
                   </button>
                 </div>
               )}
@@ -1498,7 +1525,7 @@ setMessage("Risultato contestato. Servirà revisione.");
             </Panel>
 
             <Panel icon={<Trophy />} title="Ranking">
-              Solo i match confermati aggiornano RivalScore, XP, vittorie e MVP. I match annullati bloccano nuove azioni.
+              Solo i match confermati aggiornano RivalScore, XP, vittorie e MVP. I match annullabili sono solo quelli senza statistiche applicate.
             </Panel>
           </div>
         </section>
