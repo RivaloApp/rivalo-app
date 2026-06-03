@@ -1,18 +1,191 @@
 import { UserRound } from "lucide-react";
 
+type PlayerCardProps = {
+  name: string;
+  nickname: string;
+  rivalScore: number;
+  mainSport: string;
+  photo: string;
+  level?: number;
+  xp?: number;
+  wins?: number;
+  mvp?: number;
+  matchesPlayed?: number;
+  goals?: number;
+  assists?: number;
+};
+
+function normalizeSport(value?: string) {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+  return "calcetto";
+}
+
+function clampStat(value: number) {
+  return Math.max(55, Math.min(99, Math.round(value)));
+}
+
+function sportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "PADEL";
+  if (sport === "tennis") return "TENNIS";
+  return "CALCETTO";
+}
+
+function getSportTheme(mainSport: string) {
+  const sport = normalizeSport(mainSport);
+
+  if (sport === "padel") {
+    return {
+      glowLeft: "border-lime-300/35",
+      glowRight: "border-cyan-400/35",
+      glowBottomA: "border-lime-300/35",
+      glowBottomB: "border-cyan-300/30",
+      auraLeft: "bg-lime-400/12",
+      auraRight: "bg-cyan-500/12",
+      auraBottom: "bg-lime-300/12",
+      outerGlow:
+        "bg-[radial-gradient(circle_at_10%_50%,rgba(132,204,22,.52),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(34,211,238,.45),transparent_38%)] sm:bg-[radial-gradient(circle_at_10%_50%,rgba(132,204,22,.66),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(34,211,238,.58),transparent_38%)]",
+      borderGradient: "bg-gradient-to-br from-lime-300 via-cyan-400 to-emerald-700",
+      innerGradient:
+        "bg-[radial-gradient(circle_at_14%_48%,rgba(132,204,22,.45),transparent_33%),radial-gradient(circle_at_84%_42%,rgba(34,211,238,.42),transparent_34%),linear-gradient(135deg,#04130b_0%,#071426_44%,#031711_100%)]",
+      ratingText: "text-lime-300",
+      softText: "text-lime-200",
+      badgeBorder: "border-lime-300/50",
+      badgeText: "text-lime-100",
+      badgeShadow: "shadow-[0_0_14px_rgba(132,204,22,0.38)] sm:shadow-[0_0_18px_rgba(132,204,22,0.45)]",
+      statBorder: "border-lime-300/10",
+      statText: "text-lime-300",
+      statLabel: "text-lime-200",
+    };
+  }
+
+  if (sport === "tennis") {
+    return {
+      glowLeft: "border-yellow-300/35",
+      glowRight: "border-cyan-400/35",
+      glowBottomA: "border-yellow-300/35",
+      glowBottomB: "border-cyan-300/30",
+      auraLeft: "bg-yellow-400/12",
+      auraRight: "bg-cyan-500/12",
+      auraBottom: "bg-yellow-300/12",
+      outerGlow:
+        "bg-[radial-gradient(circle_at_10%_50%,rgba(250,204,21,.50),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(34,211,238,.42),transparent_38%)] sm:bg-[radial-gradient(circle_at_10%_50%,rgba(250,204,21,.62),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(34,211,238,.54),transparent_38%)]",
+      borderGradient: "bg-gradient-to-br from-yellow-200 via-cyan-300 to-blue-700",
+      innerGradient:
+        "bg-[radial-gradient(circle_at_14%_48%,rgba(250,204,21,.42),transparent_33%),radial-gradient(circle_at_84%_42%,rgba(34,211,238,.42),transparent_34%),linear-gradient(135deg,#141006_0%,#071426_44%,#03101a_100%)]",
+      ratingText: "text-yellow-200",
+      softText: "text-yellow-100",
+      badgeBorder: "border-yellow-300/50",
+      badgeText: "text-yellow-100",
+      badgeShadow: "shadow-[0_0_14px_rgba(250,204,21,0.36)] sm:shadow-[0_0_18px_rgba(250,204,21,0.42)]",
+      statBorder: "border-yellow-300/10",
+      statText: "text-yellow-200",
+      statLabel: "text-yellow-100",
+    };
+  }
+
+  return {
+    glowLeft: "border-cyan-300/35",
+    glowRight: "border-fuchsia-400/35",
+    glowBottomA: "border-yellow-300/35",
+    glowBottomB: "border-cyan-300/30",
+    auraLeft: "bg-cyan-400/12",
+    auraRight: "bg-fuchsia-500/12",
+    auraBottom: "bg-yellow-300/12",
+    outerGlow:
+      "bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.45),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.45),transparent_38%)] sm:bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.62),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.58),transparent_38%)]",
+    borderGradient: "bg-gradient-to-br from-yellow-300 via-orange-500 to-purple-500",
+    innerGradient:
+      "bg-[radial-gradient(circle_at_14%_48%,rgba(249,115,22,.48),transparent_33%),radial-gradient(circle_at_84%_42%,rgba(37,99,235,.48),transparent_34%),linear-gradient(135deg,#050814_0%,#070a16_44%,#12051c_100%)]",
+    ratingText: "text-yellow-300",
+    softText: "text-yellow-200",
+    badgeBorder: "border-cyan-300/50",
+    badgeText: "text-cyan-100",
+    badgeShadow: "shadow-[0_0_14px_rgba(34,211,238,0.38)] sm:shadow-[0_0_18px_rgba(34,211,238,0.45)]",
+    statBorder: "border-yellow-300/10",
+    statText: "text-yellow-300",
+    statLabel: "text-yellow-200",
+  };
+}
+
+function getSportStats({
+  mainSport,
+  rating,
+  wins = 0,
+  mvp = 0,
+  matchesPlayed = 0,
+  goals = 0,
+  assists = 0,
+  level = 1,
+  xp = 0,
+}: {
+  mainSport: string;
+  rating: number;
+  wins?: number;
+  mvp?: number;
+  matchesPlayed?: number;
+  goals?: number;
+  assists?: number;
+  level?: number;
+  xp?: number;
+}) {
+  const sport = normalizeSport(mainSport);
+  const activityBoost = Math.min(8, matchesPlayed * 0.6);
+  const winBoost = Math.min(9, wins * 1.1);
+  const mvpBoost = Math.min(7, mvp * 1.4);
+  const xpBoost = Math.min(6, xp / 500);
+  const levelBoost = Math.min(5, level * 0.6);
+
+  if (sport === "padel") {
+    return [
+      { label: "VOL", value: clampStat(rating + mvpBoost + 2) },
+      { label: "DIF", value: clampStat(rating + activityBoost - 1) },
+      { label: "POT", value: clampStat(rating + winBoost - 2) },
+      { label: "INT", value: clampStat(rating + mvpBoost + levelBoost) },
+      { label: "RES", value: clampStat(rating + activityBoost + xpBoost - 2) },
+      { label: "POS", value: clampStat(rating + winBoost + 1) },
+    ];
+  }
+
+  if (sport === "tennis") {
+    return [
+      { label: "SRV", value: clampStat(rating + winBoost + 1) },
+      { label: "FON", value: clampStat(rating + activityBoost) },
+      { label: "MOV", value: clampStat(rating + xpBoost + 1) },
+      { label: "MEN", value: clampStat(rating + mvpBoost + levelBoost) },
+      { label: "POT", value: clampStat(rating + winBoost - 1) },
+      { label: "DIF", value: clampStat(rating + activityBoost - 1) },
+    ];
+  }
+
+  return [
+    { label: "VEL", value: clampStat(rating + 3 + activityBoost * 0.2) },
+    { label: "TEC", value: clampStat(rating + 1 + Math.min(7, goals * 0.35)) },
+    { label: "PAS", value: clampStat(rating + 2 + Math.min(7, assists * 0.5)) },
+    { label: "FIS", value: clampStat(rating - 1 + activityBoost * 0.3) },
+    { label: "FIN", value: clampStat(rating + Math.min(8, goals * 0.45)) },
+    { label: "DEF", value: clampStat(rating + winBoost - 2) },
+  ];
+}
+
 export default function PlayerCard({
   name,
   nickname,
   rivalScore,
   mainSport,
   photo,
-}: {
-  name: string;
-  nickname: string;
-  rivalScore: number;
-  mainSport: string;
-  photo: string;
-}) {
+  level = 1,
+  xp = 0,
+  wins = 0,
+  mvp = 0,
+  matchesPlayed = 0,
+  goals = 0,
+  assists = 0,
+}: PlayerCardProps) {
   const safeRivalScore = Number(rivalScore || 1000);
 
   const rating = Math.max(
@@ -24,6 +197,7 @@ export default function PlayerCard({
   );
 
   const displayPhoto = photo || "";
+  const theme = getSportTheme(mainSport);
 
   const rarity =
     rating >= 96
@@ -43,40 +217,31 @@ export default function PlayerCard({
       ? "RARE"
       : "COMMON";
 
-  const stats = [
-    {
-      label: "VEL",
-      value: Math.max(55, Math.min(99, rating + 3)),
-    },
-    {
-      label: "TEC",
-      value: Math.max(55, Math.min(99, rating + 1)),
-    },
-    {
-      label: "PAS",
-      value: Math.max(55, Math.min(99, rating + 2)),
-    },
-    {
-      label: "FIS",
-      value: Math.max(55, Math.min(99, rating - 1)),
-    },
-  ];
+  const stats = getSportStats({
+    mainSport,
+    rating,
+    wins,
+    mvp,
+    matchesPlayed,
+    goals,
+    assists,
+    level,
+    xp,
+  });
 
   return (
     <div className="relative mx-auto w-full max-w-[258px] sm:max-w-[330px]">
-      {/* Effetti 3D dietro la card: separati dalla card, senza box rettangolare */}
-      <div className="pointer-events-none absolute -left-16 top-10 h-72 w-28 rotate-[-16deg] rounded-full border-l-2 border-cyan-300/35 opacity-80 blur-[1px] sm:-left-20 sm:top-20 sm:h-96 sm:w-36" />
-      <div className="pointer-events-none absolute -right-16 top-12 h-72 w-28 rotate-[16deg] rounded-full border-r-2 border-fuchsia-400/35 opacity-80 blur-[1px] sm:-right-20 sm:top-24 sm:h-96 sm:w-36" />
-      <div className="pointer-events-none absolute -left-12 bottom-12 h-24 w-40 rounded-full border-b-2 border-yellow-300/35 opacity-80 blur-[1px] sm:-left-16 sm:bottom-20 sm:w-52" />
-      <div className="pointer-events-none absolute -right-12 bottom-12 h-24 w-40 rounded-full border-b-2 border-cyan-300/30 opacity-80 blur-[1px] sm:-right-16 sm:bottom-20 sm:w-52" />
+      <div className={`pointer-events-none absolute -left-16 top-10 h-72 w-28 rotate-[-16deg] rounded-full border-l-2 ${theme.glowLeft} opacity-80 blur-[1px] sm:-left-20 sm:top-20 sm:h-96 sm:w-36`} />
+      <div className={`pointer-events-none absolute -right-16 top-12 h-72 w-28 rotate-[16deg] rounded-full border-r-2 ${theme.glowRight} opacity-80 blur-[1px] sm:-right-20 sm:top-24 sm:h-96 sm:w-36`} />
+      <div className={`pointer-events-none absolute -left-12 bottom-12 h-24 w-40 rounded-full border-b-2 ${theme.glowBottomA} opacity-80 blur-[1px] sm:-left-16 sm:bottom-20 sm:w-52`} />
+      <div className={`pointer-events-none absolute -right-12 bottom-12 h-24 w-40 rounded-full border-b-2 ${theme.glowBottomB} opacity-80 blur-[1px] sm:-right-16 sm:bottom-20 sm:w-52`} />
 
-      <div className="pointer-events-none absolute -left-14 top-20 h-72 w-28 rounded-full bg-cyan-400/12 blur-3xl sm:-left-20 sm:top-28 sm:h-96 sm:w-36" />
-      <div className="pointer-events-none absolute -right-14 top-24 h-72 w-28 rounded-full bg-fuchsia-500/12 blur-3xl sm:-right-20 sm:top-32 sm:h-96 sm:w-36" />
-      <div className="pointer-events-none absolute inset-x-8 bottom-[-14px] h-24 rounded-full bg-yellow-300/12 blur-3xl sm:bottom-[-20px]" />
+      <div className={`pointer-events-none absolute -left-14 top-20 h-72 w-28 rounded-full ${theme.auraLeft} blur-3xl sm:-left-20 sm:top-28 sm:h-96 sm:w-36`} />
+      <div className={`pointer-events-none absolute -right-14 top-24 h-72 w-28 rounded-full ${theme.auraRight} blur-3xl sm:-right-20 sm:top-32 sm:h-96 sm:w-36`} />
+      <div className={`pointer-events-none absolute inset-x-8 bottom-[-14px] h-24 rounded-full ${theme.auraBottom} blur-3xl sm:bottom-[-20px]`} />
 
-      {/* Glow sagomato sulla forma della card. Niente shadow sul wrapper, quindi niente rettangolo. */}
       <div
-        className="pointer-events-none absolute -inset-3 bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.45),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.45),transparent_38%)] blur-2xl sm:-inset-5 sm:bg-[radial-gradient(circle_at_10%_50%,rgba(249,115,22,.62),transparent_34%),radial-gradient(circle_at_88%_43%,rgba(124,58,237,.58),transparent_38%)]"
+        className={`pointer-events-none absolute -inset-3 ${theme.outerGlow} blur-2xl sm:-inset-5`}
         style={{
           clipPath:
             "polygon(9% 0%, 91% 0%, 100% 9%, 100% 81%, 50% 100%, 0% 81%, 0% 9%)",
@@ -85,7 +250,7 @@ export default function PlayerCard({
 
       <div className="relative">
         <div
-          className="absolute inset-0 bg-gradient-to-br from-yellow-300 via-orange-500 to-purple-500 shadow-[0_0_30px_rgba(249,115,22,.28),0_0_38px_rgba(124,58,237,.24)] sm:shadow-[0_0_38px_rgba(249,115,22,.32),0_0_48px_rgba(124,58,237,.28)]"
+          className={`absolute inset-0 ${theme.borderGradient} shadow-[0_0_30px_rgba(34,211,238,.22),0_0_38px_rgba(124,58,237,.20)] sm:shadow-[0_0_38px_rgba(34,211,238,.26),0_0_48px_rgba(124,58,237,.24)]`}
           style={{
             clipPath:
               "polygon(9% 0%, 91% 0%, 100% 9%, 100% 81%, 50% 100%, 0% 81%, 0% 9%)",
@@ -100,7 +265,7 @@ export default function PlayerCard({
           }}
         >
           <div
-            className="absolute inset-0 bg-[radial-gradient(circle_at_14%_48%,rgba(249,115,22,.48),transparent_33%),radial-gradient(circle_at_84%_42%,rgba(37,99,235,.48),transparent_34%),linear-gradient(135deg,#050814_0%,#070a16_44%,#12051c_100%)]"
+            className={`absolute inset-0 ${theme.innerGradient}`}
             style={{
               clipPath:
                 "polygon(10% 1%, 90% 1%, 98.5% 10%, 98.5% 79.5%, 50% 98.5%, 1.5% 79.5%, 1.5% 10%)",
@@ -111,19 +276,19 @@ export default function PlayerCard({
           <div className="pointer-events-none absolute left-[-40%] top-[-20%] h-[160%] w-[70%] rotate-12 bg-cyan-300/[.035] blur-xl" />
           <div className="pointer-events-none absolute right-[-36%] top-[10%] h-[130%] w-[70%] rotate-[-10deg] bg-fuchsia-400/[.04] blur-xl" />
 
-          <div className="relative z-10 flex h-[355px] flex-col px-4 pb-6 pt-4 sm:h-[455px] sm:px-5 sm:pb-7 sm:pt-5">
+          <div className="relative z-10 flex h-[365px] flex-col px-4 pb-6 pt-4 sm:h-[465px] sm:px-5 sm:pb-7 sm:pt-5">
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-4xl font-black leading-none text-yellow-300 sm:text-5xl">
+                <div className={`text-4xl font-black leading-none ${theme.ratingText} sm:text-5xl`}>
                   {rating}
                 </div>
 
-                <div className="mt-0.5 text-sm font-black uppercase text-yellow-200 sm:mt-1 sm:text-lg">
+                <div className={`mt-0.5 text-sm font-black uppercase ${theme.softText} sm:mt-1 sm:text-lg`}>
                   RIV
                 </div>
               </div>
 
-              <div className="relative z-20 rounded-xl border border-cyan-300/50 bg-black/60 px-2.5 py-1.5 text-center text-[9px] font-black uppercase tracking-[.12em] text-cyan-100 shadow-[0_0_14px_rgba(34,211,238,0.38)] sm:rounded-2xl sm:px-3 sm:py-2 sm:text-[11px] sm:tracking-[.14em] sm:shadow-[0_0_18px_rgba(34,211,238,0.45)]">
+              <div className={`relative z-20 rounded-xl border ${theme.badgeBorder} bg-black/60 px-2.5 py-1.5 text-center text-[9px] font-black uppercase tracking-[.12em] ${theme.badgeText} ${theme.badgeShadow} sm:rounded-2xl sm:px-3 sm:py-2 sm:text-[11px] sm:tracking-[.14em]`}>
                 {rarityLabel}
               </div>
             </div>
@@ -144,22 +309,27 @@ export default function PlayerCard({
             </div>
 
             <div className="mt-0 text-center">
-              <div className="truncate px-2 text-[22px] font-black uppercase leading-tight text-yellow-300 sm:px-3 sm:text-3xl">
+              <div className={`truncate px-2 text-[22px] font-black uppercase leading-tight ${theme.ratingText} sm:px-3 sm:text-3xl`}>
                 {name || "Player"}
               </div>
 
-              <div className="mt-0.5 truncate px-2 text-[13px] font-black uppercase leading-tight text-yellow-200 sm:mt-1 sm:px-3 sm:text-lg">
-                {nickname || mainSport || "Rivalo Player"}
+              <div className={`mt-0.5 truncate px-2 text-[13px] font-black uppercase leading-tight ${theme.softText} sm:mt-1 sm:px-3 sm:text-lg`}>
+                {nickname || sportLabel(mainSport) || "Rivalo Player"}
+              </div>
+
+              <div className="mx-auto mt-1 w-fit rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/80 sm:mt-2 sm:text-[10px]">
+                {sportLabel(mainSport)}
               </div>
             </div>
 
-            <div className="mt-auto pb-10 pt-2 sm:pb-14 sm:pt-3">
-              <div className="grid grid-cols-4 gap-1.5 text-center sm:gap-2">
+            <div className="mt-auto pb-8 pt-2 sm:pb-12 sm:pt-3">
+              <div className="grid grid-cols-3 gap-1.5 text-center sm:gap-2">
                 {stats.map((stat) => (
                   <CardStat
                     key={stat.label}
                     label={stat.label}
                     value={stat.value}
+                    theme={theme}
                   />
                 ))}
               </div>
@@ -174,17 +344,19 @@ export default function PlayerCard({
 function CardStat({
   value,
   label,
+  theme,
 }: {
   value: number;
   label: string;
+  theme: ReturnType<typeof getSportTheme>;
 }) {
   return (
-    <div className="min-w-0 rounded-lg border border-yellow-300/10 bg-black/35 px-0.5 py-1.5 shadow-[0_0_14px_rgba(0,0,0,.24)]">
-      <div className="text-[13px] font-black leading-none text-yellow-300 sm:text-[15px]">
+    <div className={`min-w-0 rounded-lg border ${theme.statBorder} bg-black/35 px-0.5 py-1.5 shadow-[0_0_14px_rgba(0,0,0,.24)]`}>
+      <div className={`text-[13px] font-black leading-none ${theme.statText} sm:text-[15px]`}>
         {value}
       </div>
 
-      <div className="mt-1 text-[7px] font-black uppercase text-yellow-200 sm:text-[8px]">
+      <div className={`mt-1 text-[7px] font-black uppercase ${theme.statLabel} sm:text-[8px]`}>
         {label}
       </div>
     </div>

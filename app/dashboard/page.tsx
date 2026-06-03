@@ -271,6 +271,13 @@ export default function DashboardPage() {
                 rivalScore={rivalScore}
                 mainSport={mainSport}
                 photo={photo}
+                level={level}
+                xp={xp}
+                wins={wins}
+                mvp={mvp}
+                matchesPlayed={matchesPlayed}
+                goals={goals}
+                assists={assists}
               />
 
               <div className="pt-3 sm:pt-5">
