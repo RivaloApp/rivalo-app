@@ -22,6 +22,7 @@ type UserRow = {
   name?: string;
   nickname?: string;
   mainSport?: string;
+  sport?: string;
   rivalScore?: number;
   level?: number;
   wins?: number;
@@ -40,33 +41,108 @@ type UserRow = {
 type SportFilter = "all" | "calcetto" | "padel" | "tennis";
 
 function normalizeSport(value?: string) {
-  return (value || "").toLowerCase().trim();
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+  return "calcetto";
 }
 
-function calculateGlobalRankScore(user: UserRow) {
+function getUserSport(user: UserRow) {
+  return normalizeSport(user.mainSport || user.sport || "calcetto");
+}
+
+function sportLabel(filter: SportFilter) {
+  if (filter === "padel") return "Padel";
+  if (filter === "tennis") return "Tennis";
+  if (filter === "calcetto") return "Calcetto";
+  return "Tutti gli sport";
+}
+
+function isActiveUser(user: UserRow) {
+  return Number(user.matchesPlayed || 0) > 0;
+}
+
+function calculateUniversalRankScore(user: UserRow) {
   const matches = Number(user.matchesPlayed || 0);
   const wins = Number(user.wins || 0);
   const draws = Number(user.draws || 0);
   const losses = Number(user.losses || 0);
   const mvp = Number(user.mvp || 0);
-  const goals = Number(user.goals || 0);
-  const assists = Number(user.assists || 0);
   const winStreak = Number(user.winStreak || 0);
+  const rivalScore = Number(user.rivalScore || 1000);
+  const xp = Number(user.xp || 0);
 
-  const winRate = matches > 0 ? wins / matches : 0;
+  if (matches <= 0) return 0;
+
+  const winRate = wins / matches;
 
   const score =
     wins * 120 +
     draws * 35 +
     mvp * 90 +
     matches * 18 +
-    Math.min(goals, 120) * 4 +
-    Math.min(assists, 80) * 5 +
     Math.min(winStreak, 10) * 25 +
-    Math.round(winRate * 120) -
+    Math.round(winRate * 140) +
+    Math.max(0, rivalScore - 1000) * 0.45 +
+    Math.min(xp, 5000) * 0.025 -
     losses * 35;
 
   return Math.max(0, Math.round(score));
+}
+
+function calculateCalcettoRankScore(user: UserRow) {
+  const matches = Number(user.matchesPlayed || 0);
+  const goals = Number(user.goals || 0);
+  const assists = Number(user.assists || 0);
+
+  if (matches <= 0) return 0;
+
+  return Math.max(
+    0,
+    Math.round(
+      calculateUniversalRankScore(user) +
+        Math.min(goals, 120) * 4 +
+        Math.min(assists, 80) * 5
+    )
+  );
+}
+
+function calculateSportRankScore(user: UserRow, filter: SportFilter) {
+  if (filter === "calcetto") return calculateCalcettoRankScore(user);
+
+  return calculateUniversalRankScore(user);
+}
+
+function compareUsers(a: UserRow, b: UserRow, filter: SportFilter) {
+  const activeA = isActiveUser(a) ? 1 : 0;
+  const activeB = isActiveUser(b) ? 1 : 0;
+
+  if (activeA !== activeB) {
+    return activeB - activeA;
+  }
+
+  const scoreA = calculateSportRankScore(a, filter);
+  const scoreB = calculateSportRankScore(b, filter);
+
+  return (
+    scoreB - scoreA ||
+    Number(b.rivalScore || 1000) - Number(a.rivalScore || 1000) ||
+    Number(b.wins || 0) - Number(a.wins || 0) ||
+    Number(b.mvp || 0) - Number(a.mvp || 0) ||
+    Number(b.matchesPlayed || 0) - Number(a.matchesPlayed || 0) ||
+    Number(b.goals || 0) - Number(a.goals || 0) ||
+    Number(b.assists || 0) - Number(a.assists || 0)
+  );
+}
+
+function topBy(
+  users: UserRow[],
+  getValue: (user: UserRow) => number
+) {
+  const activeUsers = users.filter(isActiveUser);
+
+  return [...activeUsers].sort((a, b) => getValue(b) - getValue(a))[0];
 }
 
 export default function LeaderboardPage() {
@@ -77,7 +153,7 @@ export default function LeaderboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const q = query(collection(db, "users"), limit(200));
+        const q = query(collection(db, "users"), limit(300));
         const snap = await getDocs(q);
 
         setUsers(
@@ -97,50 +173,53 @@ export default function LeaderboardPage() {
   const filteredUsers = useMemo(() => {
     if (sportFilter === "all") return users;
 
-    return users.filter(
-      (user) => normalizeSport(user.mainSport) === sportFilter
-    );
+    return users.filter((user) => getUserSport(user) === sportFilter);
   }, [users, sportFilter]);
 
   const rankedUsers = useMemo(() => {
-    return [...filteredUsers].sort((a, b) => {
-      const scoreA = calculateGlobalRankScore(a);
-      const scoreB = calculateGlobalRankScore(b);
+    return [...filteredUsers].sort((a, b) => compareUsers(a, b, sportFilter));
+  }, [filteredUsers, sportFilter]);
 
-      return (
-        scoreB - scoreA ||
-        Number(b.wins || 0) - Number(a.wins || 0) ||
-        Number(b.mvp || 0) - Number(a.mvp || 0) ||
-        Number(b.matchesPlayed || 0) - Number(a.matchesPlayed || 0) ||
-        Number(b.goals || 0) - Number(a.goals || 0) ||
-        Number(b.assists || 0) - Number(a.assists || 0)
-      );
-    });
-  }, [filteredUsers]);
+  const activeRankedUsers = useMemo(() => {
+    return rankedUsers.filter(isActiveUser);
+  }, [rankedUsers]);
 
   const topScorer = useMemo(() => {
-    return [...filteredUsers].sort(
-      (a, b) => Number(b.goals || 0) - Number(a.goals || 0)
-    )[0];
+    return topBy(filteredUsers, (user) => Number(user.goals || 0));
   }, [filteredUsers]);
 
   const topAssist = useMemo(() => {
-    return [...filteredUsers].sort(
-      (a, b) => Number(b.assists || 0) - Number(a.assists || 0)
-    )[0];
+    return topBy(filteredUsers, (user) => Number(user.assists || 0));
   }, [filteredUsers]);
 
   const topMvp = useMemo(() => {
-    return [...filteredUsers].sort(
-      (a, b) => Number(b.mvp || 0) - Number(a.mvp || 0)
-    )[0];
+    return topBy(filteredUsers, (user) => Number(user.mvp || 0));
   }, [filteredUsers]);
 
   const topStreak = useMemo(() => {
-    return [...filteredUsers].sort(
-      (a, b) => Number(b.winStreak || 0) - Number(a.winStreak || 0)
-    )[0];
+    return topBy(filteredUsers, (user) => Number(user.winStreak || 0));
   }, [filteredUsers]);
+
+  const topWins = useMemo(() => {
+    return topBy(filteredUsers, (user) => Number(user.wins || 0));
+  }, [filteredUsers]);
+
+  const topWinRate = useMemo(() => {
+    return topBy(filteredUsers, (user) => {
+      const matches = Number(user.matchesPlayed || 0);
+      const wins = Number(user.wins || 0);
+
+      return matches > 0 ? Math.round((wins / matches) * 100) : 0;
+    });
+  }, [filteredUsers]);
+
+  const topRankScore = useMemo(() => {
+    return topBy(filteredUsers, (user) =>
+      calculateSportRankScore(user, sportFilter)
+    );
+  }, [filteredUsers, sportFilter]);
+
+  const isCalcettoView = sportFilter === "calcetto" || sportFilter === "all";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] px-4 py-6 text-white sm:px-5 sm:py-8">
@@ -173,8 +252,9 @@ export default function LeaderboardPage() {
                   </h1>
 
                   <p className="mt-3 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
-                    Ranking generale basato sulle statistiche reali: vittorie,
-                    MVP, partite, rendimento, gol e assist.
+                    Ranking multi-sport con classifiche separate per calcetto,
+                    padel e tennis. Gli utenti senza partite restano sotto agli
+                    utenti attivi.
                   </p>
                 </div>
               </div>
@@ -182,8 +262,8 @@ export default function LeaderboardPage() {
               <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
                 <StatPill label="Utenti totali" value={users.length} color="cyan" />
                 <StatPill
-                  label="In classifica"
-                  value={rankedUsers.length}
+                  label="Attivi"
+                  value={activeRankedUsers.length}
                   color="yellow"
                 />
               </div>
@@ -221,6 +301,13 @@ export default function LeaderboardPage() {
               </FilterButton>
             </div>
 
+            <div className="mb-6 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.06] p-4 text-sm leading-6 text-cyan-100">
+              Vista attiva: <span className="font-black">{sportLabel(sportFilter)}</span>.
+              {sportFilter === "all"
+                ? " Classifica generale Rivalo, con ranking universale e utenti attivi sempre in alto."
+                : " Classifica filtrata solo per questo sport."}
+            </div>
+
             {loading ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-slate-300">
                 Caricamento classifica...
@@ -232,19 +319,47 @@ export default function LeaderboardPage() {
             ) : (
               <>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <CategoryCard
-                    title="Top Gol"
-                    value={topScorer?.goals || 0}
-                    user={topScorer}
-                    icon={<Target className="text-yellow-300" />}
-                  />
+                  {isCalcettoView ? (
+                    <>
+                      <CategoryCard
+                        title="Top Gol"
+                        value={topScorer?.goals || 0}
+                        user={topScorer}
+                        icon={<Target className="text-yellow-300" />}
+                      />
 
-                  <CategoryCard
-                    title="Top Assist"
-                    value={topAssist?.assists || 0}
-                    user={topAssist}
-                    icon={<ShieldCheck className="text-cyan-300" />}
-                  />
+                      <CategoryCard
+                        title="Top Assist"
+                        value={topAssist?.assists || 0}
+                        user={topAssist}
+                        icon={<ShieldCheck className="text-cyan-300" />}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <CategoryCard
+                        title="Top Vittorie"
+                        value={topWins?.wins || 0}
+                        user={topWins}
+                        icon={<Target className="text-lime-300" />}
+                      />
+
+                      <CategoryCard
+                        title="Top WR%"
+                        value={
+                          topWinRate
+                            ? Math.round(
+                                (Number(topWinRate.wins || 0) /
+                                  Math.max(1, Number(topWinRate.matchesPlayed || 0))) *
+                                  100
+                              )
+                            : 0
+                        }
+                        user={topWinRate}
+                        icon={<ShieldCheck className="text-cyan-300" />}
+                      />
+                    </>
+                  )}
 
                   <CategoryCard
                     title="MVP King"
@@ -266,7 +381,9 @@ export default function LeaderboardPage() {
                     <div className="h-3 w-3 rounded-full bg-cyan-300" />
 
                     <h2 className="text-[30px] font-black leading-tight sm:text-3xl">
-                      Top mondiale
+                      {sportFilter === "all"
+                        ? "Top mondiale"
+                        : `Top ${sportLabel(sportFilter)}`}
                     </h2>
                   </div>
 
@@ -276,6 +393,7 @@ export default function LeaderboardPage() {
                         key={user.id}
                         user={user}
                         index={index}
+                        sportFilter={sportFilter}
                       />
                     ))}
 
@@ -284,6 +402,7 @@ export default function LeaderboardPage() {
                         key={user.id}
                         user={user}
                         index={index + 4}
+                        sportFilter={sportFilter}
                       />
                     ))}
                   </div>
@@ -376,7 +495,7 @@ function CategoryCard({
       </div>
 
       <div className="mt-2 truncate text-sm text-cyan-300">
-        {user?.name || user?.nickname || "Player"}
+        {user ? user.name || user.nickname || "Player" : "Nessun attivo"}
       </div>
     </div>
   );
@@ -385,15 +504,18 @@ function CategoryCard({
 function LeaderboardPodiumCard({
   user,
   index,
+  sportFilter,
 }: {
   user: UserRow;
   index: number;
+  sportFilter: SportFilter;
 }) {
   const photo = user.photoURL || user.photoUrl || "";
   const matches = Number(user.matchesPlayed || 0);
   const wins = Number(user.wins || 0);
-  const rankScore = calculateGlobalRankScore(user);
+  const rankScore = calculateSportRankScore(user, sportFilter);
   const winRate = matches > 0 ? Math.round((wins / matches) * 100) : 0;
+  const isActive = isActiveUser(user);
 
   const medal = index === 0 ? <Crown size={22} /> : <Medal size={22} />;
 
@@ -437,7 +559,7 @@ function LeaderboardPodiumCard({
             <span className={`shrink-0 ${rankColor}`}>{medal}</span>
 
             <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-cyan-200">
-              Top {index + 1}
+              {isActive ? `Top ${index + 1}` : "Non attivo"}
             </span>
           </div>
 
@@ -449,7 +571,7 @@ function LeaderboardPodiumCard({
           </Link>
 
           <div className="mt-0.5 truncate text-sm capitalize text-slate-400">
-            {user.mainSport || "sport"}
+            {getUserSport(user)}
           </div>
         </div>
       </div>
@@ -474,9 +596,19 @@ function LeaderboardPodiumCard({
         <MiniStat label="Win" value={wins} color="text-lime-300" />
         <MiniStat label="MVP" value={user.mvp || 0} color="text-yellow-200" />
         <MiniStat label="Partite" value={matches} color="text-cyan-200" />
-        <MiniStat label="Gol" value={user.goals || 0} color="text-yellow-300" />
-        <MiniStat label="Assist" value={user.assists || 0} color="text-cyan-300" />
-        <MiniStat label="WR%" value={winRate} color="text-cyan-200" />
+        {sportFilter === "padel" || sportFilter === "tennis" ? (
+          <>
+            <MiniStat label="WR%" value={winRate} color="text-cyan-200" />
+            <MiniStat label="Liv" value={user.level || 1} color="text-cyan-300" />
+            <MiniStat label="XP" value={user.xp || 0} color="text-slate-200" />
+          </>
+        ) : (
+          <>
+            <MiniStat label="Gol" value={user.goals || 0} color="text-yellow-300" />
+            <MiniStat label="Assist" value={user.assists || 0} color="text-cyan-300" />
+            <MiniStat label="WR%" value={winRate} color="text-cyan-200" />
+          </>
+        )}
       </div>
     </div>
   );
@@ -485,15 +617,24 @@ function LeaderboardPodiumCard({
 function CompactRow({
   user,
   index,
+  sportFilter,
 }: {
   user: UserRow;
   index: number;
+  sportFilter: SportFilter;
 }) {
   const photo = user.photoURL || user.photoUrl || "";
-  const rankScore = calculateGlobalRankScore(user);
+  const rankScore = calculateSportRankScore(user, sportFilter);
+  const isActive = isActiveUser(user);
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
+    <div
+      className={`flex min-w-0 flex-col gap-3 rounded-2xl border px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5 ${
+        isActive
+          ? "border-white/10 bg-black/20"
+          : "border-white/5 bg-black/10 opacity-70"
+      }`}
+    >
       <div className="flex min-w-0 items-center gap-3 sm:gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-400/10 font-black text-cyan-300">
           #{index}
@@ -518,7 +659,8 @@ function CompactRow({
           </Link>
 
           <div className="truncate text-sm capitalize text-slate-400">
-            {user.mainSport || "sport"}
+            {getUserSport(user)}
+            {!isActive ? " · 0 partite" : ""}
           </div>
         </div>
       </div>
