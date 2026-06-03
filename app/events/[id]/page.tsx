@@ -150,12 +150,35 @@ bracket? : BracketMatch[];
 leagueFixtures?: LeagueFixture[];
 };
 
+type UserProfile = {
+  mainSport?: string;
+  sport?: string;
+};
+
+function normalizeSport(value?: string) {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+  return "calcetto";
+}
+
+function formatSportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Padel";
+  if (sport === "tennis") return "Tennis";
+  return "Calcetto";
+}
+
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
 
   const [user, setUser] = useState<User | null>(null);
+  const [userSport, setUserSport] = useState("calcetto");
+  const [sportMismatch, setSportMismatch] = useState(false);
   const [event, setEvent] = useState<EventData | null>(null);
   const [participantsInfo, setParticipantsInfo] = useState<ParticipantInfo[]>([]);
   const [eventStats, setEventStats] = useState<EventStat[]>([]);
@@ -181,16 +204,17 @@ export default function EventDetailPage() {
       }
 
       setUser(currentUser);
-      await loadEvent();
+      await loadEvent(currentUser.uid);
     });
 
     return () => unsub();
   }, [id]);
 
-  async function loadEvent() {
+  async function loadEvent(currentUserId = user?.uid || "") {
     if (!id) return;
 
     setLoading(true);
+    setSportMismatch(false);
 
     try {
       const snap = await getDoc(doc(db, "events", id));
@@ -205,7 +229,29 @@ export default function EventDetailPage() {
         ...(snap.data() as Omit<EventData, "id">),
       };
 
+      const profileSnap = currentUserId
+        ? await getDoc(doc(db, "users", currentUserId))
+        : null;
+
+      const profile = profileSnap?.exists()
+        ? (profileSnap.data() as UserProfile)
+        : null;
+
+      const currentUserSport = normalizeSport(
+        profile?.mainSport || profile?.sport || "calcetto"
+      );
+
+      setUserSport(currentUserSport);
       setEvent(eventData);
+
+      if (normalizeSport(eventData.sport) !== currentUserSport) {
+        setSportMismatch(true);
+        setParticipantsInfo([]);
+        setAvailableUsers([]);
+        setEventStats([]);
+        setTeamStats([]);
+        return;
+      }
 
       const savedInfo = Array.isArray(eventData.participantsInfo)
   ? eventData.participantsInfo
@@ -327,6 +373,11 @@ setTeamStats(teamStatsResult);
   async function joinEvent() {
     if (!user || !event) return;
 
+    if (sportMismatch || normalizeSport(event.sport) !== userSport) {
+      setMessage("Questo evento appartiene a un altro sport. Usa un profilo sport compatibile.");
+      return;
+    }
+
     const competitionStarted =
   Boolean(event.bracket && event.bracket.length > 0) ||
   Boolean(event.leagueFixtures && event.leagueFixtures.length > 0) ||
@@ -446,6 +497,11 @@ if (competitionStarted) {
 
  async function createTeam() {
   if (!user || !event) return;
+
+  if (sportMismatch || normalizeSport(event.sport) !== userSport) {
+    setMessage("Non puoi creare squadre/coppie in un evento di un altro sport.");
+    return;
+  }
 
     const competitionStarted =
     Boolean(event.bracket && event.bracket.length > 0) ||
@@ -715,6 +771,11 @@ function isTeamValid(team: TeamInfo) {
 async function generateTournamentBracket() {
   if (!user || !event) return;
 
+  if (sportMismatch || normalizeSport(event.sport) !== userSport) {
+    setMessage("Non puoi generare tabelloni per eventi di un altro sport.");
+    return;
+  }
+
   const teams = event.teams || [];
 
   if (event.type !== "torneo") {
@@ -819,6 +880,11 @@ setMessage("Tabellone generato.");
 
 async function generateLeagueSchedule() {
   if (!user || !event) return;
+
+  if (sportMismatch || normalizeSport(event.sport) !== userSport) {
+    setMessage("Non puoi generare calendari per eventi di un altro sport.");
+    return;
+  }
 
   const teams = event.teams || [];
 
@@ -977,6 +1043,11 @@ setMessage("Calendario campionato generato.");
 
 async function createMatchFromEvent() {
   if (!user || !event) return;
+
+  if (sportMismatch || normalizeSport(event.sport) !== userSport) {
+    setMessage("Non puoi creare match da un evento di un altro sport.");
+    return;
+  }
 
   const competitionFormat =
     event.competitionFormat ||
@@ -1272,6 +1343,33 @@ await Promise.all(
           >
             Torna agli eventi
           </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (sportMismatch) {
+    return (
+      <main className="min-h-screen bg-[#020617] px-5 py-8 text-white">
+        <div className="mx-auto max-w-2xl">
+          <Link
+            href="/events"
+            className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
+          >
+            <ArrowLeft size={17} />
+            Torna agli eventi
+          </Link>
+
+          <div className="mt-8 rounded-[2rem] border border-red-400/20 bg-red-500/10 p-7 text-center">
+            <div className="text-3xl font-black text-red-100">
+              Evento non compatibile
+            </div>
+
+            <p className="mt-4 leading-7 text-slate-300">
+              Questo evento è dedicato a {formatSportLabel(event.sport)}, mentre il tuo profilo attivo è {formatSportLabel(userSport)}.
+              Per usare un altro sport servirà un profilo sport separato.
+            </p>
+          </div>
         </div>
       </main>
     );
