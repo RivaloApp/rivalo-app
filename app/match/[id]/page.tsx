@@ -76,6 +76,12 @@ type MatchDoc = {
   statsApplyingBy?: string;
   statsError?: boolean;
   statsErrorAt?: any;
+  cancelledAt?: any;
+  cancelledBy?: string;
+  cancellationReason?: string;
+  statsReverted?: boolean;
+  statsRevertedAt?: any;
+  statsRevertedBy?: string;
   participants?: string[];
   players?: MatchPlayer[];
   eventId?: string;
@@ -226,6 +232,20 @@ function formatDeadline(match: MatchDoc) {
   });
 }
 
+function isMatchCancelled(match: MatchDoc) {
+  return match.status === "annullato" || match.resultStatus === "annullato";
+}
+
+function canCancelMatch(match: MatchDoc, uid: string) {
+  if (!uid) return false;
+
+  if (match.createdBy === uid) return true;
+  if (match.homeCaptainId === uid) return true;
+  if (match.awayCaptainId === uid) return true;
+
+  return false;
+}
+
 export default function MatchDetailsPage() {
   const params = useParams();
   const matchId = params.id as string;
@@ -244,6 +264,7 @@ export default function MatchDetailsPage() {
   const [mvpName, setMvpName] = useState("");
   const [notes, setNotes] = useState("");
   const [players, setPlayers] = useState<MatchPlayer[]>([]);
+  const [cancellationReason, setCancellationReason] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -315,6 +336,7 @@ export default function MatchDetailsPage() {
         );
         setMvpName(data.mvpName || "");
         setNotes(data.notes || "");
+        setCancellationReason(data.cancellationReason || "");
         setPlayers(Array.isArray(data.players) ? data.players : []);
       }
     } finally {
@@ -586,6 +608,11 @@ export default function MatchDetailsPage() {
       return;
     }
 
+    if (isMatchCancelled(match)) {
+      setMessage("Match annullato. Non puoi proporre o modificare il risultato.");
+      return;
+    }
+
     if (match.resultStatus === "proposto") {
       setMessage("Esiste già una proposta risultato. La squadra avversaria deve confermare o contestare.");
       return;
@@ -667,6 +694,11 @@ setMessage(
       return;
     }
 
+    if (isMatchCancelled(match)) {
+      setMessage("Match annullato. Non puoi confermare né applicare statistiche.");
+      return;
+    }
+
     if (match.resultStatus !== "proposto") {
       setMessage("Prima deve essere proposto un risultato.");
       return;
@@ -707,6 +739,10 @@ setMessage(
 
         if (!canUseMatch(freshMatch, user.uid, userSport)) {
           throw new Error("SPORT_MISMATCH");
+        }
+
+        if (isMatchCancelled(freshMatch)) {
+          throw new Error("MATCH_CANCELLED");
         }
 
         const freshUserTeam = getUserConfirmationTeam(freshMatch, user.uid);
@@ -849,6 +885,8 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
         setMessage("Chi propone il risultato non può confermarlo da solo.");
       } else if (error?.message === "RESULT_DISPUTED") {
         setMessage("Il risultato è contestato. Serve revisione prima della conferma.");
+      } else if (error?.message === "MATCH_CANCELLED") {
+        setMessage("Match annullato. Statistiche non applicate.");
       } else {
         await updateDoc(matchRef, {
           statsApplying: false,
@@ -873,6 +911,11 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
 
     if (!canUseMatch(match, user.uid, userSport)) {
       setMessage("Questo match appartiene a un altro sport. Usa un profilo sport compatibile.");
+      return;
+    }
+
+    if (isMatchCancelled(match)) {
+      setMessage("Match annullato. Non puoi contestarlo.");
       return;
     }
 
@@ -921,6 +964,76 @@ await loadMatch(user?.uid);
 setMessage("Risultato contestato. Servirà revisione.");
     } catch {
       setMessage("Errore durante la contestazione.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function cancelMatch() {
+    if (!user || !match) return;
+
+    if (!canAccessMatch(match, user.uid)) {
+      setMessage("Non puoi annullare un match in cui non sei coinvolto.");
+      return;
+    }
+
+    if (!canUseMatch(match, user.uid, userSport)) {
+      setMessage("Questo match appartiene a un altro sport. Usa un profilo sport compatibile.");
+      return;
+    }
+
+    if (!canCancelMatch(match, user.uid)) {
+      setMessage("Solo creator o capitani possono annullare questo match.");
+      return;
+    }
+
+    if (isMatchCancelled(match)) {
+      setMessage("Match già annullato.");
+      return;
+    }
+
+    const reason = cancellationReason.trim();
+
+    if (reason.length < 5) {
+      setMessage("Inserisci un motivo di annullamento di almeno 5 caratteri.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      await updateDoc(doc(db, "matches", matchId), {
+        status: "annullato",
+        resultStatus: "annullato",
+        fairPlayStatus: match.statsApplied
+          ? "annullato_stats_da_verificare"
+          : "annullato",
+        cancellationReason: reason,
+        cancelledBy: user.uid,
+        cancelledAt: serverTimestamp(),
+        statsReverted: false,
+        updatedAt: serverTimestamp(),
+      });
+
+      await notifyMatchPlayers({
+        type: "result_disputed",
+        title: "Match annullato",
+        message: `${homeTeam || "Squadra 1"} vs ${
+          awayTeam || "Squadra 2"
+        } è stato annullato. Motivo: ${reason}`,
+      });
+
+      await loadMatch(user.uid);
+
+      setMessage(
+        match.statsApplied
+          ? "Match annullato. Le statistiche erano già applicate: servirà rollback statistiche nel prossimo step."
+          : "Match annullato. Nessuna statistica era stata applicata."
+      );
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante l'annullamento del match.");
     } finally {
       setSaving(false);
     }
@@ -992,8 +1105,12 @@ setMessage("Risultato contestato. Servirà revisione.");
     );
   }
 
+  const isCancelled = isMatchCancelled(match);
+
   const isOfficial =
     match.status === "ufficiale" || match.resultStatus === "confermato";
+
+  const canCancelCurrentMatch = user ? canCancelMatch(match, user.uid) : false;
 
   const statsLocked = Boolean(match.statsApplied || match.statsApplying);
 
@@ -1101,7 +1218,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <Field label="Squadra 1">
                   <input
                     required
-                    disabled={isOfficial}
+                    disabled={isOfficial || isCancelled}
                     value={homeTeam}
                     onChange={(e) => setHomeTeam(e.target.value)}
                     placeholder="Es. Rival Team"
@@ -1112,7 +1229,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <Field label="Squadra 2">
                   <input
                     required
-                    disabled={isOfficial}
+                    disabled={isOfficial || isCancelled}
                     value={awayTeam}
                     onChange={(e) => setAwayTeam(e.target.value)}
                     placeholder="Es. Black Sharks"
@@ -1125,7 +1242,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <Field label="Gol squadra 1">
                   <input
                     required
-                    disabled={isOfficial}
+                    disabled={isOfficial || isCancelled}
                     type="number"
                     min="0"
                     value={homeScore}
@@ -1137,7 +1254,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <Field label="Gol squadra 2">
                   <input
                     required
-                    disabled={isOfficial}
+                    disabled={isOfficial || isCancelled}
                     type="number"
                     min="0"
                     value={awayScore}
@@ -1149,7 +1266,7 @@ setMessage("Risultato contestato. Servirà revisione.");
 
               <Field label="MVP partita">
                 <input
-                  disabled={isOfficial}
+                  disabled={isOfficial || isCancelled}
                   value={mvpName}
                   onChange={(e) => setMvpName(e.target.value)}
                   placeholder="Nome MVP"
@@ -1169,6 +1286,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       players={homePlayers}
                       teamName={homeTeam}
                       isOfficial={isOfficial}
+                      isCancelled={isCancelled}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1178,6 +1296,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       players={awayPlayers}
                       teamName={awayTeam}
                       isOfficial={isOfficial}
+                      isCancelled={isCancelled}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1187,6 +1306,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       players={otherPlayers}
                       teamName="Non assegnati"
                       isOfficial={isOfficial}
+                      isCancelled={isCancelled}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1196,13 +1316,22 @@ setMessage("Risultato contestato. Servirà revisione.");
 
               <Field label="Note statistiche">
                 <textarea
-                  disabled={isOfficial}
+                  disabled={isOfficial || isCancelled}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Gol, assist, note o dettagli partita..."
                   className="min-h-[120px] w-full resize-none bg-transparent outline-none placeholder:text-slate-500 disabled:opacity-60"
                 />
               </Field>
+
+              {isCancelled && (
+                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">
+                  Match annullato. Motivo: {match.cancellationReason || "Non specificato"}.
+                  {match.statsApplied && !match.statsReverted
+                    ? " Le statistiche risultano applicate: rollback da completare nello step successivo."
+                    : ""}
+                </div>
+              )}
 
               <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold text-cyan-100">
                 {getPermissionLabel(match)}
@@ -1292,11 +1421,13 @@ setMessage("Risultato contestato. Servirà revisione.");
 
               <button
                 type="submit"
-                disabled={saving || isOfficial}
+                disabled={saving || isOfficial || isCancelled}
                 className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
               >
                 {saving
                   ? "Salvataggio..."
+                  : isCancelled
+                  ? "Match annullato"
                   : isOfficial
                   ? "Risultato ufficiale"
                   : "Proponi risultato"}
@@ -1307,7 +1438,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <button
                   type="button"
                   onClick={confirmResult}
-                  disabled={saving || isOfficial || statsLocked}
+                  disabled={saving || isOfficial || isCancelled || statsLocked}
                   className="rounded-2xl border border-lime-300/30 bg-lime-400/10 px-6 py-4 font-black text-lime-200 disabled:opacity-60"
                 >
                   {match.resultStatus === "proposto" && isProposalExpired(match)
@@ -1318,12 +1449,42 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <button
                   type="button"
                   onClick={disputeResult}
-                  disabled={saving || isOfficial || statsLocked}
+                  disabled={saving || isOfficial || isCancelled || statsLocked}
                   className="rounded-2xl border border-red-300/30 bg-red-500/10 px-6 py-4 font-black text-red-200 disabled:opacity-60"
                 >
                   Contesta
                 </button>
               </div>
+
+              {canCancelCurrentMatch && (
+                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4">
+                  <div className="text-sm font-black uppercase tracking-[0.16em] text-red-200">
+                    Annullamento match
+                  </div>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-300">
+                    Usa questa azione solo per match creati per errore, interrotti o non validi.
+                    Se le statistiche sono già state applicate, il rollback verrà gestito nello step successivo.
+                  </p>
+
+                  <textarea
+                    value={cancellationReason}
+                    onChange={(e) => setCancellationReason(e.target.value)}
+                    disabled={saving || isCancelled}
+                    placeholder="Motivo annullamento"
+                    className="mt-3 min-h-[90px] w-full resize-none rounded-2xl border border-white/10 bg-[#020617]/80 px-4 py-3 text-white outline-none placeholder:text-slate-500 disabled:opacity-60"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={cancelMatch}
+                    disabled={saving || isCancelled}
+                    className="mt-3 w-full rounded-2xl border border-red-300/30 bg-red-500/10 px-6 py-4 font-black text-red-200 disabled:opacity-60"
+                  >
+                    {isCancelled ? "Match già annullato" : "Annulla match"}
+                  </button>
+                </div>
+              )}
             </div>
           </form>
 
@@ -1337,7 +1498,7 @@ setMessage("Risultato contestato. Servirà revisione.");
             </Panel>
 
             <Panel icon={<Trophy />} title="Ranking">
-              Solo i match confermati aggiornano RivalScore, XP, vittorie e MVP.
+              Solo i match confermati aggiornano RivalScore, XP, vittorie e MVP. I match annullati bloccano nuove azioni.
             </Panel>
           </div>
         </section>
@@ -1351,6 +1512,7 @@ function PlayerStatsGroup({
   players,
   teamName,
   isOfficial,
+  isCancelled,
   updatePlayerField,
   setMvpName,
 }: {
@@ -1358,6 +1520,7 @@ function PlayerStatsGroup({
   players: MatchPlayer[];
   teamName: string;
   isOfficial: boolean;
+  isCancelled: boolean;
   updatePlayerField: (
     uid: string,
     field: "goals" | "assists" | "isMvp",
@@ -1406,7 +1569,7 @@ function PlayerStatsGroup({
                 type="number"
                 min="0"
                 value={player.goals || 0}
-                disabled={isOfficial}
+                disabled={isOfficial || isCancelled}
                 onChange={(e) =>
                   updatePlayerField(
                     player.uid,
@@ -1427,7 +1590,7 @@ function PlayerStatsGroup({
                 type="number"
                 min="0"
                 value={player.assists || 0}
-                disabled={isOfficial}
+                disabled={isOfficial || isCancelled}
                 onChange={(e) =>
                   updatePlayerField(
                     player.uid,
@@ -1443,7 +1606,7 @@ function PlayerStatsGroup({
               <input
                 type="checkbox"
                 checked={Boolean(player.isMvp)}
-                disabled={isOfficial}
+                disabled={isOfficial || isCancelled}
                 onChange={(e) => {
                   updatePlayerField(player.uid, "isMvp", e.target.checked);
 
