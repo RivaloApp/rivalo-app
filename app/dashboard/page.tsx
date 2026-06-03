@@ -142,6 +142,12 @@ const NAV_ITEMS: NavItem[] = [
     text: "Notifiche",
     subtitle: "Inviti e aggiornamenti",
   },
+  {
+    href: "/settings",
+    icon: <Settings />,
+    text: "Impostazioni",
+    subtitle: "Account e preferenze",
+  },
 ];
 
 export default function DashboardPage() {
@@ -402,6 +408,14 @@ export default function DashboardPage() {
               />
 
               <QuickAction
+                href="/settings"
+                tone="cyan"
+                icon={<Settings />}
+                title="Impostazioni"
+                text="Account, privacy e preferenze"
+              />
+
+              <QuickAction
                 href="/notifications"
                 tone="cyan"
                 icon={<Bell />}
@@ -545,6 +559,7 @@ function Sidebar() {
         <SideLink href="/events" icon={<CalendarDays />} text="Eventi" />
         <SideLink href="/rivalries" icon={<Swords />} text="Rivalità" />
         <SideLink href="/profile" icon={<UserRound />} text="Profilo" />
+        <SideLink href="/settings" icon={<Settings />} text="Impostazioni" />
       </div>
 
       <button
@@ -627,10 +642,10 @@ function TopIcons({
         </Link>
 
         <Link
-          href="/profile"
+          href="/settings"
           className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
-          title="Profilo"
-          aria-label="Profilo"
+          title="Impostazioni"
+          aria-label="Impostazioni"
         >
           <Settings size={22} />
         </Link>
