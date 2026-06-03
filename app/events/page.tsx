@@ -95,6 +95,10 @@ function isSameSport(event: EventItem, userSport: string) {
   return normalizeSport(event.sport) === normalizeSport(userSport);
 }
 
+function isCancelledEvent(event: EventItem) {
+  return event.status === "annullato";
+}
+
 function isSameCityOrCompatible(event: EventItem, userCity: string) {
   const normalizedUserCity = normalizeText(userCity);
   const normalizedEventCity = normalizeText(event.city);
@@ -599,6 +603,8 @@ export default function EventsPage() {
 }
 
 function EventCard({ event }: { event: EventItem }) {
+  const isCancelled = isCancelledEvent(event);
+
   const sportLabel =
     event.sport === "padel"
       ? "Padel"
@@ -628,7 +634,11 @@ function EventCard({ event }: { event: EventItem }) {
   return (
     <Link
       href={`/events/${event.id}`}
-      className="group block rounded-[1.7rem] border border-white/10 bg-[#071126] p-4 transition hover:border-cyan-400/30 hover:bg-cyan-400/[0.04] sm:rounded-[2rem] sm:p-5"
+      className={`group block rounded-[1.7rem] border p-4 transition sm:rounded-[2rem] sm:p-5 ${
+        isCancelled
+          ? "border-red-400/20 bg-red-500/[.06] opacity-80 hover:border-red-400/30"
+          : "border-white/10 bg-[#071126] hover:border-cyan-400/30 hover:bg-cyan-400/[0.04]"
+      }`}
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
@@ -636,12 +646,23 @@ function EventCard({ event }: { event: EventItem }) {
             <Badge>{typeLabel}</Badge>
             <Badge>{sportLabel}</Badge>
             <Badge>{formatLabel}</Badge>
-            <Badge>{event.status || "aperto"}</Badge>
+
+            {isCancelled ? (
+              <StatusBadge tone="red">Annullato</StatusBadge>
+            ) : (
+              <Badge>{event.status || "aperto"}</Badge>
+            )}
           </div>
 
           <h3 className="break-words text-[26px] font-black uppercase leading-tight sm:text-2xl">
             {event.title || "Evento Rivalo"}
           </h3>
+
+          {isCancelled && (
+            <div className="mt-3 inline-flex rounded-xl border border-red-400/30 bg-red-500/15 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-red-200">
+              Evento annullato
+            </div>
+          )}
 
           <div className="mt-3 grid gap-2 text-[15px] leading-6 text-slate-400">
             <span className="inline-flex min-w-0 items-center gap-2">
@@ -711,6 +732,25 @@ function Field({
         {children}
       </div>
     </label>
+  );
+}
+
+function StatusBadge({
+  tone,
+  children,
+}: {
+  tone: "red";
+  children: React.ReactNode;
+}) {
+  const toneClass =
+    tone === "red"
+      ? "border-red-400/30 bg-red-500/15 text-red-200"
+      : "border-cyan-300/20 bg-cyan-400/10 text-cyan-200";
+
+  return (
+    <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase sm:text-xs ${toneClass}`}>
+      {children}
+    </span>
   );
 }
 

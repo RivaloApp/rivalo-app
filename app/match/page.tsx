@@ -20,6 +20,7 @@ import {
   CalendarDays,
   ChevronRight,
   Clock,
+  MapPin,
   ShieldCheck,
   Trophy,
   Users,
@@ -41,6 +42,9 @@ type GroupTeam = {
   name?: string;
   sport?: string;
   members?: string[];
+  captainId?: string;
+  captainName?: string;
+  createdBy?: string;
 };
 
 type UserOption = {
@@ -88,8 +92,10 @@ type MatchDoc = {
   eventId?: string;
   eventTitle?: string;
   homeTeamId?: string;
-awayTeamId?: string;
-sourceType?: string;
+  awayTeamId?: string;
+  homeCaptainId?: string;
+  awayCaptainId?: string;
+  sourceType?: string;
   name?: string;
   sport?: string;
   city?: string;
@@ -464,6 +470,8 @@ let homeTeamName = sport === "calcetto" ? "Squadra 1" : "Player/Coppia 1";
 let awayTeamName = sport === "calcetto" ? "Squadra 2" : "Player/Coppia 2";
 let matchHomeTeamId = "";
 let matchAwayTeamId = "";
+let homeCaptainId = "";
+let awayCaptainId = "";
 let sourceType = "manual";
 
 if (sport === "calcetto" && selectedHomeTeam && selectedAwayTeam) {
@@ -489,6 +497,8 @@ if (sport === "calcetto" && selectedHomeTeam && selectedAwayTeam) {
   awayTeamName = selectedAwayTeam.name || "Squadra 2";
   matchHomeTeamId = selectedHomeTeam.id;
 matchAwayTeamId = selectedAwayTeam.id;
+homeCaptainId = selectedHomeTeam.captainId || selectedHomeTeam.createdBy || "";
+awayCaptainId = selectedAwayTeam.captainId || selectedAwayTeam.createdBy || "";
 sourceType = "groupTeams";
 
   matchPlayers = [
@@ -534,6 +544,9 @@ sourceType = "groupTeams";
     assists: 0,
     isMvp: false,
   }));
+
+  homeCaptainId = matchPlayers.find((player) => player.team === "home")?.uid || "";
+  awayCaptainId = matchPlayers.find((player) => player.team === "away")?.uid || "";
 }
 
     setSaving(true);
@@ -566,6 +579,8 @@ sourceType = "groupTeams";
 awayTeam: awayTeamName,
 homeTeamId: matchHomeTeamId,
 awayTeamId: matchAwayTeamId,
+homeCaptainId,
+awayCaptainId,
 sourceType,
 homeScore: null,
 awayScore: null,
@@ -908,6 +923,42 @@ awayScore: null,
                 />
               </Field>
 
+              {(field.trim() || city.trim()) && (
+                <div className="overflow-hidden rounded-[1.5rem] border border-cyan-400/20 bg-black/30">
+                  <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+                    <div>
+                      <div className="text-sm font-black uppercase tracking-[0.18em] text-cyan-300">
+                        Mappa campo
+                      </div>
+
+                      <div className="mt-1 text-xs text-slate-400">
+                        Risultati per: {field || "Campo"} {city}
+                      </div>
+                    </div>
+
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        `${field} ${city}`.trim()
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200"
+                    >
+                      Apri Maps
+                    </a>
+                  </div>
+
+                  <iframe
+                    title="Mappa campo match"
+                    src={`https://www.google.com/maps?q=${encodeURIComponent(
+                      `${field} ${city}`.trim()
+                    )}&output=embed`}
+                    className="h-[260px] w-full border-0"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+
               <div className="grid gap-4 md:grid-cols-3">
                 <Field label="Data">
                   <input
@@ -1108,6 +1159,9 @@ function InfoCard({
 }
 
 function MatchCard({ match }: { match: MatchDoc }) {
+  const isCancelled =
+    match.status === "annullato" || match.resultStatus === "annullato";
+
   const isOfficial =
     match.status === "ufficiale" || match.resultStatus === "confermato";
 
@@ -1121,7 +1175,9 @@ function MatchCard({ match }: { match: MatchDoc }) {
   const scoreIsVisible =
     typeof match.homeScore === "number" && typeof match.awayScore === "number";
 
-  const statusLabel = isOfficial
+  const statusLabel = isCancelled
+    ? "Annullato"
+    : isOfficial
     ? "Ufficiale"
     : isDisputed
     ? "Contestato"
@@ -1129,7 +1185,9 @@ function MatchCard({ match }: { match: MatchDoc }) {
     ? "Da confermare"
     : "Programmato";
 
-  const statusClass = isOfficial
+  const statusClass = isCancelled
+    ? "border-red-400/30 bg-red-500/15 text-red-200"
+    : isOfficial
     ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
     : isDisputed
     ? "border-red-400/20 bg-red-500/10 text-red-200"
@@ -1149,8 +1207,16 @@ function MatchCard({ match }: { match: MatchDoc }) {
     ? "border-yellow-400/20 bg-yellow-400/10 text-yellow-200"
     : "border-white/10 bg-white/[.04] text-slate-300";
 
+  const mapQuery = `${match.field || ""} ${match.city || ""}`.trim();
+
   return (
-    <div className="min-w-0 overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#0b1730] p-4 transition hover:border-cyan-400/30 hover:bg-[#112041] sm:p-5 lg:hover:scale-[1.02]">
+    <div
+      className={`min-w-0 overflow-hidden rounded-[1.7rem] border p-4 transition sm:p-5 ${
+        isCancelled
+          ? "border-red-400/20 bg-red-500/[.06] opacity-80 hover:border-red-400/30"
+          : "border-white/10 bg-[#0b1730] hover:border-cyan-400/30 hover:bg-[#112041] lg:hover:scale-[1.02]"
+      }`}
+    >
       <Link href={`/match/${match.id}`} className="block min-w-0">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="min-w-0">
@@ -1181,8 +1247,16 @@ function MatchCard({ match }: { match: MatchDoc }) {
             </div>
           </div>
 
-          <div className="w-fit rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-black uppercase text-cyan-300">
-            {match.sport || "sport"}
+          <div className="flex flex-wrap gap-2">
+            {isCancelled && (
+              <div className="w-fit rounded-xl border border-red-400/30 bg-red-500/15 px-3 py-2 text-sm font-black uppercase text-red-200">
+                Annullato
+              </div>
+            )}
+
+            <div className="w-fit rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-black uppercase text-cyan-300">
+              {match.sport || "sport"}
+            </div>
           </div>
         </div>
 
@@ -1232,6 +1306,20 @@ function MatchCard({ match }: { match: MatchDoc }) {
           >
             Apri evento
           </Link>
+        )}
+
+        {mapQuery && (
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+              mapQuery
+            )}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs font-black text-cyan-200"
+          >
+            <MapPin size={14} />
+            Apri Maps
+          </a>
         )}
       </div>
     </div>
