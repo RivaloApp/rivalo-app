@@ -141,6 +141,9 @@ type EventData = {
   maxPlayers?: number;
   prize?: string;
   status?: string;
+  cancelledAt?: any;
+  cancelledBy?: string;
+  cancellationReason?: string;
   participants?: string[];
   participantsInfo?: ParticipantInfo[];
   teams?: TeamInfo[];
@@ -195,6 +198,65 @@ function canManageEventTeam({
   return false;
 }
 
+function isEventCancelled(event: EventData) {
+  return event.status === "annullato";
+}
+
+function hasCreatedEventMatches(event: EventData) {
+  const linkedIds = Array.isArray(event.linkedMatchIds)
+    ? event.linkedMatchIds.filter(Boolean)
+    : [];
+
+  const hasLinkedMatch =
+    Boolean(event.linkedMatchId) || linkedIds.length > 0;
+
+  const hasBracketMatch = Array.isArray(event.bracket)
+    ? event.bracket.some((match) => Boolean(match.matchId))
+    : false;
+
+  const hasLeagueMatch = Array.isArray(event.leagueFixtures)
+    ? event.leagueFixtures.some((fixture) => Boolean(fixture.matchId))
+    : false;
+
+  return hasLinkedMatch || hasBracketMatch || hasLeagueMatch;
+}
+
+function hasStartedEvent(event: EventData) {
+  return (
+    Boolean(event.bracket && event.bracket.length > 0) ||
+    Boolean(event.leagueFixtures && event.leagueFixtures.length > 0) ||
+    event.status === "tabellone creato" ||
+    event.status === "calendario creato" ||
+    event.status === "in corso" ||
+    event.status === "torneo completato" ||
+    event.status === "campionato completato"
+  );
+}
+
+function canCancelEventSafely(event: EventData) {
+  if (isEventCancelled(event)) return false;
+  if (hasCreatedEventMatches(event)) return false;
+  if (hasStartedEvent(event)) return false;
+
+  return true;
+}
+
+function getEventCancelBlockedReason(event: EventData) {
+  if (isEventCancelled(event)) {
+    return "Evento già annullato.";
+  }
+
+  if (hasCreatedEventMatches(event)) {
+    return "Evento con match già creati. Annullamento diretto bloccato per proteggere risultati e statistiche.";
+  }
+
+  if (hasStartedEvent(event)) {
+    return "Competizione già iniziata. Annullamento diretto bloccato.";
+  }
+
+  return "";
+}
+
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -213,6 +275,7 @@ export default function EventDetailPage() {
 
   const [teamName, setTeamName] = useState("");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [cancellationReason, setCancellationReason] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
@@ -266,6 +329,7 @@ export default function EventDetailPage() {
       );
 
       setUserSport(currentUserSport);
+      setCancellationReason(eventData.cancellationReason || "");
       setEvent(eventData);
 
       if (normalizeSport(eventData.sport) !== currentUserSport) {
@@ -402,6 +466,11 @@ setTeamStats(teamStatsResult);
       return;
     }
 
+    if (isEventCancelled(event)) {
+      setMessage("Evento annullato. Non puoi iscriverti.");
+      return;
+    }
+
     const competitionStarted =
   Boolean(event.bracket && event.bracket.length > 0) ||
   Boolean(event.leagueFixtures && event.leagueFixtures.length > 0) ||
@@ -524,6 +593,11 @@ if (competitionStarted) {
 
   if (sportMismatch || normalizeSport(event.sport) !== userSport) {
     setMessage("Non puoi creare squadre/coppie in un evento di un altro sport.");
+    return;
+  }
+
+  if (isEventCancelled(event)) {
+    setMessage("Evento annullato. Non puoi creare squadre/coppie.");
     return;
   }
 
@@ -811,6 +885,11 @@ async function generateTournamentBracket() {
     return;
   }
 
+  if (isEventCancelled(event)) {
+    setMessage("Evento annullato. Non puoi generare il tabellone.");
+    return;
+  }
+
   const teams = event.teams || [];
 
   if (event.type !== "torneo") {
@@ -918,6 +997,11 @@ async function generateLeagueSchedule() {
 
   if (sportMismatch || normalizeSport(event.sport) !== userSport) {
     setMessage("Non puoi generare calendari per eventi di un altro sport.");
+    return;
+  }
+
+  if (isEventCancelled(event)) {
+    setMessage("Evento annullato. Non puoi generare il calendario.");
     return;
   }
 
@@ -1081,6 +1165,11 @@ async function createMatchFromEvent() {
 
   if (sportMismatch || normalizeSport(event.sport) !== userSport) {
     setMessage("Non puoi creare match da un evento di un altro sport.");
+    return;
+  }
+
+  if (isEventCancelled(event)) {
+    setMessage("Evento annullato. Non puoi creare match.");
     return;
   }
 
@@ -1364,6 +1453,85 @@ await Promise.all(
   setCreatingMatch(false);
 }
 
+async function cancelEvent() {
+  if (!user || !event) return;
+
+  if (user.uid !== event.createdBy) {
+    setMessage("Solo il creator può annullare questo evento.");
+    return;
+  }
+
+  if (sportMismatch || normalizeSport(event.sport) !== userSport) {
+    setMessage("Questo evento appartiene a un altro sport. Usa un profilo sport compatibile.");
+    return;
+  }
+
+  if (!canCancelEventSafely(event)) {
+    setMessage(getEventCancelBlockedReason(event));
+    return;
+  }
+
+  const reason = cancellationReason.trim();
+
+  if (reason.length < 5) {
+    setMessage("Inserisci un motivo di annullamento di almeno 5 caratteri.");
+    return;
+  }
+
+  setMessage("");
+
+  try {
+    await updateDoc(doc(db, "events", event.id), {
+      status: "annullato",
+      cancellationReason: reason,
+      cancelledBy: user.uid,
+      cancelledAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    await createActivity({
+      uid: user.uid,
+      type: "event",
+      text: `Evento annullato: ${event.title || "Evento Rivalo"}`,
+      value: 1,
+    });
+
+    const notifiedPlayerIds = Array.from(
+      new Set((event.participants || []).filter(Boolean))
+    ).filter((uid) => uid !== user.uid);
+
+    await Promise.all(
+      notifiedPlayerIds.map((uid) =>
+        createNotification({
+          uid,
+          type: "generic",
+          title: "Evento annullato",
+          message: `${event.title || "Un evento Rivalo"} è stato annullato. Motivo: ${reason}`,
+          link: "/events/" + event.id,
+          createdBy: user.uid,
+          metadata: {
+            eventId: event.id,
+            eventTitle: event.title || "Evento Rivalo",
+            reason,
+          },
+        })
+      )
+    );
+
+    setEvent({
+      ...event,
+      status: "annullato",
+      cancellationReason: reason,
+      cancelledBy: user.uid,
+    });
+
+    setMessage("Evento annullato correttamente.");
+  } catch (error) {
+    console.error(error);
+    setMessage("Errore durante l'annullamento dell'evento.");
+  }
+}
+
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
@@ -1416,6 +1584,10 @@ await Promise.all(
     );
   }
 
+  const isCancelled = isEventCancelled(event);
+  const canCancelSafely = canCancelEventSafely(event);
+  const cancelBlockedReason = getEventCancelBlockedReason(event);
+
   const participants = event.participants || [];
   const maxPlayers = Number(event.maxPlayers || 0);
   const teams = event.teams || [];
@@ -1443,7 +1615,7 @@ await Promise.all(
 
   const isFull = maxPlayers > 0 && participants.length >= maxPlayers;
 
-  const canJoin = !isJoined && !isFull && event.status !== "completo";
+  const canJoin = !isCancelled && !isJoined && !isFull && event.status !== "completo";
 
   const sportLabel =
     event.sport === "padel"
@@ -1499,7 +1671,7 @@ const isCompetitionCompleted =
   event.status === "campionato completato";
 
 const canCreateEventMatch =
-  isCompetitionCompleted
+  isCancelled || isCompetitionCompleted
     ? false
     : event.type === "torneo"
     ? hasPendingTournamentMatch
@@ -1626,6 +1798,12 @@ const pendingCompetitionMatches = Math.max(
               </div>
             </div>
           </div>
+
+          {isCancelled && (
+            <div className="border-b border-red-400/20 bg-red-500/10 px-6 py-4 text-sm font-bold text-red-100">
+              Evento annullato. Motivo: {event.cancellationReason || "Non specificato"}.
+            </div>
+          )}
 
           <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[1fr_360px]">
             <div className="space-y-6">
@@ -1818,7 +1996,7 @@ const pendingCompetitionMatches = Math.max(
 </div>
                   </div>
 
-                  {isCreator && !competitionStarted && (
+                  {isCreator && !isCancelled && !competitionStarted && (
                     <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
                       <Field label={competitionFormat === "doppio" ? "Nome coppia" : "Nome squadra"}>
                         <input
@@ -1884,9 +2062,15 @@ const pendingCompetitionMatches = Math.max(
                       </button>
                     </div>
                   )}
-                  {isCreator && competitionStarted && (
+                  {isCreator && !isCancelled && competitionStarted && (
   <div className="rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-4 text-sm font-bold text-yellow-100">
     Rose bloccate: la competizione è già iniziata. Non puoi creare o modificare squadre/coppie.
+  </div>
+)}
+
+                  {isCreator && isCancelled && (
+  <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm font-bold text-red-100">
+    Evento annullato: gestione squadre/coppie bloccata.
   </div>
 )}
 
@@ -2233,7 +2417,9 @@ const pendingCompetitionMatches = Math.max(
                   className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black transition hover:scale-[1.01] disabled:opacity-60"
                 >
                   <UserPlus size={18} />
-                  {isJoined
+                  {isCancelled
+                    ? "Evento annullato"
+                    : isJoined
                     ? "Già iscritto"
                     : isFull || event.status === "completo"
                     ? "Evento completo"
@@ -2255,12 +2441,14 @@ const pendingCompetitionMatches = Math.max(
   <>
     <button
       onClick={createMatchFromEvent}
-      disabled={creatingMatch || !canCreateEventMatch}
+      disabled={creatingMatch || isCancelled || !canCreateEventMatch}
       className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/10 px-6 py-4 font-black text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
     >
       <PlayCircle size={18} />
       {creatingMatch
   ? "Creazione match..."
+  : isCancelled
+  ? "Evento annullato"
   : isCompetitionCompleted
   ? "Competizione completata"
   : !canCreateEventMatch
@@ -2277,6 +2465,7 @@ const pendingCompetitionMatches = Math.max(
         onClick={generateTournamentBracket}
         disabled={
   generatingBracket ||
+  isCancelled ||
   Boolean(event.bracket?.length) ||
   !hasEnoughValidTeams
 }
@@ -2297,6 +2486,7 @@ const pendingCompetitionMatches = Math.max(
     onClick={generateLeagueSchedule}
     disabled={
   generatingLeague ||
+  isCancelled ||
   Boolean(event.leagueFixtures?.length) ||
   !hasEnoughValidTeams
 }
@@ -2312,6 +2502,43 @@ const pendingCompetitionMatches = Math.max(
   : "Genera calendario"}
   </button>
 )}
+    <div className="mt-5 rounded-2xl border border-red-400/20 bg-red-500/10 p-4">
+      <div className="text-sm font-black uppercase tracking-[0.16em] text-red-200">
+        Annullamento evento
+      </div>
+
+      <p className="mt-2 text-sm leading-6 text-slate-300">
+        Puoi annullare solo eventi non iniziati e senza match creati.
+        Se tabellone, calendario o match sono già stati generati, l'annullamento diretto viene bloccato.
+      </p>
+
+      {!canCancelSafely && cancelBlockedReason && (
+        <div className="mt-3 rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-3 py-2 text-sm font-bold text-yellow-100">
+          {cancelBlockedReason}
+        </div>
+      )}
+
+      <textarea
+        value={cancellationReason}
+        onChange={(e) => setCancellationReason(e.target.value)}
+        disabled={isCancelled || !canCancelSafely}
+        placeholder="Motivo annullamento"
+        className="mt-3 min-h-[90px] w-full resize-none rounded-2xl border border-white/10 bg-[#020617]/80 px-4 py-3 text-white outline-none placeholder:text-slate-500 disabled:opacity-60"
+      />
+
+      <button
+        type="button"
+        onClick={cancelEvent}
+        disabled={isCancelled || !canCancelSafely}
+        className="mt-3 w-full rounded-2xl border border-red-300/30 bg-red-500/10 px-6 py-4 font-black text-red-200 disabled:opacity-60"
+      >
+        {isCancelled
+          ? "Evento già annullato"
+          : canCancelSafely
+          ? "Annulla evento"
+          : "Annullamento bloccato"}
+      </button>
+    </div>
   </>
 )}
 
