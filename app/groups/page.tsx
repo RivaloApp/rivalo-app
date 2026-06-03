@@ -6,6 +6,8 @@ import { onAuthStateChanged, User } from "firebase/auth";
   import {
   addDoc,
   collection,
+  doc,
+  getDoc,
   getDocs,
   query,
   serverTimestamp,
@@ -36,8 +38,34 @@ type RivaloGroup = {
   premiumPlan?: string;
 };
 
+type UserProfile = {
+  mainSport?: string;
+  sport?: string;
+  city?: string;
+  cityZone?: string;
+  zone?: string;
+};
+
+function normalizeSport(value?: string) {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+  return "calcetto";
+}
+
+function sportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Padel";
+  if (sport === "tennis") return "Tennis";
+  return "Calcetto";
+}
+
 export default function GroupsPage() {
   const [user, setUser] = useState<User | null>(null);
+  const [userSport, setUserSport] = useState("calcetto");
+  const [userCity, setUserCity] = useState("");
   const [groups, setGroups] = useState<RivaloGroup[]>([]);
   const [groupName, setGroupName] = useState("");
   const [city, setCity] = useState("");
@@ -56,23 +84,46 @@ export default function GroupsPage() {
       }
 
       setUser(currentUser);
-      await loadGroups(currentUser.uid);
+
+      const profileSnap = await getDoc(doc(db, "users", currentUser.uid));
+      const profile = profileSnap.exists()
+        ? (profileSnap.data() as UserProfile)
+        : null;
+
+      const currentUserSport = normalizeSport(
+        profile?.mainSport || profile?.sport || "calcetto"
+      );
+
+      const currentUserCity =
+        profile?.city || profile?.cityZone || profile?.zone || "";
+
+      setUserSport(currentUserSport);
+      setUserCity(currentUserCity);
+      setSport(currentUserSport);
+      setCity(currentUserCity);
+
+      await loadGroups(currentUser.uid, currentUserSport);
     });
 
     return () => unsubscribe();
   }, []);
 
-  async function loadGroups(uid: string) {
+  async function loadGroups(uid: string, currentUserSport = userSport) {
     setLoadingGroups(true);
 
     try {
       const q = query(collection(db, "groups"), where("members", "array-contains", uid));
       const snap = await getDocs(q);
 
-      const list = snap.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...(docSnap.data() as Omit<RivaloGroup, "id">),
-      }));
+      const list = snap.docs
+        .map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<RivaloGroup, "id">),
+        }))
+        .filter(
+          (group) =>
+            !group.sport || normalizeSport(group.sport) === normalizeSport(currentUserSport)
+        );
 
       setGroups(list);
     } catch {
@@ -87,6 +138,12 @@ export default function GroupsPage() {
 
     if (!user) return;
 
+    const lockedSport = normalizeSport(userSport);
+
+    if (sport !== lockedSport) {
+      setSport(lockedSport);
+    }
+
     setSaving(true);
     setMessage("");
 
@@ -94,7 +151,7 @@ export default function GroupsPage() {
       await addDoc(collection(db, "groups"), {
         name: groupName,
         city,
-        sport,
+        sport: userSport,
         mode,
         privacy,
         ownerId: user.uid,
@@ -108,13 +165,13 @@ export default function GroupsPage() {
       });
 
       setGroupName("");
-      setCity("");
-      setSport("calcetto");
+      setCity(userCity);
+      setSport(userSport);
       setMode("amichevole");
       setPrivacy("privato");
       setMessage("Gruppo creato e salvato.");
 
-      await loadGroups(user.uid);
+      await loadGroups(user.uid, userSport);
     } catch {
       setMessage("Errore durante la creazione del gruppo.");
     } finally {
@@ -160,7 +217,9 @@ export default function GroupsPage() {
               <Users className="text-cyan-300" size={30} />
               <div>
                 <h2 className="text-[28px] font-black leading-tight sm:text-2xl">Nuovo gruppo</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-400">Crea la tua community Rivalo.</p>
+                <p className="mt-1 text-sm leading-6 text-slate-400">
+                  Crea la tua community Rivalo per {sportLabel(userSport)}.
+                </p>
               </div>
             </div>
 
@@ -189,11 +248,21 @@ export default function GroupsPage() {
               </Field>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Select label="Sport" value={sport} setValue={setSport}>
-                  <option value="calcetto">Calcetto</option>
-                  <option value="padel">Padel</option>
-                  <option value="tennis">Tennis</option>
-                </Select>
+                <Field label="Sport profilo">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-black text-cyan-200">
+                      {sportLabel(userSport)}
+                    </div>
+
+                    <span className="rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200">
+                      Bloccato
+                    </span>
+                  </div>
+
+                  <div className="mt-2 text-xs leading-5 text-slate-400">
+                    Per creare gruppi in un altro sport servirà un profilo sport separato.
+                  </div>
+                </Field>
 
                 <Select label="Modalità" value={mode} setValue={setMode}>
                   <option value="amichevole">Amichevole</option>
@@ -232,7 +301,9 @@ export default function GroupsPage() {
               <div className="text-sm font-black uppercase tracking-[.28em] text-cyan-300">
                 I tuoi gruppi
               </div>
-              <h2 className="mt-2 text-[34px] font-black leading-tight sm:text-3xl">Community attive</h2>
+              <h2 className="mt-2 text-[34px] font-black leading-tight sm:text-3xl">
+                Community attive · {sportLabel(userSport)}
+              </h2>
             </div>
 
             <div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-200">
@@ -246,7 +317,7 @@ export default function GroupsPage() {
             </div>
           ) : groups.length === 0 ? (
             <div className="mt-6 rounded-2xl border border-white/10 bg-[#020617]/60 p-5 text-slate-300">
-              Non hai ancora gruppi. Creane uno per iniziare a usare ranking, partite e campionati.
+              Non hai ancora gruppi per {sportLabel(userSport)}. Creane uno per iniziare a usare ranking, partite e campionati.
             </div>
           ) : (
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
