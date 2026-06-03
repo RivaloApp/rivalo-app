@@ -344,7 +344,7 @@ export default function PlayerCard({
           <div className="pointer-events-none absolute left-[-40%] top-[-20%] h-[160%] w-[70%] rotate-12 bg-cyan-300/[.035] blur-xl" />
           <div className="pointer-events-none absolute right-[-36%] top-[10%] h-[130%] w-[70%] rotate-[-10deg] bg-fuchsia-400/[.04] blur-xl" />
 
-          <div className="relative z-10 flex h-[385px] flex-col px-4 pb-6 pt-4 sm:h-[485px] sm:px-5 sm:pb-7 sm:pt-5">
+          <div className="relative z-10 flex h-[410px] flex-col px-4 pb-4 pt-4 sm:h-[505px] sm:px-5 sm:pb-5 sm:pt-5">
             <div className="flex items-start justify-between">
               <div>
                 <div className={`text-4xl font-black leading-none ${theme.ratingText} sm:text-5xl`}>
@@ -394,7 +394,7 @@ export default function PlayerCard({
               </div>
             </div>
 
-            <div className="mt-3 pb-16 pt-1 sm:mt-4 sm:pb-20 sm:pt-2">
+            <div className="mt-2 pb-7 pt-1 sm:mt-3 sm:pb-10 sm:pt-1">
               <div className="grid grid-cols-3 gap-1.5 text-center sm:gap-2">
                 {stats.map((stat) => (
                   <CardStat
@@ -406,7 +406,7 @@ export default function PlayerCard({
                 ))}
               </div>
 
-              <div className="mt-2 grid grid-cols-3 gap-1.5 text-center sm:mt-3 sm:gap-2">
+              <div className="mt-1.5 grid grid-cols-3 gap-1.5 text-center sm:mt-2 sm:gap-2">
                 {bottomStats.map((stat) => (
                   <CardFact
                     key={stat.label}
@@ -434,12 +434,12 @@ function CardStat({
   theme: ReturnType<typeof getSportTheme>;
 }) {
   return (
-    <div className={`min-w-0 rounded-lg border ${theme.statBorder} bg-black/35 px-0.5 py-1 shadow-[0_0_14px_rgba(0,0,0,.24)]`}>
-      <div className={`text-[12px] font-black leading-none ${theme.statText} sm:text-[15px]`}>
+    <div className={`min-w-0 rounded-lg border ${theme.statBorder} bg-black/35 px-0.5 py-0.5 shadow-[0_0_14px_rgba(0,0,0,.24)] sm:py-1`}>
+      <div className={`text-[11px] font-black leading-none ${theme.statText} sm:text-[15px]`}>
         {value}
       </div>
 
-      <div className={`mt-0.5 text-[7px] font-black uppercase ${theme.statLabel} sm:mt-1 sm:text-[8px]`}>
+      <div className={`mt-0.5 text-[6.5px] font-black uppercase leading-none ${theme.statLabel} sm:mt-1 sm:text-[8px]`}>
         {label}
       </div>
     </div>
@@ -457,12 +457,12 @@ function CardFact({
   theme: ReturnType<typeof getSportTheme>;
 }) {
   return (
-    <div className={`min-w-0 rounded-lg border ${theme.badgeBorder} bg-black/25 px-0.5 py-1`}>
-      <div className={`text-[10px] font-black leading-none ${theme.badgeText} sm:text-[12px]`}>
+    <div className={`min-w-0 rounded-lg border ${theme.badgeBorder} bg-black/25 px-0.5 py-0.5 sm:py-1`}>
+      <div className={`text-[9px] font-black leading-none ${theme.badgeText} sm:text-[12px]`}>
         {value}
       </div>
 
-      <div className="mt-0.5 text-[6px] font-black uppercase text-white/65 sm:text-[7px]">
+      <div className="mt-0.5 text-[5.5px] font-black uppercase leading-none text-white/65 sm:text-[7px]">
         {label}
       </div>
     </div>
