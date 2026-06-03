@@ -13,6 +13,7 @@ type PlayerCardProps = {
   matchesPlayed?: number;
   goals?: number;
   assists?: number;
+  winStreak?: number;
 };
 
 function normalizeSport(value?: string) {
@@ -33,6 +34,58 @@ function sportLabel(value?: string) {
   if (sport === "padel") return "PADEL";
   if (sport === "tennis") return "TENNIS";
   return "CALCETTO";
+}
+
+function getSportPositionLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "CONTROL PAIR";
+  if (sport === "tennis") return "BASELINE PRO";
+  return "PLAYER CARD";
+}
+
+function getCardBottomStats({
+  mainSport,
+  wins,
+  matchesPlayed,
+  goals,
+  assists,
+  mvp,
+  winStreak,
+}: {
+  mainSport: string;
+  wins: number;
+  matchesPlayed: number;
+  goals: number;
+  assists: number;
+  mvp: number;
+  winStreak: number;
+}) {
+  const sport = normalizeSport(mainSport);
+  const winRate =
+    matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0;
+
+  if (sport === "padel") {
+    return [
+      { label: "WIN", value: wins },
+      { label: "WR%", value: winRate },
+      { label: "STR", value: winStreak },
+    ];
+  }
+
+  if (sport === "tennis") {
+    return [
+      { label: "WIN", value: wins },
+      { label: "WR%", value: winRate },
+      { label: "MVP", value: mvp },
+    ];
+  }
+
+  return [
+    { label: "GOL", value: goals },
+    { label: "AST", value: assists },
+    { label: "MVP", value: mvp },
+  ];
 }
 
 function getSportTheme(mainSport: string) {
@@ -120,6 +173,7 @@ function getSportStats({
   matchesPlayed = 0,
   goals = 0,
   assists = 0,
+  winStreak = 0,
   level = 1,
   xp = 0,
 }: {
@@ -130,6 +184,7 @@ function getSportStats({
   matchesPlayed?: number;
   goals?: number;
   assists?: number;
+  winStreak?: number;
   level?: number;
   xp?: number;
 }) {
@@ -139,6 +194,7 @@ function getSportStats({
   const mvpBoost = Math.min(7, mvp * 1.4);
   const xpBoost = Math.min(6, xp / 500);
   const levelBoost = Math.min(5, level * 0.6);
+  const streakBoost = Math.min(6, winStreak * 0.8);
 
   if (sport === "padel") {
     return [
@@ -147,7 +203,7 @@ function getSportStats({
       { label: "POT", value: clampStat(rating + winBoost - 2) },
       { label: "INT", value: clampStat(rating + mvpBoost + levelBoost) },
       { label: "RES", value: clampStat(rating + activityBoost + xpBoost - 2) },
-      { label: "POS", value: clampStat(rating + winBoost + 1) },
+      { label: "POS", value: clampStat(rating + winBoost + streakBoost) },
     ];
   }
 
@@ -156,7 +212,7 @@ function getSportStats({
       { label: "SRV", value: clampStat(rating + winBoost + 1) },
       { label: "FON", value: clampStat(rating + activityBoost) },
       { label: "MOV", value: clampStat(rating + xpBoost + 1) },
-      { label: "MEN", value: clampStat(rating + mvpBoost + levelBoost) },
+      { label: "MEN", value: clampStat(rating + mvpBoost + levelBoost + streakBoost) },
       { label: "POT", value: clampStat(rating + winBoost - 1) },
       { label: "DIF", value: clampStat(rating + activityBoost - 1) },
     ];
@@ -185,6 +241,7 @@ export default function PlayerCard({
   matchesPlayed = 0,
   goals = 0,
   assists = 0,
+  winStreak = 0,
 }: PlayerCardProps) {
   const safeRivalScore = Number(rivalScore || 1000);
 
@@ -225,8 +282,19 @@ export default function PlayerCard({
     matchesPlayed,
     goals,
     assists,
+    winStreak,
     level,
     xp,
+  });
+
+  const bottomStats = getCardBottomStats({
+    mainSport,
+    wins,
+    matchesPlayed,
+    goals,
+    assists,
+    mvp,
+    winStreak,
   });
 
   return (
@@ -320,12 +388,27 @@ export default function PlayerCard({
               <div className="mx-auto mt-1 w-fit rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/80 sm:mt-2 sm:text-[10px]">
                 {sportLabel(mainSport)}
               </div>
+
+              <div className={`mx-auto mt-1 w-fit rounded-full border ${theme.badgeBorder} bg-black/35 px-3 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${theme.badgeText}`}>
+                {getSportPositionLabel(mainSport)}
+              </div>
             </div>
 
             <div className="mt-3 pb-16 pt-1 sm:mt-4 sm:pb-20 sm:pt-2">
               <div className="grid grid-cols-3 gap-1.5 text-center sm:gap-2">
                 {stats.map((stat) => (
                   <CardStat
+                    key={stat.label}
+                    label={stat.label}
+                    value={stat.value}
+                    theme={theme}
+                  />
+                ))}
+              </div>
+
+              <div className="mt-2 grid grid-cols-3 gap-1.5 text-center sm:mt-3 sm:gap-2">
+                {bottomStats.map((stat) => (
+                  <CardFact
                     key={stat.label}
                     label={stat.label}
                     value={stat.value}
@@ -357,6 +440,29 @@ function CardStat({
       </div>
 
       <div className={`mt-0.5 text-[7px] font-black uppercase ${theme.statLabel} sm:mt-1 sm:text-[8px]`}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+
+function CardFact({
+  value,
+  label,
+  theme,
+}: {
+  value: number;
+  label: string;
+  theme: ReturnType<typeof getSportTheme>;
+}) {
+  return (
+    <div className={`min-w-0 rounded-lg border ${theme.badgeBorder} bg-black/25 px-0.5 py-1`}>
+      <div className={`text-[10px] font-black leading-none ${theme.badgeText} sm:text-[12px]`}>
+        {value}
+      </div>
+
+      <div className="mt-0.5 text-[6px] font-black uppercase text-white/65 sm:text-[7px]">
         {label}
       </div>
     </div>

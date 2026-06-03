@@ -56,6 +56,8 @@ type UserProfile = {
   goals?: number;
   assists?: number;
   mvp?: number;
+  winStreak?: number;
+  sport?: string;
   photoURL?: string;
   photoUrl?: string;
   onboardingCompleted?: boolean;
@@ -150,6 +152,93 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
+function normalizeSport(value?: string) {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+  return "calcetto";
+}
+
+function sportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Padel";
+  if (sport === "tennis") return "Tennis";
+  return "Calcetto";
+}
+
+function getSportDashboardCopy(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") {
+    return {
+      title: "Profilo padel",
+      subtitle: "Ranking basato su vittorie, win rate, streak e costanza.",
+      scoreLabel: "Padel Score",
+      quickLabel: "Match padel",
+    };
+  }
+
+  if (sport === "tennis") {
+    return {
+      title: "Profilo tennis",
+      subtitle: "Ranking basato su vittorie, win rate, streak, livello e costanza.",
+      scoreLabel: "Tennis Score",
+      quickLabel: "Match tennis",
+    };
+  }
+
+  return {
+    title: "Profilo calcetto",
+    subtitle: "Ranking basato su vittorie, RivalScore, MVP, gol e assist.",
+    scoreLabel: "Football Score",
+    quickLabel: "Match calcetto",
+  };
+}
+
+function getDashboardMetrics({
+  mainSport,
+  matchesPlayed,
+  wins,
+  losses,
+  draws,
+  goals,
+  assists,
+  mvp,
+  winStreak,
+}: {
+  mainSport: string;
+  matchesPlayed: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  goals: number;
+  assists: number;
+  mvp: number;
+  winStreak: number;
+}) {
+  const sport = normalizeSport(mainSport);
+  const winRate =
+    matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0;
+
+  if (sport === "padel" || sport === "tennis") {
+    return [
+      { label: "Partite", value: String(matchesPlayed) },
+      { label: "Win Rate", value: `${winRate}%` },
+      { label: "Streak", value: String(winStreak) },
+      { label: sport === "padel" ? "MVP" : "Livello gara", value: String(mvp) },
+    ];
+  }
+
+  return [
+    { label: "Partite", value: String(matchesPlayed) },
+    { label: "Sconfitte", value: String(losses) },
+    { label: "Gol", value: String(goals) },
+    { label: "Assist", value: String(assists) },
+  ];
+}
+
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -226,12 +315,27 @@ export default function DashboardPage() {
   const xp = profile?.xp ?? 100;
   const wins = profile?.wins ?? 0;
   const losses = profile?.losses ?? 0;
+  const draws = profile?.draws ?? 0;
   const mvp = profile?.mvp ?? 0;
   const matchesPlayed = profile?.matchesPlayed ?? 0;
   const goals = profile?.goals ?? 0;
   const assists = profile?.assists ?? 0;
-  const mainSport = profile?.mainSport || "calcetto";
+  const winStreak = profile?.winStreak ?? 0;
+  const mainSport = profile?.mainSport || profile?.sport || "calcetto";
   const photo = profile?.photoURL || profile?.photoUrl || "";
+
+  const sportCopy = getSportDashboardCopy(mainSport);
+  const dashboardMetrics = getDashboardMetrics({
+    mainSport,
+    matchesPlayed,
+    wins,
+    losses,
+    draws,
+    goals,
+    assists,
+    mvp,
+    winStreak,
+  });
 
   if (loading) {
     return (
@@ -284,6 +388,7 @@ export default function DashboardPage() {
                 matchesPlayed={matchesPlayed}
                 goals={goals}
                 assists={assists}
+                winStreak={winStreak}
               />
 
               <div className="pt-3 sm:pt-5">
@@ -297,6 +402,10 @@ export default function DashboardPage() {
 
                 <div className="mt-3 text-2xl font-black uppercase text-cyan-300 sm:text-3xl">
                   {nickname}
+                </div>
+
+                <div className="mt-3 max-w-[620px] rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold leading-6 text-cyan-100">
+                  {sportCopy.title} · {sportCopy.subtitle}
                 </div>
 
                 <div className="mt-6 grid max-w-[520px] grid-cols-3 gap-3 sm:mt-9 sm:gap-5">
@@ -316,24 +425,27 @@ export default function DashboardPage() {
 
                   <StatShield
                     tone="orange"
-                    value={String(mvp)}
-                    label="MVP"
-                    icon={<Crown />}
+                    value={normalizeSport(mainSport) === "calcetto" ? String(mvp) : String(winStreak)}
+                    label={normalizeSport(mainSport) === "calcetto" ? "MVP" : "Streak"}
+                    icon={normalizeSport(mainSport) === "calcetto" ? <Crown /> : <Star />}
                   />
                 </div>
 
                 <div className="mt-6 grid max-w-[680px] grid-cols-2 gap-4 md:grid-cols-4">
-                  <SmallMetric label="Partite" value={String(matchesPlayed)} />
-                  <SmallMetric label="Sconfitte" value={String(losses)} />
-                  <SmallMetric label="Gol" value={String(goals)} />
-                  <SmallMetric label="Assist" value={String(assists)} />
+                  {dashboardMetrics.map((metric) => (
+                    <SmallMetric
+                      key={metric.label}
+                      label={metric.label}
+                      value={metric.value}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
 
             <aside className="space-y-5">
-              <ScorePanel rivalScore={rivalScore} />
-              <LevelPanel level={level} xp={xp} />
+              <ScorePanel rivalScore={rivalScore} mainSport={mainSport} />
+              <LevelPanel level={level} xp={xp} mainSport={mainSport} />
             </aside>
           </section>
 
@@ -396,7 +508,7 @@ export default function DashboardPage() {
                 tone="cyan"
                 icon={<CircleDot />}
                 title="Match"
-                text="Vedi e gestisci match"
+                text={sportCopy.quickLabel}
               />
 
               <QuickAction
@@ -721,12 +833,16 @@ function SmallMetric({
 
 function ScorePanel({
   rivalScore,
+  mainSport,
 }: {
   rivalScore: number;
+  mainSport: string;
 }) {
+  const sportCopy = getSportDashboardCopy(mainSport);
+
   return (
     <div className="rounded-[1.7rem] border border-cyan-300/20 bg-[#071126]/80 p-6 shadow-2xl">
-      <div className="text-sm font-black uppercase">Rival Score</div>
+      <div className="text-sm font-black uppercase">{sportCopy.scoreLabel}</div>
 
       <div className="mt-2 text-5xl font-black text-blue-400">
         {rivalScore}
@@ -734,7 +850,7 @@ function ScorePanel({
 
       <div className="mt-4 flex items-center gap-3 text-slate-300">
         <Shield className="text-cyan-300" />
-        Ranking globale attivo
+        Ranking {sportLabel(mainSport)} attivo
       </div>
     </div>
   );
@@ -743,9 +859,11 @@ function ScorePanel({
 function LevelPanel({
   level,
   xp,
+  mainSport,
 }: {
   level: number;
   xp: number;
+  mainSport: string;
 }) {
   const maxXp = 500;
   const pct = Math.min(100, Math.round((xp / maxXp) * 100));
@@ -763,6 +881,10 @@ function LevelPanel({
 
       <div className="mt-5 text-lg font-medium text-white">
         {xp} / {maxXp} XP
+      </div>
+
+      <div className="mt-2 text-sm font-bold text-slate-400">
+        Progressione {sportLabel(mainSport)}
       </div>
     </div>
   );
