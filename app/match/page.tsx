@@ -63,6 +63,8 @@ type UserProfile = {
   city?: string;
   cityZone?: string;
   zone?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 function applySportDefaults(
@@ -84,6 +86,14 @@ function applySportDefaults(
 
   setCompetitionFormat("squadre");
   setSlots("10");
+}
+
+function isProfileDeletionRequested(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted" ||
+      profile?.deletionRequested
+  );
 }
 
 type MatchDoc = {
@@ -135,6 +145,7 @@ function MatchPageContent() {
   const [user, setUser] = useState<User | null>(null);
   const [userSport, setUserSport] = useState("calcetto");
   const [userCity, setUserCity] = useState("");
+  const [accountLocked, setAccountLocked] = useState(false);
   const [groups, setGroups] = useState<GroupDoc[]>([]);
   const [matches, setMatches] = useState<MatchDoc[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
@@ -204,6 +215,7 @@ const [awayTeamId, setAwayTeamId] = useState("");
 
       setUserSport(profileSport);
       setUserCity(profileCity);
+      setAccountLocked(isProfileDeletionRequested(profileData));
 
       const profileName =
         profileData?.name ||
@@ -448,6 +460,11 @@ async function loadGroupTeams(nextGroupId: string) {
 
     if (!user) return;
 
+    if (accountLocked) {
+      setMessage("Profilo segnato per rimozione: non puoi creare nuovi match.");
+      return;
+    }
+
     if (sport !== userSport) {
       setMessage("Puoi creare match solo per lo sport del profilo attivo.");
       handleSportChange(userSport);
@@ -690,6 +707,13 @@ awayScore: null,
             </div>
 
             <form onSubmit={createMatch} className="space-y-4 sm:space-y-5">
+              {accountLocked && (
+                <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                  Profilo segnato per rimozione: la creazione di nuovi match è bloccata.
+                </div>
+              )}
+
+              <fieldset disabled={accountLocked || saving} className="space-y-4 sm:space-y-5 disabled:opacity-60">
               <Field label="Gruppo collegato">
                 <select
                   value={groupId}
@@ -994,12 +1018,18 @@ awayScore: null,
 
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || accountLocked}
                 className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
               >
-                {saving ? "Creazione..." : "Crea match rapido"}
+                {accountLocked
+                  ? "Creazione bloccata"
+                  : saving
+                  ? "Creazione..."
+                  : "Crea match rapido"}
                 <ChevronRight className="transition group-hover:translate-x-1" />
               </button>
+
+              </fieldset>
 
               {message && (
                 <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200">

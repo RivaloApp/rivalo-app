@@ -92,6 +92,8 @@ type MatchDoc = {
 type UserProfile = {
   mainSport?: string;
   sport?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 function normalizeSport(value?: string) {
@@ -112,6 +114,14 @@ function sportLabel(value?: string) {
 
 function isSameUserSport(match: MatchDoc, userSport: string) {
   return normalizeSport(match.sport) === normalizeSport(userSport);
+}
+
+function isProfileDeletionRequested(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted" ||
+      profile?.deletionRequested
+  );
 }
 
 function canUseMatch(match: MatchDoc, uid: string, userSport: string) {
@@ -281,6 +291,7 @@ export default function MatchDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
   const [sportMismatch, setSportMismatch] = useState(false);
+  const [accountLocked, setAccountLocked] = useState(false);
 
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
@@ -312,6 +323,7 @@ export default function MatchDetailsPage() {
     setLoading(true);
     setUnauthorized(false);
     setSportMismatch(false);
+    setAccountLocked(false);
 
     try {
       const snap = await getDoc(doc(db, "matches", matchId));
@@ -333,6 +345,7 @@ export default function MatchDetailsPage() {
         );
 
         setUserSport(currentUserSport);
+        setAccountLocked(isProfileDeletionRequested(profile));
 
         if (!canAccessMatch(data, safeUserId)) {
           setUnauthorized(true);
@@ -623,6 +636,11 @@ export default function MatchDetailsPage() {
 
     if (!user || !match) return;
 
+    if (accountLocked) {
+      setMessage("Profilo segnato per rimozione: non puoi proporre risultati.");
+      return;
+    }
+
     if (!canAccessMatch(match, user.uid)) {
       setMessage("Non puoi modificare un match in cui non sei coinvolto.");
       return;
@@ -709,6 +727,11 @@ setMessage(
   async function confirmResult() {
     if (!user || !match) return;
 
+    if (accountLocked) {
+      setMessage("Profilo segnato per rimozione: non puoi confermare risultati.");
+      return;
+    }
+
     if (!canAccessMatch(match, user.uid)) {
       setMessage("Non puoi confermare un match in cui non sei coinvolto.");
       return;
@@ -761,6 +784,10 @@ setMessage(
 
         const freshMatch = freshSnap.data() as MatchDoc;
         matchForStats = freshMatch;
+
+        if (accountLocked) {
+          throw new Error("ACCOUNT_LOCKED");
+        }
 
         if (!canUseMatch(freshMatch, user.uid, userSport)) {
           throw new Error("SPORT_MISMATCH");
@@ -912,6 +939,8 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
         setMessage("Il risultato è contestato. Serve revisione prima della conferma.");
       } else if (error?.message === "MATCH_CANCELLED") {
         setMessage("Match annullato. Statistiche non applicate.");
+      } else if (error?.message === "ACCOUNT_LOCKED") {
+        setMessage("Profilo segnato per rimozione: azione bloccata.");
       } else {
         await updateDoc(matchRef, {
           statsApplying: false,
@@ -928,6 +957,11 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
 
   async function disputeResult() {
     if (!user || !match) return;
+
+    if (accountLocked) {
+      setMessage("Profilo segnato per rimozione: non puoi contestare risultati.");
+      return;
+    }
 
     if (!canAccessMatch(match, user.uid)) {
       setMessage("Non puoi contestare un match in cui non sei coinvolto.");
@@ -996,6 +1030,11 @@ setMessage("Risultato contestato. Servirà revisione.");
 
   async function cancelMatch() {
     if (!user || !match) return;
+
+    if (accountLocked) {
+      setMessage("Profilo segnato per rimozione: non puoi annullare match.");
+      return;
+    }
 
     if (!canAccessMatch(match, user.uid)) {
       setMessage("Non puoi annullare un match in cui non sei coinvolto.");
@@ -1238,7 +1277,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <Field label="Squadra 1">
                   <input
                     required
-                    disabled={isOfficial || isCancelled}
+                    disabled={isOfficial || isCancelled || accountLocked}
                     value={homeTeam}
                     onChange={(e) => setHomeTeam(e.target.value)}
                     placeholder="Es. Rival Team"
@@ -1249,7 +1288,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <Field label="Squadra 2">
                   <input
                     required
-                    disabled={isOfficial || isCancelled}
+                    disabled={isOfficial || isCancelled || accountLocked}
                     value={awayTeam}
                     onChange={(e) => setAwayTeam(e.target.value)}
                     placeholder="Es. Black Sharks"
@@ -1262,7 +1301,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <Field label="Gol squadra 1">
                   <input
                     required
-                    disabled={isOfficial || isCancelled}
+                    disabled={isOfficial || isCancelled || accountLocked}
                     type="number"
                     min="0"
                     value={homeScore}
@@ -1274,7 +1313,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <Field label="Gol squadra 2">
                   <input
                     required
-                    disabled={isOfficial || isCancelled}
+                    disabled={isOfficial || isCancelled || accountLocked}
                     type="number"
                     min="0"
                     value={awayScore}
@@ -1286,7 +1325,7 @@ setMessage("Risultato contestato. Servirà revisione.");
 
               <Field label="MVP partita">
                 <input
-                  disabled={isOfficial || isCancelled}
+                  disabled={isOfficial || isCancelled || accountLocked}
                   value={mvpName}
                   onChange={(e) => setMvpName(e.target.value)}
                   placeholder="Nome MVP"
@@ -1307,6 +1346,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       teamName={homeTeam}
                       isOfficial={isOfficial}
                       isCancelled={isCancelled}
+                      accountLocked={accountLocked}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1317,6 +1357,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       teamName={awayTeam}
                       isOfficial={isOfficial}
                       isCancelled={isCancelled}
+                      accountLocked={accountLocked}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1327,6 +1368,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       teamName="Non assegnati"
                       isOfficial={isOfficial}
                       isCancelled={isCancelled}
+                      accountLocked={accountLocked}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1336,7 +1378,7 @@ setMessage("Risultato contestato. Servirà revisione.");
 
               <Field label="Note statistiche">
                 <textarea
-                  disabled={isOfficial || isCancelled}
+                  disabled={isOfficial || isCancelled || accountLocked}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Gol, assist, note o dettagli partita..."
@@ -1347,6 +1389,12 @@ setMessage("Risultato contestato. Servirà revisione.");
               {isCancelled && (
                 <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">
                   Match annullato. Motivo: {match.cancellationReason || "Non specificato"}.
+                </div>
+              )}
+
+              {accountLocked && (
+                <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-3 text-sm font-bold text-yellow-100">
+                  Profilo segnato per rimozione: proposta, conferma, contestazione e annullamento sono bloccati.
                 </div>
               )}
 
@@ -1438,11 +1486,13 @@ setMessage("Risultato contestato. Servirà revisione.");
 
               <button
                 type="submit"
-                disabled={saving || isOfficial || isCancelled}
+                disabled={saving || isOfficial || isCancelled || accountLocked}
                 className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
               >
                 {saving
                   ? "Salvataggio..."
+                  : accountLocked
+                  ? "Azione bloccata"
                   : isCancelled
                   ? "Match annullato"
                   : isOfficial
@@ -1455,7 +1505,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <button
                   type="button"
                   onClick={confirmResult}
-                  disabled={saving || isOfficial || isCancelled || statsLocked}
+                  disabled={saving || isOfficial || isCancelled || accountLocked || statsLocked}
                   className="rounded-2xl border border-lime-300/30 bg-lime-400/10 px-6 py-4 font-black text-lime-200 disabled:opacity-60"
                 >
                   {match.resultStatus === "proposto" && isProposalExpired(match)
@@ -1466,7 +1516,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <button
                   type="button"
                   onClick={disputeResult}
-                  disabled={saving || isOfficial || isCancelled || statsLocked}
+                  disabled={saving || isOfficial || isCancelled || accountLocked || statsLocked}
                   className="rounded-2xl border border-red-300/30 bg-red-500/10 px-6 py-4 font-black text-red-200 disabled:opacity-60"
                 >
                   Contesta
@@ -1493,7 +1543,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                   <textarea
                     value={cancellationReason}
                     onChange={(e) => setCancellationReason(e.target.value)}
-                    disabled={saving || isCancelled || !canCancelSafely}
+                    disabled={saving || isCancelled || accountLocked || !canCancelSafely}
                     placeholder="Motivo annullamento"
                     className="mt-3 min-h-[90px] w-full resize-none rounded-2xl border border-white/10 bg-[#020617]/80 px-4 py-3 text-white outline-none placeholder:text-slate-500 disabled:opacity-60"
                   />
@@ -1501,11 +1551,13 @@ setMessage("Risultato contestato. Servirà revisione.");
                   <button
                     type="button"
                     onClick={cancelMatch}
-                    disabled={saving || isCancelled || !canCancelSafely}
+                    disabled={saving || isCancelled || accountLocked || !canCancelSafely}
                     className="mt-3 w-full rounded-2xl border border-red-300/30 bg-red-500/10 px-6 py-4 font-black text-red-200 disabled:opacity-60"
                   >
                     {isCancelled
                       ? "Match già annullato"
+                      : accountLocked
+                      ? "Azione bloccata"
                       : canCancelSafely
                       ? "Annulla match"
                       : "Annullamento bloccato"}
@@ -1540,6 +1592,7 @@ function PlayerStatsGroup({
   teamName,
   isOfficial,
   isCancelled,
+  accountLocked,
   updatePlayerField,
   setMvpName,
 }: {
@@ -1548,6 +1601,7 @@ function PlayerStatsGroup({
   teamName: string;
   isOfficial: boolean;
   isCancelled: boolean;
+  accountLocked: boolean;
   updatePlayerField: (
     uid: string,
     field: "goals" | "assists" | "isMvp",
@@ -1596,7 +1650,7 @@ function PlayerStatsGroup({
                 type="number"
                 min="0"
                 value={player.goals || 0}
-                disabled={isOfficial || isCancelled}
+                disabled={isOfficial || isCancelled || accountLocked}
                 onChange={(e) =>
                   updatePlayerField(
                     player.uid,
@@ -1617,7 +1671,7 @@ function PlayerStatsGroup({
                 type="number"
                 min="0"
                 value={player.assists || 0}
-                disabled={isOfficial || isCancelled}
+                disabled={isOfficial || isCancelled || accountLocked}
                 onChange={(e) =>
                   updatePlayerField(
                     player.uid,
@@ -1633,7 +1687,7 @@ function PlayerStatsGroup({
               <input
                 type="checkbox"
                 checked={Boolean(player.isMvp)}
-                disabled={isOfficial || isCancelled}
+                disabled={isOfficial || isCancelled || accountLocked}
                 onChange={(e) => {
                   updatePlayerField(player.uid, "isMvp", e.target.checked);
 
