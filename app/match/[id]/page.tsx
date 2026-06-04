@@ -37,6 +37,10 @@ type MatchPlayer = {
   goals?: number;
   assists?: number;
   isMvp?: boolean;
+  role?: string;
+  goalsConceded?: number;
+  cleanSheet?: boolean;
+  penaltiesSaved?: number;
 };
 
 type MatchDoc = {
@@ -106,6 +110,22 @@ function normalizeSport(value?: string) {
   return "calcetto";
 }
 
+function normalizeCalcettoRole(value?: string) {
+  const role = (value || "").toLowerCase().trim();
+
+  if (role.includes("port")) return "portiere";
+  if (role.includes("dif")) return "difensore";
+  if (role.includes("cent")) return "centrocampista";
+  if (role.includes("att")) return "attaccante";
+  if (role.includes("jolly")) return "jolly";
+
+  return role;
+}
+
+function isGoalkeeper(player?: MatchPlayer) {
+  return normalizeCalcettoRole(player?.role) === "portiere";
+}
+
 function sportLabel(value?: string) {
   const sport = normalizeSport(value);
 
@@ -159,7 +179,7 @@ function getMatchCopy(value?: string) {
     awayScore: "Gol squadra 2",
     resultLabel: "Risultato",
     statsTitle: "Statistiche giocatori",
-    playerStatsHelp: "Per calcetto puoi inserire gol, assist e MVP.",
+    playerStatsHelp: "Per calcetto puoi inserire gol, assist, MVP e statistiche portiere quando il ruolo è portiere.",
     notesPlaceholder: "Gol, assist, note o dettagli partita...",
     officialMessage: "Match ufficiale. Risultato e statistiche non sono più modificabili.",
     rankingText: "Solo i match confermati aggiornano RivalScore, XP, vittorie, gol, assist e MVP.",
@@ -439,7 +459,45 @@ export default function MatchDetailsPage() {
         setMvpName(data.mvpName || "");
         setNotes(data.notes || "");
         setCancellationReason(data.cancellationReason || "");
-        setPlayers(Array.isArray(data.players) ? data.players : []);
+        const loadedPlayers = Array.isArray(data.players) ? data.players : [];
+
+        const enrichedPlayers = await Promise.all(
+          loadedPlayers.map(async (player) => {
+            try {
+              const playerSnap = await getDoc(doc(db, "users", player.uid));
+
+              if (!playerSnap.exists()) {
+                return {
+                  ...player,
+                  role: player.role || "",
+                  goalsConceded: Number(player.goalsConceded || 0),
+                  cleanSheet: Boolean(player.cleanSheet),
+                  penaltiesSaved: Number(player.penaltiesSaved || 0),
+                };
+              }
+
+              const playerData = playerSnap.data();
+
+              return {
+                ...player,
+                role: player.role || playerData.role || "",
+                goalsConceded: Number(player.goalsConceded || 0),
+                cleanSheet: Boolean(player.cleanSheet),
+                penaltiesSaved: Number(player.penaltiesSaved || 0),
+              };
+            } catch {
+              return {
+                ...player,
+                role: player.role || "",
+                goalsConceded: Number(player.goalsConceded || 0),
+                cleanSheet: Boolean(player.cleanSheet),
+                penaltiesSaved: Number(player.penaltiesSaved || 0),
+              };
+            }
+          })
+        );
+
+        setPlayers(enrichedPlayers);
       }
     } finally {
       setLoading(false);
@@ -448,7 +506,13 @@ export default function MatchDetailsPage() {
 
   function updatePlayerField(
     uid: string,
-    field: "goals" | "assists" | "isMvp",
+    field:
+      | "goals"
+      | "assists"
+      | "isMvp"
+      | "goalsConceded"
+      | "cleanSheet"
+      | "penaltiesSaved",
     value: number | boolean
   ) {
     setPlayers((currentPlayers) =>
@@ -758,7 +822,21 @@ export default function MatchDetailsPage() {
         awayScore: Number(awayScore),
         mvpName,
         notes,
-        players,
+        players: players.map((player) => ({
+          ...player,
+          goalsConceded:
+            normalizeSport(match.sport) === "calcetto" && isGoalkeeper(player)
+              ? Number(player.goalsConceded || 0)
+              : 0,
+          cleanSheet:
+            normalizeSport(match.sport) === "calcetto" && isGoalkeeper(player)
+              ? Boolean(player.cleanSheet)
+              : false,
+          penaltiesSaved:
+            normalizeSport(match.sport) === "calcetto" && isGoalkeeper(player)
+              ? Number(player.penaltiesSaved || 0)
+              : 0,
+        })),
         status: "in_attesa_conferma",
         resultStatus: "proposto",
         fairPlayStatus: "in_attesa",
@@ -924,6 +1002,19 @@ if (!freshAutoConfirmAllowed && freshMatch.resultProposedBy === user.uid) {
           team: player.team,
           goals: isRacketSport(safeMatch.sport) ? 0 : Number(player.goals || 0),
           assists: isRacketSport(safeMatch.sport) ? 0 : Number(player.assists || 0),
+          role: player.role || "",
+          goalsConceded:
+            normalizeSport(safeMatch.sport) === "calcetto" && isGoalkeeper(player)
+              ? Number(player.goalsConceded || 0)
+              : 0,
+          cleanSheet:
+            normalizeSport(safeMatch.sport) === "calcetto" && isGoalkeeper(player)
+              ? Boolean(player.cleanSheet)
+              : false,
+          penaltiesSaved:
+            normalizeSport(safeMatch.sport) === "calcetto" && isGoalkeeper(player)
+              ? Number(player.penaltiesSaved || 0)
+              : 0,
           isMvp:
             Boolean(player.isMvp) ||
             player.name?.toLowerCase().trim() === mvpName.toLowerCase().trim(),
@@ -1415,6 +1506,11 @@ setMessage("Risultato contestato. Servirà revisione.");
 
                   <div className="mb-4 text-sm font-bold leading-6 text-slate-400">
                     {matchCopy.playerStatsHelp}
+                    {normalizeSport(match.sport) === "calcetto" && (
+                      <span className="block pt-1 text-cyan-200">
+                        Portieri: GS = gol subiti, CS = clean sheet, RP = rigori parati.
+                      </span>
+                    )}
                   </div>
 
                   <div className="space-y-4">
@@ -1426,6 +1522,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       isCancelled={isCancelled}
                       accountLocked={accountLocked}
                       racketMatch={racketMatch}
+                      calcettoMatch={normalizeSport(match.sport) === "calcetto"}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1438,6 +1535,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       isCancelled={isCancelled}
                       accountLocked={accountLocked}
                       racketMatch={racketMatch}
+                      calcettoMatch={normalizeSport(match.sport) === "calcetto"}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1450,6 +1548,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       isCancelled={isCancelled}
                       accountLocked={accountLocked}
                       racketMatch={racketMatch}
+                      calcettoMatch={normalizeSport(match.sport) === "calcetto"}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1674,6 +1773,7 @@ function PlayerStatsGroup({
   isCancelled,
   accountLocked,
   racketMatch,
+  calcettoMatch,
   updatePlayerField,
   setMvpName,
 }: {
@@ -1684,9 +1784,16 @@ function PlayerStatsGroup({
   isCancelled: boolean;
   accountLocked: boolean;
   racketMatch: boolean;
+  calcettoMatch: boolean;
   updatePlayerField: (
     uid: string,
-    field: "goals" | "assists" | "isMvp",
+    field:
+      | "goals"
+      | "assists"
+      | "isMvp"
+      | "goalsConceded"
+      | "cleanSheet"
+      | "penaltiesSaved",
     value: number | boolean
   ) => void;
   setMvpName: React.Dispatch<React.SetStateAction<string>>;
@@ -1714,7 +1821,11 @@ function PlayerStatsGroup({
           <div
             key={player.uid}
             className={`grid gap-3 rounded-2xl border border-white/10 bg-[#020617]/70 p-3 ${
-              racketMatch ? "md:grid-cols-[1fr_90px]" : "md:grid-cols-[1fr_80px_90px_90px]"
+              racketMatch
+                ? "md:grid-cols-[1fr_90px]"
+                : calcettoMatch && isGoalkeeper(player)
+                ? "md:grid-cols-[1fr_80px_90px_90px_90px_90px_90px]"
+                : "md:grid-cols-[1fr_80px_90px_90px]"
             }`}
           >
             <div>
@@ -1722,6 +1833,7 @@ function PlayerStatsGroup({
 
               <div className="text-xs uppercase text-slate-400">
                 {teamName || title}
+                {calcettoMatch && player.role ? ` · ${normalizeCalcettoRole(player.role)}` : ""}
               </div>
             </div>
 
@@ -1762,6 +1874,68 @@ function PlayerStatsGroup({
                       updatePlayerField(
                         player.uid,
                         "assists",
+                        Number(e.target.value || 0)
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none disabled:opacity-60"
+                  />
+                </label>
+              </>
+            )}
+
+            {calcettoMatch && isGoalkeeper(player) && (
+              <>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-black text-slate-400">
+                    GS
+                  </span>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={player.goalsConceded || 0}
+                    disabled={isOfficial || isCancelled || accountLocked}
+                    onChange={(e) =>
+                      updatePlayerField(
+                        player.uid,
+                        "goalsConceded",
+                        Number(e.target.value || 0)
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none disabled:opacity-60"
+                  />
+                </label>
+
+                <label className="flex items-center gap-2 pt-6 text-sm font-black text-cyan-200">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(player.cleanSheet)}
+                    disabled={isOfficial || isCancelled || accountLocked}
+                    onChange={(e) =>
+                      updatePlayerField(
+                        player.uid,
+                        "cleanSheet",
+                        e.target.checked
+                      )
+                    }
+                  />
+                  CS
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-xs font-black text-slate-400">
+                    RP
+                  </span>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={player.penaltiesSaved || 0}
+                    disabled={isOfficial || isCancelled || accountLocked}
+                    onChange={(e) =>
+                      updatePlayerField(
+                        player.uid,
+                        "penaltiesSaved",
                         Number(e.target.value || 0)
                       )
                     }
