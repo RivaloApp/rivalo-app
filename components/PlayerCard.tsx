@@ -21,6 +21,7 @@ function normalizeSport(value?: string) {
 
   if (sport === "padel") return "padel";
   if (sport === "tennis") return "tennis";
+
   return "calcetto";
 }
 
@@ -33,6 +34,7 @@ function sportLabel(value?: string) {
 
   if (sport === "padel") return "PADEL";
   if (sport === "tennis") return "TENNIS";
+
   return "CALCETTO";
 }
 
@@ -41,6 +43,7 @@ function getSportPositionLabel(value?: string) {
 
   if (sport === "padel") return "CONTROL PAIR";
   if (sport === "tennis") return "BASELINE PRO";
+
   return "PLAYER CARD";
 }
 
@@ -56,26 +59,37 @@ function SportCardIcon({ mainSport }: { mainSport: string }) {
         aria-hidden="true"
       >
         <path
-          d="M20 13c6-6 16-4 21 1 5 5 7 15 1 21l-7 7-22-22 7-7Z"
+          d="M24 7c9-6 23 2 26 14 3 13-4 25-15 28-11 3-24-5-26-18C7 21 14 12 24 7Z"
           stroke="currentColor"
           strokeWidth="4"
           strokeLinejoin="round"
         />
         <path
-          d="M29 42 16 55"
+          d="M24 7c7 8 11 24 11 42"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          opacity=".75"
+        />
+        <path
+          d="M10 30c10-3 28-2 40 4"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          opacity=".75"
+        />
+        <circle cx="24" cy="23" r="2" fill="currentColor" />
+        <circle cx="33" cy="22" r="2" fill="currentColor" />
+        <circle cx="41" cy="27" r="2" fill="currentColor" />
+        <circle cx="20" cy="32" r="2" fill="currentColor" />
+        <circle cx="30" cy="34" r="2" fill="currentColor" />
+        <circle cx="39" cy="38" r="2" fill="currentColor" />
+        <path
+          d="M35 49 27 59"
           stroke="currentColor"
           strokeWidth="5"
           strokeLinecap="round"
         />
-        <path
-          d="M44 16 55 27"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
-        <circle cx="27" cy="23" r="2" fill="currentColor" />
-        <circle cx="34" cy="24" r="2" fill="currentColor" />
-        <circle cx="29" cy="31" r="2" fill="currentColor" />
       </svg>
     );
   }
@@ -140,7 +154,6 @@ function SportCardIcon({ mainSport }: { mainSport: string }) {
     </svg>
   );
 }
-
 
 function getCardBottomStats({
   mainSport,
