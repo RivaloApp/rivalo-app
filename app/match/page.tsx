@@ -26,7 +26,68 @@ import {
   Users,
 } from "lucide-react";
 
+type Sport = "calcetto" | "padel" | "tennis";
+
 type CompetitionFormat = "singolo" | "doppio" | "squadre";
+
+function normalizeSport(value?: string): Sport {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+
+  return "calcetto";
+}
+
+function sportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Padel";
+  if (sport === "tennis") return "Tennis";
+
+  return "Calcetto";
+}
+
+function getMatchCopy(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") {
+    return {
+      title: "Match padel",
+      teamA: "Coppia / Player 1",
+      teamB: "Coppia / Player 2",
+      participantsLabel: "Giocatori padel",
+      resultLabel: "Risultato padel",
+      postMatchText: "Inserisci risultato, MVP e conferma FairPlay. Gol e assist non vengono usati.",
+      formatHelp: "Padel: singolo o doppio. Il doppio richiede 4 giocatori.",
+      scoreMode: "racket",
+    };
+  }
+
+  if (sport === "tennis") {
+    return {
+      title: "Match tennis",
+      teamA: "Player / Coppia 1",
+      teamB: "Player / Coppia 2",
+      participantsLabel: "Giocatori tennis",
+      resultLabel: "Risultato tennis",
+      postMatchText: "Inserisci risultato, MVP e conferma FairPlay. Gol e assist non vengono usati.",
+      formatHelp: "Tennis: singolo o doppio. Il singolo richiede 2 giocatori.",
+      scoreMode: "racket",
+    };
+  }
+
+  return {
+    title: "Match calcetto",
+    teamA: "Squadra 1",
+    teamB: "Squadra 2",
+    participantsLabel: "Giocatori calcetto",
+    resultLabel: "Risultato",
+    postMatchText: "Inserisci risultato, gol, assist e MVP dal dettaglio match.",
+    formatHelp: "Calcetto: formato a squadre con gol, assist e MVP.",
+    scoreMode: "football",
+  };
+}
 
 type GroupDoc = {
   id: string;
@@ -72,13 +133,15 @@ function applySportDefaults(
   setCompetitionFormat: (value: CompetitionFormat) => void,
   setSlots: (value: string) => void
 ) {
-  if (nextSport === "padel") {
+  const normalizedSport = normalizeSport(nextSport);
+
+  if (normalizedSport === "padel") {
     setCompetitionFormat("doppio");
     setSlots("4");
     return;
   }
 
-  if (nextSport === "tennis") {
+  if (normalizedSport === "tennis") {
     setCompetitionFormat("singolo");
     setSlots("2");
     return;
@@ -114,6 +177,8 @@ type MatchDoc = {
   time?: string;
   mode?: string;
   competitionFormat?: CompetitionFormat;
+  scoreMode?: "football" | "racket";
+  sportStatsMode?: "football" | "racket";
   slots?: number;
   status?: string;
   resultStatus?: string;
@@ -205,10 +270,9 @@ const [awayTeamId, setAwayTeamId] = useState("");
         ? (profileSnap.data() as UserProfile)
         : null;
 
-      const profileSport =
-        (profileData?.mainSport || profileData?.sport || "calcetto")
-          .toLowerCase()
-          .trim();
+      const profileSport = normalizeSport(
+        profileData?.mainSport || profileData?.sport || "calcetto"
+      );
 
       const profileCity =
         profileData?.city || profileData?.cityZone || profileData?.zone || "";
@@ -242,7 +306,7 @@ const [awayTeamId, setAwayTeamId] = useState("");
       }
 
       loadedGroups = loadedGroups.filter(
-        (group) => !group.sport || group.sport.toLowerCase().trim() === profileSport
+        (group) => !group.sport || normalizeSport(group.sport) === profileSport
       );
 
       setGroups(loadedGroups);
@@ -252,7 +316,7 @@ const [awayTeamId, setAwayTeamId] = useState("");
           loadedGroups.find((group) => group.id === preferredGroupId) ||
           loadedGroups[0];
 
-        const selectedSport = selectedGroup.sport || profileSport || "calcetto";
+        const selectedSport = normalizeSport(selectedGroup.sport || profileSport);
 
         setGroupId(selectedGroup.id);
         setSport(selectedSport);
@@ -411,8 +475,9 @@ async function loadGroupTeams(nextGroupId: string) {
 }
 
   function handleSportChange(nextSport: string) {
-    setSport(nextSport);
-    applySportDefaults(nextSport, setCompetitionFormat, setSlots);
+    const normalizedSport = normalizeSport(nextSport);
+    setSport(normalizedSport);
+    applySportDefaults(normalizedSport, setCompetitionFormat, setSlots);
   }
 
   async function handleGroupChange(nextGroupId: string) {
@@ -432,7 +497,7 @@ async function loadGroupTeams(nextGroupId: string) {
 
     if (
       selectedGroup?.sport &&
-      selectedGroup.sport.toLowerCase().trim() !== userSport
+      normalizeSport(selectedGroup.sport) !== userSport
     ) {
       setMessage("Questo gruppo appartiene a un altro sport. Usa un profilo sport compatibile.");
       setGroupId("");
@@ -443,7 +508,7 @@ async function loadGroupTeams(nextGroupId: string) {
       return;
     }
 
-    handleSportChange(selectedGroup?.sport || userSport);
+    handleSportChange(normalizeSport(selectedGroup?.sport || userSport));
 
     if (selectedGroup?.city) {
       setCity(selectedGroup.city);
@@ -465,7 +530,10 @@ async function loadGroupTeams(nextGroupId: string) {
       return;
     }
 
-    if (sport !== userSport) {
+    const activeSport = normalizeSport(sport);
+    const matchCopy = getMatchCopy(activeSport);
+
+    if (activeSport !== userSport) {
       setMessage("Puoi creare match solo per lo sport del profilo attivo.");
       handleSportChange(userSport);
       return;
@@ -483,15 +551,15 @@ let matchPlayers: {
   isMvp: boolean;
 }[] = [];
 
-let homeTeamName = sport === "calcetto" ? "Squadra 1" : "Player/Coppia 1";
-let awayTeamName = sport === "calcetto" ? "Squadra 2" : "Player/Coppia 2";
+let homeTeamName = activeSport === "calcetto" ? "Squadra 1" : matchCopy.teamA;
+let awayTeamName = activeSport === "calcetto" ? "Squadra 2" : matchCopy.teamB;
 let matchHomeTeamId = "";
 let matchAwayTeamId = "";
 let homeCaptainId = "";
 let awayCaptainId = "";
 let sourceType = "manual";
 
-if (sport === "calcetto" && selectedHomeTeam && selectedAwayTeam) {
+if (activeSport === "calcetto" && selectedHomeTeam && selectedAwayTeam) {
   if (selectedHomeTeam.id === selectedAwayTeam.id) {
     setMessage("Seleziona due squadre diverse.");
     return;
@@ -542,11 +610,18 @@ sourceType = "groupTeams";
   );
 
   const minimumPlayers =
-    sport === "calcetto" ? 2 : competitionFormat === "doppio" ? 4 : 2;
+    activeSport === "calcetto" ? 2 : competitionFormat === "doppio" ? 4 : 2;
 
   if (selectedUsers.length < minimumPlayers) {
     setMessage(
       `Servono almeno ${minimumPlayers} giocatori per questo formato.`
+    );
+    return;
+  }
+
+  if (activeSport !== "calcetto" && selectedUsers.length !== minimumPlayers) {
+    setMessage(
+      `${sportLabel(activeSport)} richiede esattamente ${minimumPlayers} giocatori per il formato ${competitionFormat}.`
     );
     return;
   }
@@ -576,8 +651,10 @@ sourceType = "groupTeams";
         createdByName: user.displayName || "Rivalo Player",
 
         name: matchName,
-        sport,
+        sport: activeSport,
         competitionFormat,
+        scoreMode: matchCopy.scoreMode,
+        sportStatsMode: matchCopy.scoreMode,
         city,
         field,
         date,
@@ -618,10 +695,10 @@ awayScore: null,
       setDate("");
       setTime("");
 
-      if (sport === "calcetto") {
+      if (activeSport === "calcetto") {
         setCompetitionFormat("squadre");
         setSlots("10");
-      } else if (sport === "padel") {
+      } else if (activeSport === "padel") {
         setCompetitionFormat("doppio");
         setSlots("4");
       } else {
@@ -675,6 +752,8 @@ awayScore: null,
     return true;
   });
 
+  const pageCopy = getMatchCopy(sport);
+
   return (
     <main className="min-h-screen bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_6%,rgba(34,211,238,.17),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(217,70,239,.15),transparent_32%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
@@ -701,7 +780,7 @@ awayScore: null,
                 </div>
 
                 <h1 className="mt-2 text-[34px] font-black leading-tight sm:text-4xl">
-                  Match rapido / Amichevole
+                  {pageCopy.title} / Amichevole
                 </h1>
               </div>
             </div>
@@ -750,7 +829,7 @@ awayScore: null,
                 <Field label="Sport profilo">
                   <div className="flex items-center justify-between gap-3">
                     <div className="font-black capitalize text-cyan-200">
-                      {sport}
+                      {sportLabel(sport)}
                     </div>
 
                     <span className="rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200">
@@ -804,6 +883,10 @@ awayScore: null,
                     </>
                   )}
                 </select>
+
+                <div className="mt-2 text-xs leading-5 text-slate-400">
+                  {pageCopy.formatHelp}
+                </div>
               </Field>
 
               {groupTeams.length > 0 && sport === "calcetto" && (
@@ -872,7 +955,7 @@ awayScore: null,
                 </div>
               )}
 
-              <Field label="Giocatori del gruppo">
+              <Field label={pageCopy.participantsLabel}>
                 <div className="space-y-3">
                   {availableUsers.length === 0 ? (
                     <div className="text-sm text-slate-400">
@@ -1042,8 +1125,8 @@ awayScore: null,
           <section className="space-y-4 sm:space-y-6">
             <InfoCard
               icon={<Users size={28} />}
-              title="Giocatori gruppo"
-              text="Nel match privato puoi scegliere solo membri del gruppo collegato."
+              title={pageCopy.participantsLabel}
+              text="Nel match privato puoi scegliere solo membri del gruppo collegato e compatibili con lo sport attivo."
             />
 
             <InfoCard
@@ -1061,7 +1144,7 @@ awayScore: null,
             <InfoCard
               icon={<Clock size={28} />}
               title="Post-partita"
-              text="Inserisci risultato, gol, assist e MVP dal dettaglio match."
+              text={pageCopy.postMatchText}
             />
           </section>
         </div>
@@ -1189,6 +1272,7 @@ function InfoCard({
 }
 
 function MatchCard({ match }: { match: MatchDoc }) {
+  const matchCopy = getMatchCopy(match.sport);
   const isCancelled =
     match.status === "annullato" || match.resultStatus === "annullato";
 
@@ -1285,7 +1369,7 @@ function MatchCard({ match }: { match: MatchDoc }) {
             )}
 
             <div className="w-fit rounded-xl bg-cyan-400/10 px-3 py-2 text-sm font-black uppercase text-cyan-300">
-              {match.sport || "sport"}
+              {sportLabel(match.sport)}
             </div>
           </div>
         </div>
@@ -1293,7 +1377,7 @@ function MatchCard({ match }: { match: MatchDoc }) {
         {scoreIsVisible && (
           <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4 text-center">
             <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-              Risultato
+              {matchCopy.resultLabel}
             </div>
 
             <div className="mt-1 text-4xl font-black leading-none text-white">
@@ -1308,6 +1392,7 @@ function MatchCard({ match }: { match: MatchDoc }) {
           <Badge>{match.slots || 0} slot</Badge>
           <Badge>{match.mode || "modalità"}</Badge>
           <Badge>{match.competitionFormat || "formato"}</Badge>
+          <Badge>{match.scoreMode === "racket" ? "no gol/assist" : "gol/assist"}</Badge>
 
           <div className={`max-w-full rounded-xl border px-3 py-2 font-black ${statusClass}`}>
             {statusLabel}
