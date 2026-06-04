@@ -87,6 +87,8 @@ type MatchDoc = {
   eventId?: string;
   eventTitle?: string;
   competitionFormat?: string;
+  scoreMode?: "football" | "racket";
+  sportStatsMode?: "football" | "racket";
 };
 
 type UserProfile = {
@@ -110,6 +112,68 @@ function sportLabel(value?: string) {
   if (sport === "padel") return "Padel";
   if (sport === "tennis") return "Tennis";
   return "Calcetto";
+}
+
+function isRacketSport(value?: string) {
+  const sport = normalizeSport(value);
+  return sport === "padel" || sport === "tennis";
+}
+
+function getMatchCopy(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") {
+    return {
+      teamA: "Coppia / Player 1",
+      teamB: "Coppia / Player 2",
+      homeScore: "Score 1",
+      awayScore: "Score 2",
+      resultLabel: "Risultato padel",
+      statsTitle: "Statistiche padel",
+      playerStatsHelp: "Per padel non usiamo gol o assist: contano vittoria, MVP, streak e score finale.",
+      notesPlaceholder: "Note su set, game, tie-break o dettagli partita...",
+      officialMessage: "Match ufficiale. Risultato e statistiche padel non sono più modificabili.",
+      rankingText: "Solo i match confermati aggiornano RivalScore, XP, vittorie, MVP e streak. Gol e assist non vengono usati.",
+    };
+  }
+
+  if (sport === "tennis") {
+    return {
+      teamA: "Player / Coppia 1",
+      teamB: "Player / Coppia 2",
+      homeScore: "Score 1",
+      awayScore: "Score 2",
+      resultLabel: "Risultato tennis",
+      statsTitle: "Statistiche tennis",
+      playerStatsHelp: "Per tennis non usiamo gol o assist: contano vittoria, MVP, streak e score finale.",
+      notesPlaceholder: "Note su set, game, tie-break o dettagli partita...",
+      officialMessage: "Match ufficiale. Risultato e statistiche tennis non sono più modificabili.",
+      rankingText: "Solo i match confermati aggiornano RivalScore, XP, vittorie, MVP e streak. Gol e assist non vengono usati.",
+    };
+  }
+
+  return {
+    teamA: "Squadra 1",
+    teamB: "Squadra 2",
+    homeScore: "Gol squadra 1",
+    awayScore: "Gol squadra 2",
+    resultLabel: "Risultato",
+    statsTitle: "Statistiche giocatori",
+    playerStatsHelp: "Per calcetto puoi inserire gol, assist e MVP.",
+    notesPlaceholder: "Gol, assist, note o dettagli partita...",
+    officialMessage: "Match ufficiale. Risultato e statistiche non sono più modificabili.",
+    rankingText: "Solo i match confermati aggiornano RivalScore, XP, vittorie, gol, assist e MVP.",
+  };
+}
+
+function getSafePlayersForStats(match: MatchDoc, players: MatchPlayer[]) {
+  if (!isRacketSport(match.sport)) return players;
+
+  return players.map((player) => ({
+    ...player,
+    goals: 0,
+    assists: 0,
+  }));
 }
 
 function isSameUserSport(match: MatchDoc, userSport: string) {
@@ -850,7 +914,7 @@ if (!freshAutoConfirmAllowed && freshMatch.resultProposedBy === user.uid) {
           : "draw";
 
       const matchPlayers = Array.isArray(safeMatch.players)
-        ? safeMatch.players
+        ? getSafePlayersForStats(safeMatch, safeMatch.players)
         : [];
 
       if (matchPlayers.length > 0) {
@@ -858,8 +922,8 @@ if (!freshAutoConfirmAllowed && freshMatch.resultProposedBy === user.uid) {
           uid: player.uid,
           name: player.name || "Rivalo Player",
           team: player.team,
-          goals: Number(player.goals || 0),
-          assists: Number(player.assists || 0),
+          goals: isRacketSport(safeMatch.sport) ? 0 : Number(player.goals || 0),
+          assists: isRacketSport(safeMatch.sport) ? 0 : Number(player.assists || 0),
           isMvp:
             Boolean(player.isMvp) ||
             player.name?.toLowerCase().trim() === mvpName.toLowerCase().trim(),
@@ -879,6 +943,7 @@ if (!freshAutoConfirmAllowed && freshMatch.resultProposedBy === user.uid) {
           isMvp: mvpName.trim().length > 0,
           goals: 0,
           assists: 0,
+          sport: safeMatch.sport,
         });
       }
 
@@ -1162,6 +1227,9 @@ setMessage("Risultato contestato. Servirà revisione.");
     );
   }
 
+  const matchCopy = getMatchCopy(match.sport);
+  const racketMatch = isRacketSport(match.sport);
+
   const isCancelled = isMatchCancelled(match);
 
   const isOfficial =
@@ -1274,31 +1342,31 @@ setMessage("Risultato contestato. Servirà revisione.");
 
             <div className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Squadra 1">
+                <Field label={matchCopy.teamA}>
                   <input
                     required
                     disabled={isOfficial || isCancelled || accountLocked}
                     value={homeTeam}
                     onChange={(e) => setHomeTeam(e.target.value)}
-                    placeholder="Es. Rival Team"
+                    placeholder={matchCopy.teamA}
                     className="w-full bg-transparent outline-none placeholder:text-slate-500 disabled:opacity-60"
                   />
                 </Field>
 
-                <Field label="Squadra 2">
+                <Field label={matchCopy.teamB}>
                   <input
                     required
                     disabled={isOfficial || isCancelled || accountLocked}
                     value={awayTeam}
                     onChange={(e) => setAwayTeam(e.target.value)}
-                    placeholder="Es. Black Sharks"
+                    placeholder={matchCopy.teamB}
                     className="w-full bg-transparent outline-none placeholder:text-slate-500 disabled:opacity-60"
                   />
                 </Field>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Gol squadra 1">
+                <Field label={matchCopy.homeScore}>
                   <input
                     required
                     disabled={isOfficial || isCancelled || accountLocked}
@@ -1310,7 +1378,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                   />
                 </Field>
 
-                <Field label="Gol squadra 2">
+                <Field label={matchCopy.awayScore}>
                   <input
                     required
                     disabled={isOfficial || isCancelled || accountLocked}
@@ -1322,6 +1390,12 @@ setMessage("Risultato contestato. Servirà revisione.");
                   />
                 </Field>
               </div>
+
+              {racketMatch && (
+                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold leading-6 text-cyan-100">
+                  Per {sportLabel(match.sport)} lo score finale serve solo a stabilire vincitore e storico. Gol e assist non vengono applicati.
+                </div>
+              )}
 
               <Field label="MVP partita">
                 <input
@@ -1335,8 +1409,12 @@ setMessage("Risultato contestato. Servirà revisione.");
 
               {players.length > 0 && (
                 <div className="rounded-2xl border border-white/10 bg-[#020617]/70 p-4">
-                  <div className="mb-4 text-sm font-black uppercase tracking-[0.16em] text-cyan-300">
-                    Statistiche giocatori
+                  <div className="mb-2 text-sm font-black uppercase tracking-[0.16em] text-cyan-300">
+                    {matchCopy.statsTitle}
+                  </div>
+
+                  <div className="mb-4 text-sm font-bold leading-6 text-slate-400">
+                    {matchCopy.playerStatsHelp}
                   </div>
 
                   <div className="space-y-4">
@@ -1347,6 +1425,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       isOfficial={isOfficial}
                       isCancelled={isCancelled}
                       accountLocked={accountLocked}
+                      racketMatch={racketMatch}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1358,6 +1437,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       isOfficial={isOfficial}
                       isCancelled={isCancelled}
                       accountLocked={accountLocked}
+                      racketMatch={racketMatch}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1369,6 +1449,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                       isOfficial={isOfficial}
                       isCancelled={isCancelled}
                       accountLocked={accountLocked}
+                      racketMatch={racketMatch}
                       updatePlayerField={updatePlayerField}
                       setMvpName={setMvpName}
                     />
@@ -1381,7 +1462,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                   disabled={isOfficial || isCancelled || accountLocked}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Gol, assist, note o dettagli partita..."
+                  placeholder={matchCopy.notesPlaceholder}
                   className="min-h-[120px] w-full resize-none bg-transparent outline-none placeholder:text-slate-500 disabled:opacity-60"
                 />
               </Field>
@@ -1424,7 +1505,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <div className="grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-center">
                   <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-center">
                     <div className="text-xs font-black uppercase tracking-[0.14em] text-cyan-300">
-                      Squadra 1
+                      {matchCopy.teamA}
                     </div>
 
                     <div className="mt-2 text-xl font-black">
@@ -1438,13 +1519,13 @@ setMessage("Risultato contestato. Servirà revisione.");
                     </div>
 
                     <div className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                      Risultato
+                      {matchCopy.resultLabel}
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-4 text-center">
                     <div className="text-xs font-black uppercase tracking-[0.14em] text-fuchsia-300">
-                      Squadra 2
+                      {matchCopy.teamB}
                     </div>
 
                     <div className="mt-2 text-xl font-black">
@@ -1479,8 +1560,7 @@ setMessage("Risultato contestato. Servirà revisione.");
 
               {isOfficial && (
                 <div className="rounded-2xl border border-lime-400/20 bg-lime-400/10 px-4 py-3 text-sm font-black text-lime-200">
-                  Match ufficiale. Risultato e statistiche non sono più
-                  modificabili.
+                  {matchCopy.officialMessage}
                 </div>
               )}
 
@@ -1577,7 +1657,7 @@ setMessage("Risultato contestato. Servirà revisione.");
             </Panel>
 
             <Panel icon={<Trophy />} title="Ranking">
-              Solo i match confermati aggiornano RivalScore, XP, vittorie e MVP. I match annullabili sono solo quelli senza statistiche applicate.
+              {matchCopy.rankingText} I match annullabili sono solo quelli senza statistiche applicate.
             </Panel>
           </div>
         </section>
@@ -1593,6 +1673,7 @@ function PlayerStatsGroup({
   isOfficial,
   isCancelled,
   accountLocked,
+  racketMatch,
   updatePlayerField,
   setMvpName,
 }: {
@@ -1602,6 +1683,7 @@ function PlayerStatsGroup({
   isOfficial: boolean;
   isCancelled: boolean;
   accountLocked: boolean;
+  racketMatch: boolean;
   updatePlayerField: (
     uid: string,
     field: "goals" | "assists" | "isMvp",
@@ -1631,7 +1713,9 @@ function PlayerStatsGroup({
         {players.map((player) => (
           <div
             key={player.uid}
-            className="grid gap-3 rounded-2xl border border-white/10 bg-[#020617]/70 p-3 md:grid-cols-[1fr_80px_90px_90px]"
+            className={`grid gap-3 rounded-2xl border border-white/10 bg-[#020617]/70 p-3 ${
+              racketMatch ? "md:grid-cols-[1fr_90px]" : "md:grid-cols-[1fr_80px_90px_90px]"
+            }`}
           >
             <div>
               <div className="font-black">{player.name || "Rivalo Player"}</div>
@@ -1641,47 +1725,51 @@ function PlayerStatsGroup({
               </div>
             </div>
 
-            <label className="block">
-              <span className="mb-1 block text-xs font-black text-slate-400">
-                Gol
-              </span>
+            {!racketMatch && (
+              <>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-black text-slate-400">
+                    Gol
+                  </span>
 
-              <input
-                type="number"
-                min="0"
-                value={player.goals || 0}
-                disabled={isOfficial || isCancelled || accountLocked}
-                onChange={(e) =>
-                  updatePlayerField(
-                    player.uid,
-                    "goals",
-                    Number(e.target.value || 0)
-                  )
-                }
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none disabled:opacity-60"
-              />
-            </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={player.goals || 0}
+                    disabled={isOfficial || isCancelled || accountLocked}
+                    onChange={(e) =>
+                      updatePlayerField(
+                        player.uid,
+                        "goals",
+                        Number(e.target.value || 0)
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none disabled:opacity-60"
+                  />
+                </label>
 
-            <label className="block">
-              <span className="mb-1 block text-xs font-black text-slate-400">
-                Assist
-              </span>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-black text-slate-400">
+                    Assist
+                  </span>
 
-              <input
-                type="number"
-                min="0"
-                value={player.assists || 0}
-                disabled={isOfficial || isCancelled || accountLocked}
-                onChange={(e) =>
-                  updatePlayerField(
-                    player.uid,
-                    "assists",
-                    Number(e.target.value || 0)
-                  )
-                }
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none disabled:opacity-60"
-              />
-            </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={player.assists || 0}
+                    disabled={isOfficial || isCancelled || accountLocked}
+                    onChange={(e) =>
+                      updatePlayerField(
+                        player.uid,
+                        "assists",
+                        Number(e.target.value || 0)
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 outline-none disabled:opacity-60"
+                  />
+                </label>
+              </>
+            )}
 
             <label className="flex items-center gap-2 pt-6 text-sm font-black text-yellow-200">
               <input
