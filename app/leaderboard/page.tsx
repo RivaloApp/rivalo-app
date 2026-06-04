@@ -36,6 +36,10 @@ type UserRow = {
   photoUrl?: string;
   xp?: number;
   winStreak?: number;
+  role?: string;
+  goalsConceded?: number;
+  cleanSheets?: number;
+  penaltiesSaved?: number;
   accountStatus?: string;
   deletionRequested?: boolean;
 };
@@ -52,6 +56,23 @@ function normalizeSport(value?: string) {
 
 function getUserSport(user: UserRow) {
   return normalizeSport(user.mainSport || user.sport || "calcetto");
+}
+
+function normalizeCalcettoRole(value?: string) {
+  const role = (value || "").toLowerCase().trim();
+
+  if (role.includes("port")) return "portiere";
+  if (role.includes("dif")) return "difensore";
+  if (role.includes("cent")) return "centrocampista";
+  if (role.includes("att")) return "attaccante";
+  if (role.includes("jolly")) return "jolly";
+
+  return role;
+}
+
+function isGoalkeeper(user?: UserRow) {
+  return getUserSport(user || { id: "" }) === "calcetto" &&
+    normalizeCalcettoRole(user?.role) === "portiere";
 }
 
 function sportLabel(filter: SportFilter) {
@@ -71,7 +92,7 @@ function rankScoreLabel(filter: SportFilter) {
 
 function rankingDescription(filter: SportFilter) {
   if (filter === "calcetto") {
-    return "Peso maggiore a vittorie, RivalScore, MVP, costanza, gol e assist.";
+    return "Peso maggiore a vittorie, RivalScore, MVP, costanza e ruolo. Portieri valutati con clean sheet, gol subiti e rigori parati.";
   }
 
   if (filter === "padel") {
@@ -155,6 +176,35 @@ function calculateCalcettoRankScore(user: UserRow) {
   );
 }
 
+function calculateGoalkeeperRankScore(user: UserRow) {
+  const matches = Number(user.matchesPlayed || 0);
+  const wins = Number(user.wins || 0);
+  const draws = Number(user.draws || 0);
+  const mvp = Number(user.mvp || 0);
+  const rivalScore = Number(user.rivalScore || 1000);
+  const cleanSheets = Number(user.cleanSheets || 0);
+  const penaltiesSaved = Number(user.penaltiesSaved || 0);
+  const goalsConceded = Number(user.goalsConceded || 0);
+  const winStreak = Number(user.winStreak || 0);
+
+  if (matches <= 0) return 0;
+
+  const goalsConcededAverage = goalsConceded / matches;
+
+  const score =
+    wins * 115 +
+    draws * 35 +
+    cleanSheets * 135 +
+    penaltiesSaved * 95 +
+    mvp * 80 +
+    Math.min(matches, 45) * 28 +
+    Math.min(winStreak, 10) * 25 +
+    Math.max(0, rivalScore - 1000) * 0.45 -
+    goalsConcededAverage * 42;
+
+  return Math.max(0, Math.round(score));
+}
+
 function calculateRacketRankScore(user: UserRow, sport: "padel" | "tennis") {
   const matches = Number(user.matchesPlayed || 0);
   const wins = Number(user.wins || 0);
@@ -193,14 +243,16 @@ function calculateRacketRankScore(user: UserRow, sport: "padel" | "tennis") {
 function calculateSportRankScore(user: UserRow, filter: SportFilter) {
   const userSport = getUserSport(user);
 
-  if (filter === "calcetto") return calculateCalcettoRankScore(user);
+  if (filter === "calcetto") {
+    return isGoalkeeper(user) ? calculateGoalkeeperRankScore(user) : calculateCalcettoRankScore(user);
+  }
   if (filter === "padel") return calculateRacketRankScore(user, "padel");
   if (filter === "tennis") return calculateRacketRankScore(user, "tennis");
 
   if (userSport === "padel") return calculateRacketRankScore(user, "padel");
   if (userSport === "tennis") return calculateRacketRankScore(user, "tennis");
 
-  return calculateCalcettoRankScore(user);
+  return isGoalkeeper(user) ? calculateGoalkeeperRankScore(user) : calculateCalcettoRankScore(user);
 }
 
 function compareUsers(a: UserRow, b: UserRow, filter: SportFilter) {
@@ -231,6 +283,13 @@ function compareUsers(a: UserRow, b: UserRow, filter: SportFilter) {
   if (baseCompare !== 0) return baseCompare;
 
   if (filter === "calcetto" || filter === "all") {
+    const goalkeeperCompare =
+      Number(b.cleanSheets || 0) - Number(a.cleanSheets || 0) ||
+      Number(b.penaltiesSaved || 0) - Number(a.penaltiesSaved || 0) ||
+      Number(a.goalsConceded || 0) - Number(b.goalsConceded || 0);
+
+    if (isGoalkeeper(a) || isGoalkeeper(b)) return goalkeeperCompare;
+
     return (
       Number(b.goals || 0) - Number(a.goals || 0) ||
       Number(b.assists || 0) - Number(a.assists || 0)
@@ -294,6 +353,20 @@ export default function LeaderboardPage() {
 
   const topAssist = useMemo(() => {
     return topBy(filteredUsers, (user) => Number(user.assists || 0));
+  }, [filteredUsers]);
+
+  const topCleanSheet = useMemo(() => {
+    return topBy(
+      filteredUsers.filter(isGoalkeeper),
+      (user) => Number(user.cleanSheets || 0)
+    );
+  }, [filteredUsers]);
+
+  const topGoalkeeper = useMemo(() => {
+    return topBy(
+      filteredUsers.filter(isGoalkeeper),
+      (user) => calculateGoalkeeperRankScore(user)
+    );
   }, [filteredUsers]);
 
   const topMvp = useMemo(() => {
@@ -484,6 +557,24 @@ export default function LeaderboardPage() {
                     icon={<Flame className="text-orange-300" />}
                   />
                 </div>
+
+                {isCalcettoView && (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <CategoryCard
+                      title="Top Portiere"
+                      value={topGoalkeeper ? calculateGoalkeeperRankScore(topGoalkeeper) : 0}
+                      user={topGoalkeeper}
+                      icon={<ShieldCheck className="text-lime-300" />}
+                    />
+
+                    <CategoryCard
+                      title="Clean Sheet"
+                      value={topCleanSheet?.cleanSheets || 0}
+                      user={topCleanSheet}
+                      icon={<Crown className="text-lime-200" />}
+                    />
+                  </div>
+                )}
 
                 <div className="mt-8 sm:mt-10">
                   <div className="mb-4 flex items-center gap-3">
@@ -755,6 +846,7 @@ function CompactRow({
   const wins = Number(user.wins || 0);
   const winRate = matches > 0 ? Math.round((wins / matches) * 100) : 0;
   const isRacketView = sportFilter === "padel" || sportFilter === "tennis";
+  const goalkeeper = isGoalkeeper(user);
 
   return (
     <div
@@ -804,13 +896,13 @@ function CompactRow({
         <CompactStat label="Rank" value={rankScore} color="text-cyan-300" />
         <CompactStat label="Win" value={wins} color="text-lime-300" />
         <CompactStat
-          label={isRacketView ? "WR%" : "MVP"}
-          value={isRacketView ? winRate : user.mvp || 0}
-          color={isRacketView ? "text-cyan-200" : "text-yellow-100"}
+          label={isRacketView ? "WR%" : goalkeeper ? "CS" : "MVP"}
+          value={isRacketView ? winRate : goalkeeper ? user.cleanSheets || 0 : user.mvp || 0}
+          color={isRacketView ? "text-cyan-200" : goalkeeper ? "text-lime-200" : "text-yellow-100"}
         />
         <CompactStat
-          label={isRacketView ? "Streak" : "Partite"}
-          value={isRacketView ? user.winStreak || 0 : matches}
+          label={isRacketView ? "Streak" : goalkeeper ? "GS" : "Partite"}
+          value={isRacketView ? user.winStreak || 0 : goalkeeper ? user.goalsConceded || 0 : matches}
           color="text-slate-200"
         />
       </div>

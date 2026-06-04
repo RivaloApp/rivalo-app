@@ -515,7 +515,11 @@ setDeletionRequested(false);
               <select
                 value={sport}
                 onChange={(e) => setSport(e.target.value)}
-                disabled={accountStatus === "deletion_requested" || deletionRequested}
+                disabled={
+                  accountStatus === "deletion_requested" ||
+                  deletionRequested ||
+                  sportLockedByStats
+                }
                 className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400 disabled:opacity-60"
               >
                 <option value="calcetto">Calcetto</option>
@@ -593,6 +597,32 @@ setDeletionRequested(false);
     placeholder="Es. sera, weekend, 2 volte a settimana..."
   />
 </div>
+            {isGoalkeeper && (
+              <div className="mt-7 rounded-[1.5rem] border border-lime-300/20 bg-lime-400/10 p-5 sm:p-6">
+                <div className="text-xs font-black uppercase tracking-[0.22em] text-lime-200">
+                  Focus portiere
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <MiniStat label="Gol subiti" value={String(goalsConceded)} />
+                  <MiniStat
+                    label="Media GS"
+                    value={
+                      matchesPlayed > 0
+                        ? (goalsConceded / matchesPlayed).toFixed(1)
+                        : "0.0"
+                    }
+                  />
+                  <MiniStat label="Clean Sheet" value={String(cleanSheets)} />
+                  <MiniStat label="Rigori parati" value={String(penaltiesSaved)} />
+                </div>
+
+                <p className="mt-4 text-sm font-bold leading-6 text-lime-100/90">
+                  Il portiere non viene valutato sui gol segnati: RivalScore e card tengono conto di clean sheet, gol subiti, rigori parati, partite e risultati.
+                </p>
+              </div>
+            )}
+
             <div className="mt-7 rounded-[1.5rem] border border-cyan-400/20 bg-cyan-400/5 p-5 sm:p-6">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
