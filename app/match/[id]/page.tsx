@@ -102,6 +102,8 @@ type UserProfile = {
   deletionRequested?: boolean;
 };
 
+type CompetitionFormat = "singolo" | "doppio" | "squadre";
+
 function normalizeSport(value?: string) {
   const sport = (value || "").toLowerCase().trim();
 
@@ -139,15 +141,18 @@ function isRacketSport(value?: string) {
   return sport === "padel" || sport === "tennis";
 }
 
-function getMatchCopy(value?: string) {
+function getMatchCopy(value?: string, format?: CompetitionFormat) {
   const sport = normalizeSport(value);
+  const isSingle = format === "singolo";
+  const sideOneLabel = isSingle ? "Player 1" : "Coppia 1";
+  const sideTwoLabel = isSingle ? "Player 2" : "Coppia 2";
 
   if (sport === "padel") {
     return {
-      teamA: "Coppia / Player 1",
-      teamB: "Coppia / Player 2",
-      homeScore: "Set vinti Coppia/Player 1",
-      awayScore: "Set vinti Coppia/Player 2",
+      teamA: sideOneLabel,
+      teamB: sideTwoLabel,
+      homeScore: `Set vinti ${sideOneLabel}`,
+      awayScore: `Set vinti ${sideTwoLabel}`,
       resultLabel: "Set finali",
       statsTitle: "Prestazione padel",
       playerStatsHelp: "Per padel non esistono gol o assist: contano risultato, vittoria, MVP, streak e continuità.",
@@ -164,10 +169,10 @@ function getMatchCopy(value?: string) {
 
   if (sport === "tennis") {
     return {
-      teamA: "Player / Coppia 1",
-      teamB: "Player / Coppia 2",
-      homeScore: "Set vinti Player/Coppia 1",
-      awayScore: "Set vinti Player/Coppia 2",
+      teamA: sideOneLabel,
+      teamB: sideTwoLabel,
+      homeScore: `Set vinti ${sideOneLabel}`,
+      awayScore: `Set vinti ${sideTwoLabel}`,
       resultLabel: "Set finali",
       statsTitle: "Prestazione tennis",
       playerStatsHelp: "Per tennis non esistono gol o assist: contano risultato, vittoria, MVP, streak e continuità.",
@@ -1333,8 +1338,16 @@ setMessage("Risultato contestato. Servirà revisione.");
     );
   }
 
-  const matchCopy = getMatchCopy(match.sport);
+  const safeCompetitionFormat: CompetitionFormat =
+  match.competitionFormat === "doppio"
+    ? "doppio"
+    : match.competitionFormat === "squadre"
+    ? "squadre"
+    : "singolo";
+
+const matchCopy = getMatchCopy(match.sport, safeCompetitionFormat);
   const racketMatch = isRacketSport(match.sport);
+  const namesLockedFromGroup = racketMatch && players.length > 0;
 
   const isCancelled = isMatchCancelled(match);
 
@@ -1451,7 +1464,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <Field label={matchCopy.teamA}>
                   <input
                     required
-                    disabled={isOfficial || isCancelled || accountLocked}
+                    disabled={isOfficial || isCancelled || accountLocked || namesLockedFromGroup}
                     value={homeTeam}
                     onChange={(e) => setHomeTeam(e.target.value)}
                     placeholder={matchCopy.teamA}
@@ -1462,7 +1475,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <Field label={matchCopy.teamB}>
                   <input
                     required
-                    disabled={isOfficial || isCancelled || accountLocked}
+                    disabled={isOfficial || isCancelled || accountLocked || namesLockedFromGroup}
                     value={awayTeam}
                     onChange={(e) => setAwayTeam(e.target.value)}
                     placeholder={matchCopy.teamB}
@@ -1470,6 +1483,14 @@ setMessage("Risultato contestato. Servirà revisione.");
                   />
                 </Field>
               </div>
+
+              {namesLockedFromGroup && (
+                <div className="rounded-2xl border border-lime-400/20 bg-lime-400/10 px-4 py-3 text-sm font-bold leading-6 text-lime-100">
+                  {match.competitionFormat === "doppio"
+                    ? "Coppie bloccate dalla creazione match: i nomi arrivano dagli utenti selezionati nel gruppo."
+                    : "Player bloccati dalla creazione match: i nomi arrivano dagli utenti selezionati nel gruppo."}
+                </div>
+              )}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={matchCopy.homeScore}>
