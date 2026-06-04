@@ -146,14 +146,19 @@ function getMatchCopy(value?: string) {
     return {
       teamA: "Coppia / Player 1",
       teamB: "Coppia / Player 2",
-      homeScore: "Score 1",
-      awayScore: "Score 2",
-      resultLabel: "Risultato padel",
-      statsTitle: "Statistiche padel",
-      playerStatsHelp: "Per padel non usiamo gol o assist: contano vittoria, MVP, streak e score finale.",
-      notesPlaceholder: "Note su set, game, tie-break o dettagli partita...",
+      homeScore: "Set vinti Coppia/Player 1",
+      awayScore: "Set vinti Coppia/Player 2",
+      resultLabel: "Set finali",
+      statsTitle: "Prestazione padel",
+      playerStatsHelp: "Per padel non esistono gol o assist: contano risultato, vittoria, MVP, streak e continuità.",
+      notesPlaceholder: "Dettaglio set/game, esempio: 6-4 3-6 10-8, tie-break o note partita...",
       officialMessage: "Match ufficiale. Risultato e statistiche padel non sono più modificabili.",
       rankingText: "Solo i match confermati aggiornano RivalScore, XP, vittorie, MVP e streak. Gol e assist non vengono usati.",
+      formTitle: "Risultato padel e FairPlay",
+      formDescription: "Inserisci i set vinti e usa le note per il dettaglio game/tie-break.",
+      mvpLabel: "MVP / Player of the match",
+      mvpPlaceholder: "Nome player decisivo",
+      scoreHelp: "Per il ranking salviamo i set vinti come risultato numerico. Il dettaglio game/tie-break va nelle note.",
     };
   }
 
@@ -161,14 +166,19 @@ function getMatchCopy(value?: string) {
     return {
       teamA: "Player / Coppia 1",
       teamB: "Player / Coppia 2",
-      homeScore: "Score 1",
-      awayScore: "Score 2",
-      resultLabel: "Risultato tennis",
-      statsTitle: "Statistiche tennis",
-      playerStatsHelp: "Per tennis non usiamo gol o assist: contano vittoria, MVP, streak e score finale.",
-      notesPlaceholder: "Note su set, game, tie-break o dettagli partita...",
+      homeScore: "Set vinti Player/Coppia 1",
+      awayScore: "Set vinti Player/Coppia 2",
+      resultLabel: "Set finali",
+      statsTitle: "Prestazione tennis",
+      playerStatsHelp: "Per tennis non esistono gol o assist: contano risultato, vittoria, MVP, streak e continuità.",
+      notesPlaceholder: "Dettaglio set/game, esempio: 6-3 4-6 7-5, tie-break o note partita...",
       officialMessage: "Match ufficiale. Risultato e statistiche tennis non sono più modificabili.",
       rankingText: "Solo i match confermati aggiornano RivalScore, XP, vittorie, MVP e streak. Gol e assist non vengono usati.",
+      formTitle: "Risultato tennis e FairPlay",
+      formDescription: "Inserisci i set vinti e usa le note per il dettaglio game/tie-break.",
+      mvpLabel: "MVP / Player of the match",
+      mvpPlaceholder: "Nome player decisivo",
+      scoreHelp: "Per il ranking salviamo i set vinti come risultato numerico. Il dettaglio game/tie-break va nelle note.",
     };
   }
 
@@ -183,6 +193,11 @@ function getMatchCopy(value?: string) {
     notesPlaceholder: "Gol, assist, note o dettagli partita...",
     officialMessage: "Match ufficiale. Risultato e statistiche non sono più modificabili.",
     rankingText: "Solo i match confermati aggiornano RivalScore, XP, vittorie, gol, assist e MVP.",
+    formTitle: "Risultato e FairPlay",
+    formDescription: "Il risultato diventa ufficiale solo dopo conferma.",
+    mvpLabel: "MVP partita",
+    mvpPlaceholder: "Nome MVP",
+    scoreHelp: "",
   };
 }
 
@@ -1424,9 +1439,9 @@ setMessage("Risultato contestato. Servirà revisione.");
               <Trophy className="text-cyan-300" size={30} />
 
               <div>
-                <h2 className="text-2xl font-black">Risultato e FairPlay</h2>
+                <h2 className="text-2xl font-black">{matchCopy.formTitle}</h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  Il risultato diventa ufficiale solo dopo conferma.
+                  {matchCopy.formDescription}
                 </p>
               </div>
             </div>
@@ -1484,16 +1499,16 @@ setMessage("Risultato contestato. Servirà revisione.");
 
               {racketMatch && (
                 <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold leading-6 text-cyan-100">
-                  Per {sportLabel(match.sport)} lo score finale serve solo a stabilire vincitore e storico. Gol e assist non vengono applicati.
+                  {matchCopy.scoreHelp} Gol e assist non vengono applicati.
                 </div>
               )}
 
-              <Field label="MVP partita">
+              <Field label={matchCopy.mvpLabel}>
                 <input
                   disabled={isOfficial || isCancelled || accountLocked}
                   value={mvpName}
                   onChange={(e) => setMvpName(e.target.value)}
-                  placeholder="Nome MVP"
+                  placeholder={matchCopy.mvpPlaceholder}
                   className="w-full bg-transparent outline-none placeholder:text-slate-500 disabled:opacity-60"
                 />
               </Field>
@@ -1515,7 +1530,7 @@ setMessage("Risultato contestato. Servirà revisione.");
 
                   <div className="space-y-4">
                     <PlayerStatsGroup
-                      title="Squadra 1"
+                      title={matchCopy.teamA}
                       players={homePlayers}
                       teamName={homeTeam}
                       isOfficial={isOfficial}
@@ -1528,7 +1543,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                     />
 
                     <PlayerStatsGroup
-                      title="Squadra 2"
+                      title={matchCopy.teamB}
                       players={awayPlayers}
                       teamName={awayTeam}
                       isOfficial={isOfficial}
@@ -1653,6 +1668,11 @@ setMessage("Risultato contestato. Servirà revisione.");
                     <div className="mt-1 font-black text-lime-200">
                       {match.statsApplied ? "Applicate" : "Da applicare"}
                     </div>
+                    {racketMatch && (
+                      <div className="mt-1 text-[11px] font-bold text-cyan-200">
+                        Modalità racket
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1812,7 +1832,7 @@ function PlayerStatsGroup({
         </div>
 
         <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200">
-          {players.length} giocatori
+          {players.length} {racketMatch ? "player" : "giocatori"}
         </div>
       </div>
 
@@ -1958,7 +1978,7 @@ function PlayerStatsGroup({
                   }
                 }}
               />
-              MVP
+              {racketMatch ? "POTM" : "MVP"}
             </label>
           </div>
         ))}
