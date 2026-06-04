@@ -9,6 +9,102 @@ import { Camera, Shield, Star, Trophy } from "lucide-react";
 import RivaloLogo from "../../components/RivaloLogo";
 import PlayerCard from "../../components/cards/PlayerCard";
 
+type Sport = "calcetto" | "padel" | "tennis";
+
+function normalizeSport(value?: string): Sport {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+
+  return "calcetto";
+}
+
+function sportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Padel";
+  if (sport === "tennis") return "Tennis";
+
+  return "Calcetto";
+}
+
+function getSportRolePlaceholder(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Es. giocatore destro, sinistro, difensivo...";
+  if (sport === "tennis") return "Es. fondocampista, serve and volley...";
+
+  return "Es. attaccante, difensore, portiere...";
+}
+
+function getSportStylePlaceholder(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Es. controllo, bandeja, rete, difesa...";
+  if (sport === "tennis") return "Es. aggressivo, regolare, potente, tecnico...";
+
+  return "Es. tecnico, veloce, competitivo...";
+}
+
+function getProfileStats(mainSport: string, {
+  rivalScore,
+  wins,
+  losses,
+  matchesPlayed,
+  mvp,
+  goals,
+  assists,
+  xp,
+  level,
+  winStreak,
+  bestStreak,
+}: {
+  rivalScore: number;
+  wins: number;
+  losses: number;
+  matchesPlayed: number;
+  mvp: number;
+  goals: number;
+  assists: number;
+  xp: number;
+  level: number;
+  winStreak: number;
+  bestStreak: number;
+}) {
+  const sport = normalizeSport(mainSport);
+  const winRate =
+    matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0;
+
+  const base = [
+    { label: "Livello", value: String(level) },
+    { label: "Partite", value: String(matchesPlayed) },
+    { label: "Vittorie", value: String(wins) },
+    { label: "XP", value: String(xp) },
+  ];
+
+  if (sport === "padel" || sport === "tennis") {
+    return [
+      ...base,
+      { label: "Win Rate", value: `${winRate}%` },
+      { label: "Serie vitt.", value: String(winStreak) },
+      { label: "Miglior serie", value: String(bestStreak) },
+      { label: "MVP", value: String(mvp) },
+      { label: "Sconfitte", value: String(losses) },
+    ];
+  }
+
+  return [
+    ...base,
+    { label: "Gol", value: String(goals) },
+    { label: "Assist", value: String(assists) },
+    { label: "MVP", value: String(mvp) },
+    { label: "Sconfitte", value: String(losses) },
+    { label: "Serie vitt.", value: String(winStreak) },
+    { label: "Miglior serie", value: String(bestStreak) },
+  ];
+}
+
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
 
@@ -57,7 +153,7 @@ const [deletionRequested, setDeletionRequested] = useState(false);
 
           setName(data.name || currentUser.displayName || "");
           setNickname(data.nickname || "Rival Player");
-          setSport(data.mainSport || "calcetto");
+          setSport(normalizeSport(data.mainSport || data.sport || "calcetto"));
           setCity(data.city || "");
 setRole(data.role || "");
 setPlayStyle(data.playStyle || "");
@@ -202,23 +298,40 @@ setDeletionRequested(false);
         return;
       }
 
+      const userRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userRef);
+      const oldData = snap.exists() ? snap.data() : {};
+      const oldSport = normalizeSport(oldData.mainSport || oldData.sport || sport);
+      const nextSport = normalizeSport(sport);
+      const hasPlayedMatches = Number(oldData.matchesPlayed || 0) > 0;
+
+      if (hasPlayedMatches && nextSport !== oldSport) {
+        setSport(oldSport);
+        setMessage(
+          `Sport bloccato su ${sportLabel(oldSport)} perché hai già statistiche collegate.`
+        );
+        setSaving(false);
+        return;
+      }
+
       await setDoc(
-  doc(db, "users", user.uid),
-  {
-    name,
-    nickname,
-    mainSport: sport,
-    city,
-    role,
-    playStyle,
-    availability,
-    photoUrl,
-    onboardingCompleted: true,
-    profileCompleted: true,
-    updatedAt: serverTimestamp(),
-  },
-  { merge: true }
-);
+        userRef,
+        {
+          name: name.trim(),
+          nickname: nickname.trim(),
+          mainSport: hasPlayedMatches ? oldSport : nextSport,
+          sport: hasPlayedMatches ? oldSport : nextSport,
+          city: city.trim(),
+          role: role.trim(),
+          playStyle: playStyle.trim(),
+          availability: availability.trim(),
+          photoUrl,
+          onboardingCompleted: true,
+          profileCompleted: true,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
       setMessage("Profilo aggiornato.");
     } catch (error) {
@@ -236,6 +349,22 @@ setDeletionRequested(false);
       </main>
     );
   }
+
+  const profileStats = getProfileStats(sport, {
+    rivalScore,
+    wins,
+    losses,
+    matchesPlayed,
+    mvp,
+    goals,
+    assists,
+    xp,
+    level,
+    winStreak,
+    bestStreak,
+  });
+
+  const sportLockedByStats = matchesPlayed > 0;
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] px-4 py-8 text-white sm:px-6 sm:py-10">
@@ -270,6 +399,14 @@ setDeletionRequested(false);
                 rivalScore={rivalScore}
                 mainSport={sport}
                 photo={photoUrl}
+                level={level}
+                xp={xp}
+                wins={wins}
+                mvp={mvp}
+                matchesPlayed={matchesPlayed}
+                goals={goals}
+                assists={assists}
+                winStreak={winStreak}
               />
             </div>
           </div>
@@ -281,7 +418,11 @@ setDeletionRequested(false);
                 value={name}
                 setValue={setName}
                 placeholder="Antonio"
-                disabled={accountStatus === "deletion_requested" || deletionRequested}
+                disabled={
+                  accountStatus === "deletion_requested" ||
+                  deletionRequested ||
+                  sportLockedByStats
+                }
               />
 
               <Field
@@ -308,6 +449,13 @@ setDeletionRequested(false);
                 <option value="padel">Padel</option>
                 <option value="tennis">Tennis</option>
               </select>
+
+              {sportLockedByStats && (
+                <div className="mt-3 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                  Sport bloccato su {sportLabel(sport)} perché questo profilo ha già statistiche collegate.
+                  Per usare un altro sport servirà un profilo sport separato.
+                </div>
+              )}
             </div>
 <div className="mt-5 grid gap-5 md:grid-cols-2">
   <Field
@@ -323,7 +471,7 @@ setDeletionRequested(false);
     disabled={accountStatus === "deletion_requested" || deletionRequested}
     value={role}
     setValue={setRole}
-    placeholder="Es. Attaccante, difensore, destro..."
+    placeholder={getSportRolePlaceholder(sport)}
   />
 </div>
 
@@ -333,7 +481,7 @@ setDeletionRequested(false);
     disabled={accountStatus === "deletion_requested" || deletionRequested}
     value={playStyle}
     setValue={setPlayStyle}
-    placeholder="Es. tecnico, veloce, competitivo..."
+    placeholder={getSportStylePlaceholder(sport)}
   />
 
   <Field
@@ -378,13 +526,13 @@ setDeletionRequested(false);
 
             <div className="mt-7">
               <div className="mb-4 text-xs font-black uppercase tracking-[0.28em] text-cyan-300">
-                Statistiche Rivalo
+                Statistiche {sportLabel(sport)}
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <StatBox
                   icon={<Shield />}
-                  label="Rival Score"
+                  label={normalizeSport(sport) === "calcetto" ? "Football Score" : `${sportLabel(sport)} Score`}
                   value={String(rivalScore)}
                 />
 
@@ -396,18 +544,17 @@ setDeletionRequested(false);
 
                 <StatBox
                   icon={<Star />}
-                  label="MVP"
-                  value={String(mvp)}
+                  label={normalizeSport(sport) === "calcetto" ? "MVP" : "Streak"}
+                  value={normalizeSport(sport) === "calcetto" ? String(mvp) : String(winStreak)}
                 />
 
-                <MiniStat label="Livello" value={String(level)} />
-                <MiniStat label="Partite" value={String(matchesPlayed)} />
-                <MiniStat label="Gol" value={String(goals)} />
-                <MiniStat label="Assist" value={String(assists)} />
-                <MiniStat label="Sconfitte" value={String(losses)} />
-                <MiniStat label="XP" value={String(xp)} />
-                <MiniStat label="Serie vitt." value={String(winStreak)} />
-                <MiniStat label="Miglior serie" value={String(bestStreak)} />
+                {profileStats.map((stat) => (
+                  <MiniStat
+                    key={stat.label}
+                    label={stat.label}
+                    value={stat.value}
+                  />
+                ))}
               </div>
             </div>
 

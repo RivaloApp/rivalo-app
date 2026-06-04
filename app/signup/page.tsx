@@ -11,11 +11,34 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import { ChevronRight, LockKeyhole, Mail, Trophy } from "lucide-react";
 
+type Sport = "calcetto" | "padel" | "tennis";
+
+function normalizeSport(value?: string): Sport {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+
+  return "calcetto";
+}
+
+function sportDescription(value: Sport) {
+  if (value === "padel") {
+    return "Profilo padel: ranking su vittorie, win rate, streak e costanza.";
+  }
+
+  if (value === "tennis") {
+    return "Profilo tennis: ranking su vittorie, win rate, livello e costanza.";
+  }
+
+  return "Profilo calcetto: ranking su vittorie, MVP, gol, assist e RivalScore.";
+}
+
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [sport, setSport] = useState("calcetto");
+  const [sport, setSport] = useState<Sport>("calcetto");
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -30,7 +53,8 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const cleanEmail = email.trim();
+      const cleanEmail = email.trim().toLowerCase();
+      const lockedSport = normalizeSport(sport);
 
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -51,7 +75,8 @@ export default function SignupPage() {
 
           name: defaultName,
           nickname: "Rivalo Player",
-          mainSport: sport,
+          mainSport: lockedSport,
+          sport: lockedSport,
 
           photoUrl: "",
           photoURL: "",
@@ -69,6 +94,13 @@ export default function SignupPage() {
           assists: 0,
           mvp: 0,
           winStreak: 0,
+          bestStreak: 0,
+
+          onboardingCompleted: false,
+          profileCompleted: false,
+
+          accountStatus: "active",
+          deletionRequested: false,
 
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -122,7 +154,7 @@ export default function SignupPage() {
           </h1>
 
           <p className="mt-3 text-slate-300">
-            Crea il tuo account e verifica l'email per entrare nella competizione.
+            Crea il tuo account e scegli lo sport principale. Le statistiche resteranno separate per sport.
           </p>
 
           <form onSubmit={handleSignup} className="mt-8 space-y-5">
@@ -175,7 +207,7 @@ export default function SignupPage() {
 
                 <select
                   value={sport}
-                  onChange={(e) => setSport(e.target.value)}
+                  onChange={(e) => setSport(normalizeSport(e.target.value))}
                   className="w-full bg-[#020617] text-white outline-none"
                 >
                   <option className="bg-[#020617] text-white" value="calcetto">
@@ -188,6 +220,10 @@ export default function SignupPage() {
                     Tennis
                   </option>
                 </select>
+              </div>
+
+              <div className="mt-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold leading-6 text-cyan-100">
+                {sportDescription(sport)}
               </div>
             </label>
 

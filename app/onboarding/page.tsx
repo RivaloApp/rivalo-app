@@ -15,6 +15,29 @@ import {
 
 type Sport = "calcetto" | "padel" | "tennis";
 
+function normalizeSport(value?: string): Sport {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+
+  return "calcetto";
+}
+
+function getSportRolePlaceholder(value: Sport) {
+  if (value === "padel") return "Es. giocatore destro, sinistro, difensivo...";
+  if (value === "tennis") return "Es. fondocampista, serve and volley...";
+
+  return "Es. attaccante, difensore, portiere...";
+}
+
+function getSportStylePlaceholder(value: Sport) {
+  if (value === "padel") return "Es. controllo, bandeja, rete, difesa...";
+  if (value === "tennis") return "Es. aggressivo, regolare, potente, tecnico...";
+
+  return "Es. competitivo, tecnico, veloce...";
+}
+
 export default function OnboardingPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +75,7 @@ export default function OnboardingPage() {
 
           setName(data.name || currentUser.displayName || "");
           setNickname(data.nickname || "");
-          setMainSport(data.mainSport || "calcetto");
+          setMainSport(normalizeSport(data.mainSport || data.sport || "calcetto"));
           setCity(data.city || "");
           setRole(data.role || "");
           setPlayStyle(data.playStyle || "");
@@ -105,6 +128,8 @@ export default function OnboardingPage() {
       return;
     }
 
+    const lockedSport = normalizeSport(mainSport);
+
     setSaving(true);
     setMessage("");
 
@@ -129,7 +154,8 @@ export default function OnboardingPage() {
 
           name: name.trim(),
           nickname: nickname.trim(),
-          mainSport,
+          mainSport: lockedSport,
+          sport: lockedSport,
           city: city.trim(),
           role: role.trim(),
           playStyle: playStyle.trim(),
@@ -169,7 +195,8 @@ export default function OnboardingPage() {
         createdBy: user.uid,
         metadata: {
           profileBonusXp,
-          mainSport,
+          mainSport: lockedSport,
+          sport: lockedSport,
           city: city.trim(),
         },
       });
@@ -254,7 +281,7 @@ export default function OnboardingPage() {
                 <Field label="Sport principale">
                   <select
                     value={mainSport}
-                    onChange={(e) => setMainSport(e.target.value as Sport)}
+                    onChange={(e) => setMainSport(normalizeSport(e.target.value))}
                     className="w-full bg-transparent outline-none"
                   >
                     <option className="bg-[#020617]" value="calcetto">
@@ -284,7 +311,7 @@ export default function OnboardingPage() {
                   <input
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    placeholder="Es. Attaccante, difensore, giocatore destro..."
+                    placeholder={getSportRolePlaceholder(mainSport)}
                     className="w-full bg-transparent outline-none placeholder:text-slate-500"
                   />
                 </Field>
@@ -293,7 +320,7 @@ export default function OnboardingPage() {
                   <input
                     value={playStyle}
                     onChange={(e) => setPlayStyle(e.target.value)}
-                    placeholder="Es. competitivo, tecnico, veloce..."
+                    placeholder={getSportStylePlaceholder(mainSport)}
                     className="w-full bg-transparent outline-none placeholder:text-slate-500"
                   />
                 </Field>
@@ -357,7 +384,7 @@ export default function OnboardingPage() {
               <div className="mt-5 space-y-3">
                 <CheckItem active={Boolean(name.trim())} text="Nome inserito" />
                 <CheckItem active={Boolean(nickname.trim())} text="Nickname inserito" />
-                <CheckItem active={Boolean(mainSport)} text="Sport selezionato" />
+                <CheckItem active={Boolean(mainSport)} text={`Sport selezionato: ${mainSport}`} />
                 <CheckItem active={Boolean(city.trim())} text="Zona inserita" />
                 <CheckItem active={Boolean(role.trim())} text="Ruolo inserito" />
                 <CheckItem active={Boolean(playStyle.trim())} text="Stile inserito" />
