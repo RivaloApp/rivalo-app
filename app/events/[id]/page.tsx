@@ -109,6 +109,7 @@ type EventStat = {
   mvp?: number;
   goalsFor?: number;
   goalsAgainst?: number;
+  goalDifference?: number;
   photoUrl?: string;
   teamId?: string;
   teamName?: string;
@@ -126,6 +127,8 @@ type TeamStat = {
   losses?: number;
   goalsFor?: number;
   goalsAgainst?: number;
+  goalDifference?: number;
+  sport?: string;
 };
 
 type EventData = {
@@ -138,6 +141,8 @@ type EventData = {
   time?: string;
   type?: string;
   competitionFormat?: CompetitionFormat;
+  scoreMode?: "football" | "racket";
+  sportStatsMode?: "football" | "racket";
   maxPlayers?: number;
   prize?: string;
   status?: string;
@@ -176,6 +181,56 @@ function formatSportLabel(value?: string) {
   if (sport === "padel") return "Padel";
   if (sport === "tennis") return "Tennis";
   return "Calcetto";
+}
+
+function isRacketSport(value?: string) {
+  const sport = normalizeSport(value);
+
+  return sport === "padel" || sport === "tennis";
+}
+
+function getEventCopy(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") {
+    return {
+      teamLabel: "Coppie / player",
+      teamSingle: "Coppia",
+      teamPlural: "Coppie",
+      scoreFor: "SF",
+      scoreAgainst: "SS",
+      scoreDiff: "DS",
+      rankingTitle: "Ranking padel",
+      rankingText: "Classifica basata su punti, vittorie e score dei match confermati. Gol e assist non vengono usati.",
+      matchStatsMode: "no gol/assist",
+    };
+  }
+
+  if (sport === "tennis") {
+    return {
+      teamLabel: "Player / coppie",
+      teamSingle: "Player/Coppia",
+      teamPlural: "Player/Coppie",
+      scoreFor: "SF",
+      scoreAgainst: "SS",
+      scoreDiff: "DS",
+      rankingTitle: "Ranking tennis",
+      rankingText: "Classifica basata su punti, vittorie e score dei match confermati. Gol e assist non vengono usati.",
+      matchStatsMode: "no gol/assist",
+    };
+  }
+
+  return {
+    teamLabel: "Squadre",
+    teamSingle: "Squadra",
+    teamPlural: "Squadre",
+    scoreFor: "GF",
+    scoreAgainst: "GS",
+    scoreDiff: "DR",
+    rankingTitle: "Ranking competizione",
+    rankingText: "Classifica basata su punti, vittorie, gol fatti e differenza reti.",
+    matchStatsMode: "gol/assist",
+  };
 }
 
 function isProfileDeletionRequested(profile?: UserProfile | null) {
@@ -438,6 +493,7 @@ setAvailableUsers(
           mvp: Number(data.mvp || 0),
           goalsFor: Number(data.goalsFor || 0),
           goalsAgainst: Number(data.goalsAgainst || 0),
+          goalDifference: Number(data.goalDifference || 0),
         };
       });
 
@@ -656,7 +712,7 @@ if (competitionStarted) {
 
   const competitionFormat =
     event.competitionFormat ||
-    (event.sport === "calcetto" ? "squadre" : "singolo");
+    (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
 
   const eventParticipants = event.participants || [];
 
@@ -676,8 +732,8 @@ if (competitionStarted) {
   }
 
   if (competitionFormat === "squadre") {
-    const minPlayers = event.sport === "calcetto" ? 5 : 2;
-    const maxPlayers = event.sport === "calcetto" ? 8 : 2;
+    const minPlayers = normalizeSport(event.sport) === "calcetto" ? 5 : 2;
+    const maxPlayers = normalizeSport(event.sport) === "calcetto" ? 8 : 2;
 
     if (selectedPlayerIds.length < minPlayers) {
       setMessage(`Per questa squadra servono almeno ${minPlayers} giocatori.`);
@@ -804,7 +860,7 @@ function getInvalidEventTeams() {
 
   const competitionFormat =
     event.competitionFormat ||
-    (event.sport === "calcetto" ? "squadre" : "singolo");
+    (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
 
   const teams = event.teams || [];
 
@@ -820,8 +876,8 @@ function getInvalidEventTeams() {
     }
 
     if (competitionFormat === "squadre") {
-      const minPlayers = event.sport === "calcetto" ? 5 : 2;
-      const maxPlayers = event.sport === "calcetto" ? 8 : 2;
+      const minPlayers = normalizeSport(event.sport) === "calcetto" ? 5 : 2;
+      const maxPlayers = normalizeSport(event.sport) === "calcetto" ? 8 : 2;
 
       return playersCount < minPlayers || playersCount > maxPlayers;
     }
@@ -836,7 +892,7 @@ function validateTeamsForCompetition() {
   const teams = event.teams || [];
 
   if (teams.length < 2) {
-    setMessage("Servono almeno 2 squadre/coppie per iniziare.");
+    setMessage("Servono almeno 2 squadre/coppie/player per iniziare.");
     return false;
   }
 
@@ -866,7 +922,7 @@ function getTeamValidationLabel(team: TeamInfo) {
 
   const competitionFormat =
     event.competitionFormat ||
-    (event.sport === "calcetto" ? "squadre" : "singolo");
+    (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
 
   const playersCount = Array.isArray(team.players) ? team.players.length : 0;
 
@@ -879,8 +935,8 @@ function getTeamValidationLabel(team: TeamInfo) {
   }
 
   if (competitionFormat === "squadre") {
-    const minPlayers = event.sport === "calcetto" ? 5 : 2;
-    const maxPlayers = event.sport === "calcetto" ? 8 : 2;
+    const minPlayers = normalizeSport(event.sport) === "calcetto" ? 5 : 2;
+    const maxPlayers = normalizeSport(event.sport) === "calcetto" ? 8 : 2;
 
     if (playersCount < minPlayers) {
       return `Minimo ${minPlayers} giocatori`;
@@ -1387,7 +1443,9 @@ setMessage("");
           ? `${event.title || "Torneo"} · ${homeTeamName} vs ${awayTeamName}`
           : event.title || "Match da evento",
 
-      sport: event.sport || "calcetto",
+      sport: normalizeSport(event.sport),
+      scoreMode: isRacketSport(event.sport) ? "racket" : "football",
+      sportStatsMode: isRacketSport(event.sport) ? "racket" : "football",
       city: event.city || "",
       field: event.field || "",
       date: event.date || "",
@@ -1478,6 +1536,7 @@ await Promise.all(
         homeTeam: homeTeamName,
         awayTeam: awayTeamName,
         source: event.type || "evento",
+        scoreMode: isRacketSport(event.sport) ? "racket" : "football",
       },
     })
   )
@@ -1683,19 +1742,26 @@ async function cancelEvent() {
       ? "Squadre"
       : "Singolo";
 
+  const eventCopy = getEventCopy(event.sport);
+  const racketEvent = isRacketSport(event.sport);
+
       const invalidEventTeams = getInvalidEventTeams();
 const validEventTeamsCount = teams.length - invalidEventTeams.length;
 const invalidEventTeamsCount = invalidEventTeams.length;
 
       const rankedTeamStats = [...teamStats].sort((a, b) => {
-  const goalDiffA = Number(a.goalsFor || 0) - Number(a.goalsAgainst || 0);
-  const goalDiffB = Number(b.goalsFor || 0) - Number(b.goalsAgainst || 0);
+  const scoreDiffA =
+    Number(a.goalDifference || 0) ||
+    Number(a.goalsFor || 0) - Number(a.goalsAgainst || 0);
+  const scoreDiffB =
+    Number(b.goalDifference || 0) ||
+    Number(b.goalsFor || 0) - Number(b.goalsAgainst || 0);
 
   return (
     Number(b.points || 0) - Number(a.points || 0) ||
-    goalDiffB - goalDiffA ||
-    Number(b.goalsFor || 0) - Number(a.goalsFor || 0) ||
-    Number(b.wins || 0) - Number(a.wins || 0)
+    scoreDiffB - scoreDiffA ||
+    Number(b.wins || 0) - Number(a.wins || 0) ||
+    Number(b.goalsFor || 0) - Number(a.goalsFor || 0)
   );
 });
 
@@ -2364,15 +2430,15 @@ const pendingCompetitionMatches = Math.max(
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
         <div className="text-sm font-black uppercase tracking-[0.25em] text-lime-300">
-          Classifica squadre
+          Classifica {eventCopy.teamPlural.toLowerCase()}
         </div>
 
         <h2 className="mt-2 text-2xl font-black sm:text-3xl">
-          Ranking competizione
+          {eventCopy.rankingTitle}
         </h2>
 
         <p className="mt-2 text-sm text-slate-400">
-          Qui contano solo i risultati confermati di questa competizione.
+          {eventCopy.rankingText}
         </p>
       </div>
 
@@ -2386,7 +2452,7 @@ const pendingCompetitionMatches = Math.max(
     ) : (
       <div className="space-y-3">
         {rankedTeamStats.map((team, index) => (
-          <TeamRankRow key={team.id} team={team} index={index} />
+          <TeamRankRow key={team.id} team={team} index={index} eventCopy={eventCopy} />
         ))}
       </div>
     )}
@@ -2419,7 +2485,7 @@ const pendingCompetitionMatches = Math.max(
                 ) : (
                   <div className="space-y-3">
                     {rankedEventStats.map((stat, index) => (
-                      <EventRankRow key={stat.uid} stat={stat} index={index} />
+                      <EventRankRow key={stat.uid} stat={stat} index={index} eventCopy={eventCopy} racketEvent={racketEvent} />
                     ))}
                   </div>
                 )}
@@ -2725,11 +2791,14 @@ function TeamCard({
 function TeamRankRow({
   team,
   index,
+  eventCopy,
 }: {
   team: TeamStat;
   index: number;
+  eventCopy: ReturnType<typeof getEventCopy>;
 }) {
   const goalDifference =
+    Number(team.goalDifference || 0) ||
     Number(team.goalsFor || 0) - Number(team.goalsAgainst || 0);
 
   return (
@@ -2741,7 +2810,7 @@ function TeamRankRow({
 
         <div className="min-w-0 flex-1">
           <div className="truncate text-lg font-black uppercase">
-            {team.teamName || "Squadra"}
+            {team.teamName || eventCopy.teamSingle}
           </div>
 
           <div className="text-xs text-slate-400">
@@ -2756,9 +2825,9 @@ function TeamRankRow({
         <RankStat label="V" value={team.wins || 0} />
         <RankStat label="N" value={team.draws || 0} />
         <RankStat label="P" value={team.losses || 0} />
-        <RankStat label="GF" value={team.goalsFor || 0} />
-        <RankStat label="GS" value={team.goalsAgainst || 0} />
-        <RankStat label="DR" value={goalDifference} />
+        <RankStat label={eventCopy.scoreFor} value={team.goalsFor || 0} />
+        <RankStat label={eventCopy.scoreAgainst} value={team.goalsAgainst || 0} />
+        <RankStat label={eventCopy.scoreDiff} value={goalDifference} />
       </div>
     </div>
   );
@@ -2767,9 +2836,13 @@ function TeamRankRow({
 function EventRankRow({
   stat,
   index,
+  eventCopy,
+  racketEvent,
 }: {
   stat: EventStat;
   index: number;
+  eventCopy: ReturnType<typeof getEventCopy>;
+  racketEvent: boolean;
 }) {
   const icon =
     index === 0 ? (
@@ -2783,6 +2856,7 @@ function EventRankRow({
     );
 
   const goalDifference =
+    Number(stat.goalDifference || 0) ||
     Number(stat.goalsFor || 0) - Number(stat.goalsAgainst || 0);
 
   return (
@@ -2824,7 +2898,7 @@ function EventRankRow({
         <RankStat label="PT" value={stat.points || 0} />
         <RankStat label="V" value={stat.wins || 0} />
         <RankStat label="MVP" value={stat.mvp || 0} />
-        <RankStat label="DR" value={goalDifference} />
+        <RankStat label={eventCopy.scoreDiff} value={goalDifference} />
       </div>
     </Link>
   );

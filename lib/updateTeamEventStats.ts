@@ -7,6 +7,8 @@ import {
 
 import { db } from "./firebase";
 
+type Sport = "calcetto" | "padel" | "tennis";
+
 type UpdateTeamEventStatsInput = {
   eventId?: string;
   homeTeam?: string;
@@ -17,6 +19,21 @@ type UpdateTeamEventStatsInput = {
   homeScore: number;
   awayScore: number;
 };
+
+function normalizeSport(value?: string): Sport {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+
+  return "calcetto";
+}
+
+function isRacketSport(value?: string) {
+  const sport = normalizeSport(value);
+
+  return sport === "padel" || sport === "tennis";
+}
 
 function makeSafeTeamId(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, "_");
@@ -35,6 +52,9 @@ export async function updateTeamEventStats({
   if (!eventId) return;
   if (!homeTeam || !awayTeam) return;
 
+  const normalizedSport = normalizeSport(sport);
+  const racketSport = isRacketSport(normalizedSport);
+
   const finalHomeScore = Number(homeScore || 0);
   const finalAwayScore = Number(awayScore || 0);
 
@@ -46,8 +66,8 @@ export async function updateTeamEventStats({
     {
       id: homeTeamId || makeSafeTeamId(homeTeam),
       name: homeTeam,
-      goalsFor: finalHomeScore,
-      goalsAgainst: finalAwayScore,
+      scoreFor: finalHomeScore,
+      scoreAgainst: finalAwayScore,
       won: homeWon,
       lost: awayWon,
       draw: isDraw,
@@ -55,8 +75,8 @@ export async function updateTeamEventStats({
     {
       id: awayTeamId || makeSafeTeamId(awayTeam),
       name: awayTeam,
-      goalsFor: finalAwayScore,
-      goalsAgainst: finalHomeScore,
+      scoreFor: finalAwayScore,
+      scoreAgainst: finalHomeScore,
       won: awayWon,
       lost: homeWon,
       draw: isDraw,
@@ -67,6 +87,7 @@ export async function updateTeamEventStats({
     if (!team.id) continue;
 
     const points = team.won ? 3 : team.draw ? 1 : 0;
+    const scoreDifference = team.scoreFor - team.scoreAgainst;
 
     const teamRef = doc(
       db,
@@ -78,7 +99,8 @@ export async function updateTeamEventStats({
       teamRef,
       {
         eventId,
-        sport: sport || "",
+        sport: normalizedSport,
+        scoreMode: racketSport ? "racket" : "football",
         teamId: team.id,
         teamName: team.name,
 
@@ -89,9 +111,11 @@ export async function updateTeamEventStats({
         draws: increment(team.draw ? 1 : 0),
         losses: increment(team.lost ? 1 : 0),
 
-        goalsFor: increment(team.goalsFor),
-        goalsAgainst: increment(team.goalsAgainst),
-        goalDifference: increment(team.goalsFor - team.goalsAgainst),
+        // Campi compatibili con la UI esistente:
+        // nel calcetto sono gol fatti/subiti, in padel/tennis sono score/set/game pro/contro.
+        goalsFor: increment(team.scoreFor),
+        goalsAgainst: increment(team.scoreAgainst),
+        goalDifference: increment(scoreDifference),
 
         updatedAt: serverTimestamp(),
       },

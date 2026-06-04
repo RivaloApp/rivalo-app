@@ -70,8 +70,15 @@ function normalizeText(value?: string) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-function normalizeSport(value?: string) {
-  return normalizeText(value || "calcetto");
+type Sport = "calcetto" | "padel" | "tennis";
+
+function normalizeSport(value?: string): Sport {
+  const sport = normalizeText(value || "calcetto");
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+
+  return "calcetto";
 }
 
 function sportLabel(value?: string) {
@@ -80,6 +87,44 @@ function sportLabel(value?: string) {
   if (sport === "padel") return "Padel";
   if (sport === "tennis") return "Tennis";
   return "Calcetto";
+}
+
+function isRacketSport(value?: string) {
+  const sport = normalizeSport(value);
+
+  return sport === "padel" || sport === "tennis";
+}
+
+function getEventCopy(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") {
+    return {
+      title: "Eventi e Tornei Padel",
+      createText: "Crea tornei, sfide e campionati padel senza usare gol o assist.",
+      formatHelp: "Padel: singolo o doppio. In doppio parteciperanno coppie da 2 giocatori.",
+      participantsLabel: "coppie/player",
+      scoreMode: "racket",
+    };
+  }
+
+  if (sport === "tennis") {
+    return {
+      title: "Eventi e Tornei Tennis",
+      createText: "Crea tornei, sfide e campionati tennis senza usare gol o assist.",
+      formatHelp: "Tennis: singolo o doppio. In singolo parteciperanno player individuali.",
+      participantsLabel: "player/coppie",
+      scoreMode: "racket",
+    };
+  }
+
+  return {
+    title: "Eventi e Tornei",
+    createText: "Crea tornei, campionati e sfide calcetto con squadre, gol, assist e MVP.",
+    formatHelp: "Calcetto: formato squadre con classifica, gol, assist e MVP.",
+    participantsLabel: "squadre/iscritti",
+    scoreMode: "football",
+  };
 }
 
 function isPublicEvent(event: EventItem) {
@@ -185,19 +230,21 @@ export default function EventsPage() {
   }, []);
 
   function handleSportChange(value: string) {
-    setSport(value);
+    const nextSport = normalizeSport(value);
 
-    if (value === "calcetto") {
+    setSport(nextSport);
+
+    if (nextSport === "calcetto") {
       setCompetitionFormat("squadre");
       setMaxPlayers("10");
     }
 
-    if (value === "padel") {
+    if (nextSport === "padel") {
       setCompetitionFormat("doppio");
       setMaxPlayers("4");
     }
 
-    if (value === "tennis") {
+    if (nextSport === "tennis") {
       setCompetitionFormat("singolo");
       setMaxPlayers("2");
     }
@@ -269,7 +316,9 @@ export default function EventsPage() {
 
       await addDoc(collection(db, "events"), {
         title,
-        sport: userSport,
+        sport: lockedSport,
+        scoreMode: isRacketSport(lockedSport) ? "racket" : "football",
+        sportStatsMode: isRacketSport(lockedSport) ? "racket" : "football",
         type,
         competitionFormat,
         city,
@@ -313,16 +362,7 @@ export default function EventsPage() {
       setTime("");
       setPrize("");
 
-      if (userSport === "calcetto") {
-        setMaxPlayers("10");
-        setCompetitionFormat("squadre");
-      } else if (userSport === "padel") {
-        setMaxPlayers("4");
-        setCompetitionFormat("doppio");
-      } else {
-        setMaxPlayers("2");
-        setCompetitionFormat("singolo");
-      }
+      handleSportChange(userSport);
 
       await loadEvents(user.uid, userSport, userCity);
     } catch (error) {
@@ -332,6 +372,8 @@ export default function EventsPage() {
       setSaving(false);
     }
   }
+
+  const pageCopy = getEventCopy(userSport);
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
@@ -354,12 +396,11 @@ export default function EventsPage() {
               </div>
 
               <h1 className="mt-3 text-4xl font-black leading-tight tracking-tight sm:text-5xl md:text-6xl">
-                Eventi e Tornei
+                {pageCopy.title}
               </h1>
 
               <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-                Scopri eventi pubblici compatibili con il tuo sport e la tua zona,
-                oppure crea il tuo torneo Rivalo.
+                {pageCopy.createText}
               </p>
             </div>
 
@@ -478,8 +519,7 @@ export default function EventsPage() {
                 </select>
 
                 <div className="mt-3 text-xs leading-5 text-slate-400">
-                  Scegli come si giocherà la competizione. In singolo partecipano i
-                  player, in doppio o a squadre parteciperanno gruppi di giocatori.
+                  {pageCopy.formatHelp}
                 </div>
               </Field>
 
@@ -666,6 +706,7 @@ function EventCard({ event }: { event: EventItem }) {
 
   const participantsCount = event.participants?.length || 0;
   const teamsCount = event.teams?.length || 0;
+  const scoreModeLabel = isRacketSport(event.sport) ? "no gol/assist" : "gol/assist";
 
   return (
     <Link
@@ -682,6 +723,7 @@ function EventCard({ event }: { event: EventItem }) {
             <Badge>{typeLabel}</Badge>
             <Badge>{sportLabel}</Badge>
             <Badge>{formatLabel}</Badge>
+            <Badge>{scoreModeLabel}</Badge>
 
             {isCancelled ? (
               <StatusBadge tone="red">Annullato</StatusBadge>
@@ -721,6 +763,8 @@ function EventCard({ event }: { event: EventItem }) {
               <span className="min-w-0 truncate">
                 {event.competitionFormat === "squadre"
                   ? `${teamsCount} squadre`
+                  : event.competitionFormat === "doppio"
+                  ? `${teamsCount || participantsCount} coppie/player`
                   : `${participantsCount}${
                       event.maxPlayers ? ` / ${event.maxPlayers}` : ""
                     } iscritti`}
