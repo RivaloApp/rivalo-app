@@ -54,8 +54,8 @@ function getMatchCopy(value?: string) {
   if (sport === "padel") {
     return {
       title: "Match padel",
-      teamA: "Coppia / Player 1",
-      teamB: "Coppia / Player 2",
+      teamA: "Coppia 1",
+      teamB: "Coppia 2",
       participantsLabel: "Giocatori padel",
       resultLabel: "Risultato padel",
       postMatchText: "Inserisci risultato, MVP e conferma FairPlay. Gol e assist non vengono usati.",
@@ -67,8 +67,8 @@ function getMatchCopy(value?: string) {
   if (sport === "tennis") {
     return {
       title: "Match tennis",
-      teamA: "Player / Coppia 1",
-      teamB: "Player / Coppia 2",
+      teamA: "Player/Coppia 1",
+      teamB: "Player/Coppia 2",
       participantsLabel: "Giocatori tennis",
       resultLabel: "Risultato tennis",
       postMatchText: "Inserisci risultato, MVP e conferma FairPlay. Gol e assist non vengono usati.",
@@ -127,6 +127,22 @@ type UserProfile = {
   accountStatus?: string;
   deletionRequested?: boolean;
 };
+
+function getUserDisplayName(user?: UserOption) {
+  return user?.name || user?.nickname || "Rivalo Player";
+}
+
+function getRequiredRacketPlayers(format: CompetitionFormat) {
+  return format === "doppio" ? 4 : 2;
+}
+
+function getRacketSideSize(format: CompetitionFormat) {
+  return format === "doppio" ? 2 : 1;
+}
+
+function buildRacketTeamName(users: UserOption[]) {
+  return users.map(getUserDisplayName).join(" / ") || "Da definire";
+}
 
 function applySportDefaults(
   nextSport: string,
@@ -215,6 +231,8 @@ function MatchPageContent() {
   const [matches, setMatches] = useState<MatchDoc[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [homePlayerIds, setHomePlayerIds] = useState<string[]>([]);
+  const [awayPlayerIds, setAwayPlayerIds] = useState<string[]>([]);
   const [groupTeams, setGroupTeams] = useState<GroupTeam[]>([]);
   const [homeTeamId, setHomeTeamId] = useState("");
 const [awayTeamId, setAwayTeamId] = useState("");
@@ -399,6 +417,8 @@ const [awayTeamId, setAwayTeamId] = useState("");
         ]);
 
         setSelectedPlayerIds([currentUid]);
+        setHomePlayerIds([currentUid]);
+        setAwayPlayerIds([]);
       }
 
       return;
@@ -410,6 +430,8 @@ const [awayTeamId, setAwayTeamId] = useState("");
       if (!groupSnap.exists()) {
         setAvailableUsers([]);
         setSelectedPlayerIds([]);
+        setHomePlayerIds([]);
+        setAwayPlayerIds([]);
         return;
       }
 
@@ -442,10 +464,14 @@ const [awayTeamId, setAwayTeamId] = useState("");
 
       setAvailableUsers(usersResult);
       setSelectedPlayerIds(usersResult.map((player) => player.uid));
+      setHomePlayerIds(usersResult.slice(0, 2).map((player) => player.uid));
+      setAwayPlayerIds(usersResult.slice(2, 4).map((player) => player.uid));
     } catch (error) {
       console.error(error);
       setAvailableUsers([]);
       setSelectedPlayerIds([]);
+      setHomePlayerIds([]);
+      setAwayPlayerIds([]);
     }
   }
 async function loadGroupTeams(nextGroupId: string) {
@@ -478,6 +504,67 @@ async function loadGroupTeams(nextGroupId: string) {
     const normalizedSport = normalizeSport(nextSport);
     setSport(normalizedSport);
     applySportDefaults(normalizedSport, setCompetitionFormat, setSlots);
+
+    if (normalizedSport === "padel" || normalizedSport === "tennis") {
+      const defaultFormat = normalizedSport === "padel" ? "doppio" : "singolo";
+      const sideSize = getRacketSideSize(defaultFormat);
+      const selectedIds = availableUsers.map((availableUser) => availableUser.uid);
+
+      setHomePlayerIds(selectedIds.slice(0, sideSize));
+      setAwayPlayerIds(selectedIds.slice(sideSize, sideSize * 2));
+      setSelectedPlayerIds(selectedIds.slice(0, sideSize * 2));
+    }
+  }
+
+  function getSelectedUsers(ids: string[]) {
+    return ids
+      .map((uid) => availableUsers.find((availableUser) => availableUser.uid === uid))
+      .filter(Boolean) as UserOption[];
+  }
+
+  function getTakenPlayerIds(exceptSide: "home" | "away") {
+    return exceptSide === "home" ? awayPlayerIds : homePlayerIds;
+  }
+
+  function updateRacketPlayerSelection(
+    side: "home" | "away",
+    index: number,
+    uid: string
+  ) {
+    const sideSize = getRacketSideSize(competitionFormat);
+
+    if (side === "home") {
+      setHomePlayerIds((current) => {
+        const next = [...current].slice(0, sideSize);
+        next[index] = uid;
+        const cleaned = next.filter(Boolean);
+        setSelectedPlayerIds(Array.from(new Set([...cleaned, ...awayPlayerIds])));
+        return cleaned;
+      });
+      return;
+    }
+
+    setAwayPlayerIds((current) => {
+      const next = [...current].slice(0, sideSize);
+      next[index] = uid;
+      const cleaned = next.filter(Boolean);
+      setSelectedPlayerIds(Array.from(new Set([...homePlayerIds, ...cleaned])));
+      return cleaned;
+    });
+  }
+
+  function handleCompetitionFormatChange(nextFormat: CompetitionFormat) {
+    setCompetitionFormat(nextFormat);
+
+    if (normalizeSport(sport) === "padel" || normalizeSport(sport) === "tennis") {
+      const sideSize = getRacketSideSize(nextFormat);
+      const selectedIds = availableUsers.map((availableUser) => availableUser.uid);
+
+      setHomePlayerIds(selectedIds.slice(0, sideSize));
+      setAwayPlayerIds(selectedIds.slice(sideSize, sideSize * 2));
+      setSelectedPlayerIds(selectedIds.slice(0, sideSize * 2));
+      setSlots(String(sideSize * 2));
+    }
   }
 
   async function handleGroupChange(nextGroupId: string) {
@@ -604,24 +691,72 @@ sourceType = "groupTeams";
       isMvp: false,
     })),
   ];
+} else if (activeSport !== "calcetto") {
+  const sideSize = getRacketSideSize(competitionFormat);
+  const requiredPlayers = getRequiredRacketPlayers(competitionFormat);
+  const allSelectedIds = [...homePlayerIds, ...awayPlayerIds].filter(Boolean);
+  const uniqueSelectedIds = Array.from(new Set(allSelectedIds));
+
+  if (!groupId) {
+    setMessage("Per creare match padel o tennis seleziona prima un gruppo.");
+    return;
+  }
+
+  if (
+    homePlayerIds.length !== sideSize ||
+    awayPlayerIds.length !== sideSize ||
+    uniqueSelectedIds.length !== requiredPlayers
+  ) {
+    setMessage(
+      `${sportLabel(activeSport)} ${competitionFormat} richiede ${requiredPlayers} utenti del gruppo, senza duplicati.`
+    );
+    return;
+  }
+
+  const homeUsers = getSelectedUsers(homePlayerIds);
+  const awayUsers = getSelectedUsers(awayPlayerIds);
+
+  if (homeUsers.length !== sideSize || awayUsers.length !== sideSize) {
+    setMessage("Seleziona utenti validi dal gruppo per entrambe le parti.");
+    return;
+  }
+
+  homeTeamName = buildRacketTeamName(homeUsers);
+  awayTeamName = buildRacketTeamName(awayUsers);
+  homeCaptainId = homeUsers[0]?.uid || "";
+  awayCaptainId = awayUsers[0]?.uid || "";
+  sourceType = "groupPlayers";
+
+  matchPlayers = [
+    ...homeUsers.map((selectedUser) => ({
+      uid: selectedUser.uid,
+      name: getUserDisplayName(selectedUser),
+      team: "home" as const,
+      goals: 0,
+      assists: 0,
+      isMvp: false,
+    })),
+    ...awayUsers.map((selectedUser) => ({
+      uid: selectedUser.uid,
+      name: getUserDisplayName(selectedUser),
+      team: "away" as const,
+      goals: 0,
+      assists: 0,
+      isMvp: false,
+    })),
+  ];
+
+  setSelectedPlayerIds(matchPlayers.map((player) => player.uid));
 } else {
   const selectedUsers = availableUsers.filter((availableUser) =>
     selectedPlayerIds.includes(availableUser.uid)
   );
 
-  const minimumPlayers =
-    activeSport === "calcetto" ? 2 : competitionFormat === "doppio" ? 4 : 2;
+  const minimumPlayers = 2;
 
   if (selectedUsers.length < minimumPlayers) {
     setMessage(
       `Servono almeno ${minimumPlayers} giocatori per questo formato.`
-    );
-    return;
-  }
-
-  if (activeSport !== "calcetto" && selectedUsers.length !== minimumPlayers) {
-    setMessage(
-      `${sportLabel(activeSport)} richiede esattamente ${minimumPlayers} giocatori per il formato ${competitionFormat}.`
     );
     return;
   }
@@ -705,6 +840,9 @@ awayScore: null,
         setCompetitionFormat("singolo");
         setSlots("2");
       }
+
+      setHomePlayerIds(availableUsers.slice(0, 2).map((player) => player.uid));
+      setAwayPlayerIds(availableUsers.slice(2, 4).map((player) => player.uid));
 
       setMessage("Match rapido creato correttamente.");
       await loadData(user.uid, user.displayName || "Rivalo Player", groupId);
@@ -862,7 +1000,7 @@ awayScore: null,
                 <select
                   value={competitionFormat}
                   onChange={(e) =>
-                    setCompetitionFormat(e.target.value as CompetitionFormat)
+                    handleCompetitionFormatChange(e.target.value as CompetitionFormat)
                   }
                   className="w-full min-w-0 bg-[#0b1730] text-white outline-none"
                 >
@@ -955,8 +1093,49 @@ awayScore: null,
                 </div>
               )}
 
-              <Field label={pageCopy.participantsLabel}>
-                <div className="space-y-3">
+              {(sport === "padel" || sport === "tennis") && (
+                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4">
+                  <div className="text-sm font-black uppercase tracking-[0.16em] text-cyan-300">
+                    Selezione {competitionFormat === "doppio" ? "coppie" : "player"}
+                  </div>
+
+                  <div className="mt-2 text-sm font-bold leading-6 text-cyan-100">
+                    Seleziona gli utenti dal gruppo. Niente nomi scritti a mano: Rivalo userà questi profili per squadre, partecipanti e rivalità.
+                  </div>
+
+                  {!groupId && (
+                    <div className="mt-3 rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-3 py-2 text-sm font-bold text-yellow-100">
+                      Per padel e tennis seleziona un gruppo con almeno {getRequiredRacketPlayers(competitionFormat)} utenti.
+                    </div>
+                  )}
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <RacketSideSelector
+                      title={competitionFormat === "doppio" ? pageCopy.teamA : "Player 1"}
+                      side="home"
+                      sideSize={getRacketSideSize(competitionFormat)}
+                      availableUsers={availableUsers}
+                      selectedIds={homePlayerIds}
+                      takenIds={getTakenPlayerIds("home")}
+                      onChange={updateRacketPlayerSelection}
+                    />
+
+                    <RacketSideSelector
+                      title={competitionFormat === "doppio" ? pageCopy.teamB : "Player 2"}
+                      side="away"
+                      sideSize={getRacketSideSize(competitionFormat)}
+                      availableUsers={availableUsers}
+                      selectedIds={awayPlayerIds}
+                      takenIds={getTakenPlayerIds("away")}
+                      onChange={updateRacketPlayerSelection}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {sport === "calcetto" && (
+                <Field label={pageCopy.participantsLabel}>
+                  <div className="space-y-3">
                   {availableUsers.length === 0 ? (
                     <div className="text-sm text-slate-400">
                       Nessun giocatore disponibile. Crea o seleziona un gruppo.
@@ -1009,6 +1188,7 @@ awayScore: null,
                   )}
                 </div>
               </Field>
+              )}
 
               <Field label="Città">
                 <input
@@ -1219,6 +1399,67 @@ awayScore: null,
         </section>
       </section>
     </main>
+  );
+}
+
+function RacketSideSelector({
+  title,
+  side,
+  sideSize,
+  availableUsers,
+  selectedIds,
+  takenIds,
+  onChange,
+}: {
+  title: string;
+  side: "home" | "away";
+  sideSize: number;
+  availableUsers: UserOption[];
+  selectedIds: string[];
+  takenIds: string[];
+  onChange: (side: "home" | "away", index: number, uid: string) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="text-sm font-black text-cyan-100">
+        {title}
+      </div>
+
+      <div className="mt-3 grid gap-3">
+        {Array.from({ length: sideSize }).map((_, index) => (
+          <select
+            key={`${side}-${index}`}
+            value={selectedIds[index] || ""}
+            onChange={(e) => onChange(side, index, e.target.value)}
+            className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
+          >
+            <option value="" className="bg-[#020617] text-white">
+              Seleziona utente {index + 1}
+            </option>
+
+            {availableUsers.map((availableUser) => {
+              const disabled =
+                takenIds.includes(availableUser.uid) ||
+                selectedIds.some(
+                  (selectedId, selectedIndex) =>
+                    selectedIndex !== index && selectedId === availableUser.uid
+                );
+
+              return (
+                <option
+                  key={availableUser.uid}
+                  value={availableUser.uid}
+                  disabled={disabled}
+                  className="bg-[#020617] text-white"
+                >
+                  {getUserDisplayName(availableUser)}
+                </option>
+              );
+            })}
+          </select>
+        ))}
+      </div>
+    </div>
   );
 }
 
