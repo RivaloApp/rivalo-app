@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import PlayerCard from "../../../components/PlayerCard";
+import PlayerCard from "../../../components/cards/PlayerCard";
 
 import {
   doc,
@@ -24,6 +24,8 @@ type UserProfile = {
   name?: string;
   nickname?: string;
   mainSport?: string;
+  sport?: string;
+  role?: string;
   rivalScore?: number;
   level?: number;
   wins?: number;
@@ -38,6 +40,9 @@ type UserProfile = {
   xp?: number;
   winStreak?: number;
   bestStreak?: number;
+  goalsConceded?: number;
+  cleanSheets?: number;
+  penaltiesSaved?: number;
   accountStatus?: string;
   deletionRequested?: boolean;
 };
@@ -48,6 +53,65 @@ function isRemovedProfile(user?: UserProfile | null) {
       user?.accountStatus === "deleted" ||
       user?.deletionRequested
   );
+}
+
+function normalizeSport(value?: string) {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+
+  return "calcetto";
+}
+
+function normalizeCalcettoRole(value?: string) {
+  const role = (value || "").toLowerCase().trim();
+
+  if (role.includes("port")) return "portiere";
+  if (role.includes("dif")) return "difensore";
+  if (role.includes("cent")) return "centrocampista";
+  if (role.includes("att")) return "attaccante";
+  if (role.includes("jolly")) return "jolly";
+
+  return role;
+}
+
+function isGoalkeeperProfile(user?: UserProfile | null) {
+  return normalizeSport(user?.mainSport || user?.sport) === "calcetto" &&
+    normalizeCalcettoRole(user?.role) === "portiere";
+}
+
+function getPublicStats(user: UserProfile, isGoalkeeper: boolean) {
+  if (isGoalkeeper) {
+    const matchesPlayed = Number(user.matchesPlayed || 0);
+    const goalsConceded = Number(user.goalsConceded || 0);
+    const averageConceded =
+      matchesPlayed > 0 ? (goalsConceded / matchesPlayed).toFixed(1) : "0.0";
+
+    return [
+      { label: "Partite", value: matchesPlayed },
+      { label: "Vittorie", value: Number(user.wins || 0), color: "text-lime-300" },
+      { label: "Gol subiti", value: goalsConceded, color: "text-rose-200" },
+      { label: "Media GS", value: averageConceded, color: "text-orange-200" },
+      { label: "Clean Sheet", value: Number(user.cleanSheets || 0), color: "text-lime-200" },
+      { label: "Rigori parati", value: Number(user.penaltiesSaved || 0), color: "text-cyan-200" },
+      { label: "MVP", value: Number(user.mvp || 0), color: "text-yellow-100" },
+      { label: "Best Streak", value: Number(user.bestStreak || 0), color: "text-orange-200" },
+      { label: "RivalScore", value: Number(user.rivalScore || 1000), color: "text-cyan-300" },
+    ];
+  }
+
+  return [
+    { label: "Partite", value: Number(user.matchesPlayed || 0) },
+    { label: "Vittorie", value: Number(user.wins || 0), color: "text-lime-300" },
+    { label: "Sconfitte", value: Number(user.losses || 0), color: "text-rose-300" },
+    { label: "Gol", value: Number(user.goals || 0), color: "text-yellow-300" },
+    { label: "Assist", value: Number(user.assists || 0), color: "text-cyan-300" },
+    { label: "MVP", value: Number(user.mvp || 0), color: "text-yellow-100" },
+    { label: "Win Streak", value: Number(user.winStreak || 0), color: "text-orange-300" },
+    { label: "Best Streak", value: Number(user.bestStreak || 0), color: "text-orange-200" },
+    { label: "RivalScore", value: Number(user.rivalScore || 1000), color: "text-cyan-300" },
+  ];
 }
 
 export default function PublicProfilePage() {
@@ -170,6 +234,10 @@ export default function PublicProfilePage() {
   const badges =
     getPlayerBadges(user);
 
+  const mainSport = user.mainSport || user.sport || "calcetto";
+  const goalkeeperProfile = isGoalkeeperProfile(user);
+  const publicStats = getPublicStats(user, goalkeeperProfile);
+
   return (
     <main className="min-h-screen overflow-hidden bg-[#020617] px-4 py-7 text-white sm:px-5 sm:py-8">
 
@@ -190,18 +258,30 @@ export default function PublicProfilePage() {
             <div className="flex flex-col items-center text-center">
 
               <div className="relative flex w-full justify-center overflow-visible">
-                <div className="origin-top scale-[0.82] sm:scale-100">
+                <div className="w-full max-w-[258px] sm:max-w-[330px]">
                   <PlayerCard
                     name={isRemoved ? "Utente rimosso" : user.name || "Player"}
                     nickname={isRemoved ? "Profilo non attivo" : user.nickname || ""}
-                    rivalScore={user.rivalScore || 0}
-                    mainSport={user.mainSport || "Sport"}
+                    rivalScore={user.rivalScore || 1000}
+                    mainSport={mainSport}
                     photo={photo}
+                    level={user.level || level}
+                    xp={xp}
+                    wins={user.wins || 0}
+                    mvp={user.mvp || 0}
+                    matchesPlayed={user.matchesPlayed || 0}
+                    goals={user.goals || 0}
+                    assists={user.assists || 0}
+                    winStreak={user.winStreak || 0}
+                    role={user.role || ""}
+                    goalsConceded={user.goalsConceded || 0}
+                    cleanSheets={user.cleanSheets || 0}
+                    penaltiesSaved={user.penaltiesSaved || 0}
                   />
                 </div>
               </div>
 
-              <div className="-mt-10 flex max-w-[340px] flex-wrap items-center justify-center gap-2 sm:mt-5 sm:max-w-none sm:gap-3">
+              <div className="mt-6 flex max-w-[340px] flex-wrap items-center justify-center gap-2 sm:mt-8 sm:max-w-none sm:gap-3">
 
                 {badges.map((badge) => (
                   <div
@@ -291,70 +371,14 @@ export default function PublicProfilePage() {
 
             <div className="mt-7 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 md:grid-cols-3">
 
-              <StatCard
-                label="Partite"
-                value={
-                  user.matchesPlayed || 0
-                }
-              />
-
-              <StatCard
-                label="Vittorie"
-                value={user.wins || 0}
-                color="text-lime-300"
-              />
-
-              <StatCard
-                label="Sconfitte"
-                value={
-                  user.losses || 0
-                }
-                color="text-rose-300"
-              />
-
-              <StatCard
-                label="Gol"
-                value={user.goals || 0}
-                color="text-yellow-300"
-              />
-
-              <StatCard
-                label="Assist"
-                value={
-                  user.assists || 0
-                }
-                color="text-cyan-300"
-              />
-
-              <StatCard
-                label="MVP"
-                value={user.mvp || 0}
-                color="text-yellow-100"
-              />
-
-              <StatCard
-                label="Win Streak"
-                value={
-                  user.winStreak || 0
-                }
-                color="text-orange-300"
-              />
-
-              <StatCard
-                label="Best Streak"
-                value={
-                  user.bestStreak || 0
-                }
-                color="text-orange-200"
-              />
-
-              <StatCard
-                label="RivalScore"
-                value={
-                  user.rivalScore || 1000
-                }
-                color="text-cyan-300"
-              />
+              {publicStats.map((stat) => (
+                <StatCard
+                  key={stat.label}
+                  label={stat.label}
+                  value={stat.value}
+                  color={stat.color}
+                />
+              ))}
 
             </div>
 
@@ -436,13 +460,31 @@ export default function PublicProfilePage() {
 
                             <div className="mt-2 flex flex-wrap gap-2 text-sm font-black">
 
-                              <span className="rounded-full bg-yellow-400/10 px-3 py-1 text-yellow-300">
-                                Gol {p.goals || 0}
-                              </span>
+                              {goalkeeperProfile ? (
+                                <>
+                                  <span className="rounded-full bg-rose-400/10 px-3 py-1 text-rose-200">
+                                    GS {p.goalsConceded || 0}
+                                  </span>
 
-                              <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-cyan-300">
-                                Assist {p.assists || 0}
-                              </span>
+                                  <span className="rounded-full bg-lime-400/10 px-3 py-1 text-lime-200">
+                                    CS {p.cleanSheet ? "Sì" : "No"}
+                                  </span>
+
+                                  <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-cyan-200">
+                                    RP {p.penaltiesSaved || 0}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="rounded-full bg-yellow-400/10 px-3 py-1 text-yellow-300">
+                                    Gol {p.goals || 0}
+                                  </span>
+
+                                  <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-cyan-300">
+                                    Assist {p.assists || 0}
+                                  </span>
+                                </>
+                              )}
 
                               {p.isMvp && (
                                 <span className="rounded-full bg-yellow-300/10 px-3 py-1 text-yellow-200">
@@ -482,7 +524,7 @@ function StatCard({
   color,
 }: {
   label: string;
-  value: number;
+  value: string | number;
   color?: string;
 }) {
   return (
