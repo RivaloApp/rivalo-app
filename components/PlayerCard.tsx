@@ -44,6 +44,104 @@ function getSportPositionLabel(value?: string) {
   return "PLAYER CARD";
 }
 
+function SportCardIcon({ mainSport }: { mainSport: string }) {
+  const sport = normalizeSport(mainSport);
+
+  if (sport === "padel") {
+    return (
+      <svg
+        viewBox="0 0 64 64"
+        className="h-full w-full"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M20 13c6-6 16-4 21 1 5 5 7 15 1 21l-7 7-22-22 7-7Z"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M29 42 16 55"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M44 16 55 27"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+        <circle cx="27" cy="23" r="2" fill="currentColor" />
+        <circle cx="34" cy="24" r="2" fill="currentColor" />
+        <circle cx="29" cy="31" r="2" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  if (sport === "tennis") {
+    return (
+      <svg
+        viewBox="0 0 64 64"
+        className="h-full w-full"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle
+          cx="32"
+          cy="32"
+          r="24"
+          stroke="currentColor"
+          strokeWidth="4"
+        />
+        <path
+          d="M13 25c10 4 15 13 14 31"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+        <path
+          d="M51 39c-10-4-15-13-14-31"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      className="h-full w-full"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="32"
+        cy="32"
+        r="24"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        d="M32 18 44 27l-5 15H25l-5-15 12-9Z"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M20 27 12 24M44 27l8-3M25 42l-5 10M39 42l5 10"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+
 function getCardBottomStats({
   mainSport,
   wins,
@@ -359,6 +457,10 @@ export default function PlayerCard({
               <div className={`relative z-20 rounded-xl border ${theme.badgeBorder} bg-black/60 px-2.5 py-1.5 text-center text-[9px] font-black uppercase tracking-[.12em] ${theme.badgeText} ${theme.badgeShadow} sm:rounded-2xl sm:px-3 sm:py-2 sm:text-[11px] sm:tracking-[.14em]`}>
                 {rarityLabel}
               </div>
+            </div>
+
+            <div className={`pointer-events-none absolute right-4 top-[74px] z-20 flex h-9 w-9 items-center justify-center rounded-2xl border ${theme.badgeBorder} bg-black/35 p-2 ${theme.badgeText} ${theme.badgeShadow} sm:right-5 sm:top-[96px] sm:h-12 sm:w-12 sm:p-2.5`}>
+              <SportCardIcon mainSport={mainSport} />
             </div>
 
             <div className="relative mt-1 flex h-[84px] items-center justify-center sm:mt-3 sm:h-[132px]">
