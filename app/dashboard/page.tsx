@@ -89,6 +89,12 @@ const NAV_ITEMS: NavItem[] = [
     subtitle: "Ranking globale",
   },
   {
+    href: "/goalkeepers",
+    icon: <ShieldCheck />,
+    text: "Portieri",
+    subtitle: "Ranking portieri calcetto",
+  },
+  {
     href: "/match",
     icon: <CircleDot />,
     text: "Match",
@@ -545,6 +551,14 @@ export default function DashboardPage() {
               />
 
               <QuickAction
+                href="/goalkeepers"
+                tone="green"
+                icon={<ShieldCheck />}
+                title="Portieri"
+                text="Classifica portieri calcetto"
+              />
+
+              <QuickAction
                 href="/seasons"
                 tone="orange"
                 icon={<Medal />}
@@ -745,6 +759,7 @@ function Sidebar() {
       <div className="space-y-2">
         <SideLink href="/dashboard" icon={<Grid2X2 />} text="Dashboard" active />
         <SideLink href="/leaderboard" icon={<Globe2 />} text="Globale" />
+        <SideLink href="/goalkeepers" icon={<ShieldCheck />} text="Portieri" />
         <SideLink href="/seasons" icon={<Medal />} text="Stagione" />
         <SideLink href="/groups" icon={<Users />} text="Gruppi" />
         <SideLink href="/match" icon={<CircleDot />} text="Match" />

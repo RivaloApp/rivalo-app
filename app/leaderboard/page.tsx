@@ -13,6 +13,7 @@ import {
   UserRound,
   Flame,
   Target,
+  Shield,
   ShieldCheck,
   Globe2,
 } from "lucide-react";
@@ -479,6 +480,28 @@ export default function LeaderboardPage() {
               </FilterButton>
             </div>
 
+            <div className="mb-6 rounded-2xl border border-lime-300/20 bg-lime-400/10 p-4 sm:p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-[0.22em] text-lime-200">
+                    Ranking portieri calcetto
+                  </div>
+
+                  <div className="mt-2 text-sm font-bold leading-6 text-lime-100/90">
+                    Classifica separata per portieri con clean sheet, media gol subiti, rigori parati e RivalScore.
+                  </div>
+                </div>
+
+                <Link
+                  href="/goalkeepers"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-lime-300/30 bg-lime-400/15 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-lime-100 transition hover:border-lime-200/70 hover:bg-lime-400/25"
+                >
+                  <Shield size={18} />
+                  Apri portieri
+                </Link>
+              </div>
+            </div>
+
             <div className="mb-6 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.06] p-4 text-sm leading-6 text-cyan-100">
               Vista attiva: <span className="font-black">{sportLabel(sportFilter)}</span>.
               {sportFilter === "all"
@@ -573,6 +596,27 @@ export default function LeaderboardPage() {
                       user={topCleanSheet}
                       icon={<Crown className="text-lime-200" />}
                     />
+
+                    <Link
+                      href="/goalkeepers"
+                      className="rounded-[1.35rem] border border-lime-300/20 bg-lime-400/10 p-4 transition hover:border-lime-300/40 hover:bg-lime-400/15 sm:rounded-[1.6rem]"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="break-words text-[11px] font-black uppercase tracking-[0.16em] text-lime-100 sm:text-xs">
+                          Classifica completa
+                        </div>
+
+                        <Shield className="shrink-0 text-lime-300" />
+                      </div>
+
+                      <div className="mt-3 text-3xl font-black leading-none text-white sm:text-4xl">
+                        Portieri
+                      </div>
+
+                      <div className="mt-2 text-sm font-bold text-lime-200">
+                        Apri ranking dedicato
+                      </div>
+                    </Link>
                   </div>
                 )}
 
