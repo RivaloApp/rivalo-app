@@ -8,12 +8,61 @@ import { createNotification } from "../../lib/createNotification";
 import {
   ArrowRight,
   CheckCircle2,
+  CircleDot,
+  Shield,
   ShieldCheck,
+  Star,
+  Target,
   Trophy,
   UserRound,
+  Zap,
 } from "lucide-react";
 
 type Sport = "calcetto" | "padel" | "tennis";
+type CalcettoRole =
+  | "portiere"
+  | "difensore"
+  | "centrocampista"
+  | "attaccante"
+  | "jolly";
+
+const CALCETTO_ROLES: {
+  value: CalcettoRole;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    value: "portiere",
+    label: "Portiere",
+    description: "Riflessi, clean sheet e parate decisive.",
+    icon: <Shield />,
+  },
+  {
+    value: "difensore",
+    label: "Difensore",
+    description: "Contrasti, copertura e solidità.",
+    icon: <ShieldCheck />,
+  },
+  {
+    value: "centrocampista",
+    label: "Centrocampista",
+    description: "Passaggio, ritmo e controllo partita.",
+    icon: <CircleDot />,
+  },
+  {
+    value: "attaccante",
+    label: "Attaccante",
+    description: "Finalizzazione, gol e pressione offensiva.",
+    icon: <Zap />,
+  },
+  {
+    value: "jolly",
+    label: "Jolly",
+    description: "Adattabile, completo e utile ovunque.",
+    icon: <Star />,
+  },
+];
 
 function normalizeSport(value?: string): Sport {
   const sport = (value || "").toLowerCase().trim();
@@ -22,6 +71,24 @@ function normalizeSport(value?: string): Sport {
   if (sport === "tennis") return "tennis";
 
   return "calcetto";
+}
+
+function normalizeCalcettoRole(value?: string): CalcettoRole | "" {
+  const role = (value || "").toLowerCase().trim();
+
+  if (role.includes("port")) return "portiere";
+  if (role.includes("dif")) return "difensore";
+  if (role.includes("cent")) return "centrocampista";
+  if (role.includes("att")) return "attaccante";
+  if (role.includes("jolly")) return "jolly";
+
+  return "";
+}
+
+function calcettoRoleLabel(value?: string) {
+  const role = normalizeCalcettoRole(value);
+
+  return CALCETTO_ROLES.find((item) => item.value === role)?.label || "";
 }
 
 function getSportRolePlaceholder(value: Sport) {
@@ -129,6 +196,13 @@ export default function OnboardingPage() {
     }
 
     const lockedSport = normalizeSport(mainSport);
+    const lockedRole =
+      lockedSport === "calcetto" ? normalizeCalcettoRole(role) : role.trim();
+
+    if (lockedSport === "calcetto" && !lockedRole) {
+      setMessage("Seleziona il tuo ruolo calcetto.");
+      return;
+    }
 
     setSaving(true);
     setMessage("");
@@ -157,7 +231,7 @@ export default function OnboardingPage() {
           mainSport: lockedSport,
           sport: lockedSport,
           city: city.trim(),
-          role: role.trim(),
+          role: lockedRole,
           playStyle: playStyle.trim(),
           availability: availability.trim(),
           photoUrl: photoUrl.trim(),
@@ -198,6 +272,7 @@ export default function OnboardingPage() {
           mainSport: lockedSport,
           sport: lockedSport,
           city: city.trim(),
+          role: lockedRole,
         },
       });
 
@@ -281,7 +356,14 @@ export default function OnboardingPage() {
                 <Field label="Sport principale">
                   <select
                     value={mainSport}
-                    onChange={(e) => setMainSport(normalizeSport(e.target.value))}
+                    onChange={(e) => {
+                      const nextSport = normalizeSport(e.target.value);
+                      setMainSport(nextSport);
+
+                      if (nextSport !== "calcetto") {
+                        setRole("");
+                      }
+                    }}
                     className="w-full bg-transparent outline-none"
                   >
                     <option className="bg-[#020617]" value="calcetto">
@@ -306,16 +388,81 @@ export default function OnboardingPage() {
                 </Field>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Ruolo o posizione">
-                  <input
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    placeholder={getSportRolePlaceholder(mainSport)}
-                    className="w-full bg-transparent outline-none placeholder:text-slate-500"
-                  />
-                </Field>
+              {mainSport === "calcetto" ? (
+                <div>
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-black uppercase tracking-[0.12em] text-slate-300">
+                        Ruolo calcetto
+                      </div>
+                      <div className="mt-1 text-sm text-slate-400">
+                        Seleziona il ruolo principale. Potrai modificarlo dal profilo.
+                      </div>
+                    </div>
 
+                    <Target className="shrink-0 text-cyan-300" size={22} />
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-5">
+                    {CALCETTO_ROLES.map((item) => {
+                      const selected = normalizeCalcettoRole(role) === item.value;
+
+                      return (
+                        <button
+                          key={item.value}
+                          type="button"
+                          onClick={() => setRole(item.value)}
+                          className={`rounded-2xl border p-4 text-left transition hover:scale-[1.02] ${
+                            selected
+                              ? "border-cyan-300/60 bg-cyan-400/15 text-cyan-100 shadow-[0_0_24px_rgba(34,211,238,.18)]"
+                              : "border-white/10 bg-[#020617]/70 text-slate-300 hover:border-cyan-300/30 hover:bg-cyan-400/10"
+                          }`}
+                        >
+                          <div
+                            className={`mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border ${
+                              selected
+                                ? "border-cyan-300/40 bg-cyan-400/20 text-cyan-200"
+                                : "border-white/10 bg-black/30 text-slate-400"
+                            }`}
+                          >
+                            {item.icon}
+                          </div>
+
+                          <div className="font-black uppercase">
+                            {item.label}
+                          </div>
+
+                          <div className="mt-2 text-xs leading-5 text-slate-400">
+                            {item.description}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Ruolo o posizione">
+                    <input
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      placeholder={getSportRolePlaceholder(mainSport)}
+                      className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                    />
+                  </Field>
+
+                  <Field label="Stile di gioco">
+                    <input
+                      value={playStyle}
+                      onChange={(e) => setPlayStyle(e.target.value)}
+                      placeholder={getSportStylePlaceholder(mainSport)}
+                      className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                    />
+                  </Field>
+                </div>
+              )}
+
+              {mainSport === "calcetto" && (
                 <Field label="Stile di gioco">
                   <input
                     value={playStyle}
@@ -324,7 +471,7 @@ export default function OnboardingPage() {
                     className="w-full bg-transparent outline-none placeholder:text-slate-500"
                   />
                 </Field>
-              </div>
+              )}
 
               <Field label="Disponibilità">
                 <input
@@ -386,7 +533,16 @@ export default function OnboardingPage() {
                 <CheckItem active={Boolean(nickname.trim())} text="Nickname inserito" />
                 <CheckItem active={Boolean(mainSport)} text={`Sport selezionato: ${mainSport}`} />
                 <CheckItem active={Boolean(city.trim())} text="Zona inserita" />
-                <CheckItem active={Boolean(role.trim())} text="Ruolo inserito" />
+                <CheckItem
+                  active={mainSport === "calcetto" ? Boolean(normalizeCalcettoRole(role)) : Boolean(role.trim())}
+                  text={
+                    mainSport === "calcetto"
+                      ? calcettoRoleLabel(role)
+                        ? `Ruolo: ${calcettoRoleLabel(role)}`
+                        : "Ruolo calcetto da selezionare"
+                      : "Ruolo inserito"
+                  }
+                />
                 <CheckItem active={Boolean(playStyle.trim())} text="Stile inserito" />
                 <CheckItem active={Boolean(availability.trim())} text="Disponibilità inserita" />
                 <CheckItem active={Boolean(photoUrl.trim())} text="Foto opzionale" />
