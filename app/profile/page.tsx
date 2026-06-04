@@ -29,6 +29,30 @@ function sportLabel(value?: string) {
   return "Calcetto";
 }
 
+function normalizeCalcettoRole(value?: string) {
+  const role = (value || "").toLowerCase().trim();
+
+  if (role.includes("port")) return "portiere";
+  if (role.includes("dif")) return "difensore";
+  if (role.includes("cent")) return "centrocampista";
+  if (role.includes("att")) return "attaccante";
+  if (role.includes("jolly")) return "jolly";
+
+  return role;
+}
+
+function calcettoRoleLabel(value?: string) {
+  const role = normalizeCalcettoRole(value);
+
+  if (role === "portiere") return "Portiere";
+  if (role === "difensore") return "Difensore";
+  if (role === "centrocampista") return "Centrocampista";
+  if (role === "attaccante") return "Attaccante";
+  if (role === "jolly") return "Jolly";
+
+  return "Non impostato";
+}
+
 function getSportRolePlaceholder(value?: string) {
   const sport = normalizeSport(value);
 
@@ -59,6 +83,10 @@ function getProfileStats(mainSport: string, {
   level,
   winStreak,
   bestStreak,
+  role,
+  goalsConceded,
+  cleanSheets,
+  penaltiesSaved,
 }: {
   rivalScore: number;
   wins: number;
@@ -71,6 +99,10 @@ function getProfileStats(mainSport: string, {
   level: number;
   winStreak: number;
   bestStreak: number;
+  role: string;
+  goalsConceded: number;
+  cleanSheets: number;
+  penaltiesSaved: number;
 }) {
   const sport = normalizeSport(mainSport);
   const winRate =
@@ -94,8 +126,26 @@ function getProfileStats(mainSport: string, {
     ];
   }
 
+  if (normalizeCalcettoRole(role) === "portiere") {
+    const goalsConcededAverage =
+      matchesPlayed > 0 ? (goalsConceded / matchesPlayed).toFixed(1) : "0.0";
+
+    return [
+      ...base,
+      { label: "Ruolo", value: "POR" },
+      { label: "Gol subiti", value: String(goalsConceded) },
+      { label: "Media GS", value: goalsConcededAverage },
+      { label: "Clean Sheet", value: String(cleanSheets) },
+      { label: "Rigori parati", value: String(penaltiesSaved) },
+      { label: "MVP", value: String(mvp) },
+      { label: "Serie vitt.", value: String(winStreak) },
+      { label: "Miglior serie", value: String(bestStreak) },
+    ];
+  }
+
   return [
     ...base,
+    { label: "Ruolo", value: calcettoRoleLabel(role) },
     { label: "Gol", value: String(goals) },
     { label: "Assist", value: String(assists) },
     { label: "MVP", value: String(mvp) },
@@ -134,6 +184,9 @@ const [deletionRequested, setDeletionRequested] = useState(false);
   const [assists, setAssists] = useState(0);
   const [winStreak, setWinStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
+  const [goalsConceded, setGoalsConceded] = useState(0);
+  const [cleanSheets, setCleanSheets] = useState(0);
+  const [penaltiesSaved, setPenaltiesSaved] = useState(0);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -179,6 +232,9 @@ setDeletionRequested(Boolean(data.deletionRequested));
           setAssists(Number(data.assists || 0));
           setWinStreak(Number(data.winStreak || 0));
           setBestStreak(Number(data.bestStreak || 0));
+          setGoalsConceded(Number(data.goalsConceded || 0));
+          setCleanSheets(Number(data.cleanSheets || 0));
+          setPenaltiesSaved(Number(data.penaltiesSaved || 0));
         } else {
           setName(currentUser.displayName || "");
           setNickname("Rival Player");
@@ -200,6 +256,9 @@ setDeletionRequested(false);
           setAssists(0);
           setWinStreak(0);
           setBestStreak(0);
+          setGoalsConceded(0);
+          setCleanSheets(0);
+          setPenaltiesSaved(0);
           setPhotoUrl("");
         }
       } finally {
@@ -314,15 +373,19 @@ setDeletionRequested(false);
         return;
       }
 
+      const finalSport = hasPlayedMatches ? oldSport : nextSport;
+      const finalRole =
+        finalSport === "calcetto" ? normalizeCalcettoRole(role) : role.trim();
+
       await setDoc(
         userRef,
         {
           name: name.trim(),
           nickname: nickname.trim(),
-          mainSport: hasPlayedMatches ? oldSport : nextSport,
-          sport: hasPlayedMatches ? oldSport : nextSport,
+          mainSport: finalSport,
+          sport: finalSport,
           city: city.trim(),
-          role: role.trim(),
+          role: finalRole,
           playStyle: playStyle.trim(),
           availability: availability.trim(),
           photoUrl,
@@ -362,9 +425,15 @@ setDeletionRequested(false);
     level,
     winStreak,
     bestStreak,
+    role,
+    goalsConceded,
+    cleanSheets,
+    penaltiesSaved,
   });
 
   const sportLockedByStats = matchesPlayed > 0;
+  const isCalcettoProfile = normalizeSport(sport) === "calcetto";
+  const isGoalkeeper = isCalcettoProfile && normalizeCalcettoRole(role) === "portiere";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] px-4 py-8 text-white sm:px-6 sm:py-10">
@@ -407,6 +476,10 @@ setDeletionRequested(false);
                 goals={goals}
                 assists={assists}
                 winStreak={winStreak}
+                role={role}
+                goalsConceded={goalsConceded}
+                cleanSheets={cleanSheets}
+                penaltiesSaved={penaltiesSaved}
               />
             </div>
           </div>
@@ -466,13 +539,41 @@ setDeletionRequested(false);
     placeholder="Es. Lecce"
   />
 
-  <Field
-    label="Ruolo o posizione"
-    disabled={accountStatus === "deletion_requested" || deletionRequested}
-    value={role}
-    setValue={setRole}
-    placeholder={getSportRolePlaceholder(sport)}
-  />
+  {isCalcettoProfile ? (
+    <div className="min-w-0">
+      <label className="mb-2 block text-sm font-bold uppercase text-slate-400">
+        Ruolo calcetto
+      </label>
+
+      <select
+        value={normalizeCalcettoRole(role)}
+        onChange={(e) => setRole(e.target.value)}
+        disabled={accountStatus === "deletion_requested" || deletionRequested}
+        className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400 disabled:opacity-60"
+      >
+        <option value="">Seleziona ruolo</option>
+        <option value="portiere">Portiere</option>
+        <option value="difensore">Difensore</option>
+        <option value="centrocampista">Centrocampista</option>
+        <option value="attaccante">Attaccante</option>
+        <option value="jolly">Jolly</option>
+      </select>
+
+      {normalizeCalcettoRole(role) === "portiere" && (
+        <div className="mt-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold leading-6 text-cyan-100">
+          Card portiere attiva: i valori premiano riflessi, presa, piazzamento e clean sheet.
+        </div>
+      )}
+    </div>
+  ) : (
+    <Field
+      label="Ruolo o posizione"
+      disabled={accountStatus === "deletion_requested" || deletionRequested}
+      value={role}
+      setValue={setRole}
+      placeholder={getSportRolePlaceholder(sport)}
+    />
+  )}
 </div>
 
 <div className="mt-5 grid gap-5 md:grid-cols-2">
@@ -544,8 +645,8 @@ setDeletionRequested(false);
 
                 <StatBox
                   icon={<Star />}
-                  label={normalizeSport(sport) === "calcetto" ? "MVP" : "Streak"}
-                  value={normalizeSport(sport) === "calcetto" ? String(mvp) : String(winStreak)}
+                  label={isGoalkeeper ? "Clean Sheet" : normalizeSport(sport) === "calcetto" ? "MVP" : "Streak"}
+                  value={isGoalkeeper ? String(cleanSheets) : normalizeSport(sport) === "calcetto" ? String(mvp) : String(winStreak)}
                 />
 
                 {profileStats.map((stat) => (

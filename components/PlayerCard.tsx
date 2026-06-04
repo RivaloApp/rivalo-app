@@ -14,6 +14,10 @@ type PlayerCardProps = {
   goals?: number;
   assists?: number;
   winStreak?: number;
+  role?: string;
+  goalsConceded?: number;
+  cleanSheets?: number;
+  penaltiesSaved?: number;
 };
 
 function normalizeSport(value?: string) {
@@ -38,13 +42,37 @@ function sportLabel(value?: string) {
   return "CALCETTO";
 }
 
-function getSportPositionLabel(value?: string) {
+function normalizeCalcettoRole(value?: string) {
+  const role = (value || "").toLowerCase().trim();
+
+  if (role.includes("port")) return "portiere";
+  if (role.includes("dif")) return "difensore";
+  if (role.includes("cent")) return "centrocampista";
+  if (role.includes("att")) return "attaccante";
+  if (role.includes("jolly")) return "jolly";
+
+  return role;
+}
+
+function calcettoRoleCardLabel(value?: string) {
+  const role = normalizeCalcettoRole(value);
+
+  if (role === "portiere") return "GOALKEEPER";
+  if (role === "difensore") return "DEFENDER";
+  if (role === "centrocampista") return "MIDFIELD";
+  if (role === "attaccante") return "STRIKER";
+  if (role === "jolly") return "UTILITY";
+
+  return "PLAYER CARD";
+}
+
+function getSportPositionLabel(value?: string, role?: string) {
   const sport = normalizeSport(value);
 
   if (sport === "padel") return "CONTROL PAIR";
   if (sport === "tennis") return "BASELINE PRO";
 
-  return "PLAYER CARD";
+  return calcettoRoleCardLabel(role);
 }
 
 function SportCardIcon({ mainSport }: { mainSport: string }) {
@@ -163,6 +191,10 @@ function getCardBottomStats({
   assists,
   mvp,
   winStreak,
+  role,
+  goalsConceded,
+  cleanSheets,
+  penaltiesSaved,
 }: {
   mainSport: string;
   wins: number;
@@ -171,6 +203,10 @@ function getCardBottomStats({
   assists: number;
   mvp: number;
   winStreak: number;
+  role: string;
+  goalsConceded: number;
+  cleanSheets: number;
+  penaltiesSaved: number;
 }) {
   const sport = normalizeSport(mainSport);
   const winRate =
@@ -189,6 +225,14 @@ function getCardBottomStats({
       { label: "WIN", value: wins },
       { label: "WR%", value: winRate },
       { label: "MVP", value: mvp },
+    ];
+  }
+
+  if (normalizeCalcettoRole(role) === "portiere") {
+    return [
+      { label: "GS", value: goalsConceded },
+      { label: "CS", value: cleanSheets },
+      { label: "RP", value: penaltiesSaved },
     ];
   }
 
@@ -285,6 +329,10 @@ function getSportStats({
   goals = 0,
   assists = 0,
   winStreak = 0,
+  role = "",
+  goalsConceded = 0,
+  cleanSheets = 0,
+  penaltiesSaved = 0,
   level = 1,
   xp = 0,
 }: {
@@ -296,6 +344,10 @@ function getSportStats({
   goals?: number;
   assists?: number;
   winStreak?: number;
+  role?: string;
+  goalsConceded?: number;
+  cleanSheets?: number;
+  penaltiesSaved?: number;
   level?: number;
   xp?: number;
 }) {
@@ -329,6 +381,21 @@ function getSportStats({
     ];
   }
 
+  if (normalizeCalcettoRole(role) === "portiere") {
+    const cleanSheetBoost = Math.min(8, cleanSheets * 1.6);
+    const penaltyBoost = Math.min(7, penaltiesSaved * 2);
+    const concededPenalty = Math.min(6, goalsConceded * 0.15);
+
+    return [
+      { label: "RIF", value: clampStat(rating + activityBoost + 2) },
+      { label: "PRE", value: clampStat(rating + cleanSheetBoost + 1) },
+      { label: "POS", value: clampStat(rating + winBoost + levelBoost) },
+      { label: "LAN", value: clampStat(rating + xpBoost + 1) },
+      { label: "RIG", value: clampStat(rating + penaltyBoost) },
+      { label: "TEN", value: clampStat(rating + cleanSheetBoost - concededPenalty) },
+    ];
+  }
+
   return [
     { label: "VEL", value: clampStat(rating + 3 + activityBoost * 0.2) },
     { label: "TEC", value: clampStat(rating + 1 + Math.min(7, goals * 0.35)) },
@@ -353,6 +420,10 @@ export default function PlayerCard({
   goals = 0,
   assists = 0,
   winStreak = 0,
+  role = "",
+  goalsConceded = 0,
+  cleanSheets = 0,
+  penaltiesSaved = 0,
 }: PlayerCardProps) {
   const safeRivalScore = Number(rivalScore || 1000);
 
@@ -394,6 +465,10 @@ export default function PlayerCard({
     goals,
     assists,
     winStreak,
+    role,
+    goalsConceded,
+    cleanSheets,
+    penaltiesSaved,
     level,
     xp,
   });
@@ -406,6 +481,10 @@ export default function PlayerCard({
     assists,
     mvp,
     winStreak,
+    role,
+    goalsConceded,
+    cleanSheets,
+    penaltiesSaved,
   });
 
   return (
@@ -505,7 +584,7 @@ export default function PlayerCard({
               </div>
 
               <div className={`mx-auto mt-1 w-fit rounded-full border ${theme.badgeBorder} bg-black/35 px-3 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${theme.badgeText}`}>
-                {getSportPositionLabel(mainSport)}
+                {getSportPositionLabel(mainSport, role)}
               </div>
             </div>
 
