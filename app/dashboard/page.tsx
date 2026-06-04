@@ -57,6 +57,10 @@ type UserProfile = {
   assists?: number;
   mvp?: number;
   winStreak?: number;
+  role?: string;
+  goalsConceded?: number;
+  cleanSheets?: number;
+  penaltiesSaved?: number;
   sport?: string;
   photoURL?: string;
   photoUrl?: string;
@@ -168,7 +172,24 @@ function sportLabel(value?: string) {
   return "Calcetto";
 }
 
-function getSportDashboardCopy(value?: string) {
+function normalizeCalcettoRole(value?: string) {
+  const role = (value || "").toLowerCase().trim();
+
+  if (role.includes("port")) return "portiere";
+  if (role.includes("dif")) return "difensore";
+  if (role.includes("cent")) return "centrocampista";
+  if (role.includes("att")) return "attaccante";
+  if (role.includes("jolly")) return "jolly";
+
+  return role;
+}
+
+function isGoalkeeperProfile(mainSport?: string, role?: string) {
+  return normalizeSport(mainSport) === "calcetto" &&
+    normalizeCalcettoRole(role) === "portiere";
+}
+
+function getSportDashboardCopy(value?: string, role?: string) {
   const sport = normalizeSport(value);
 
   if (sport === "padel") {
@@ -186,6 +207,15 @@ function getSportDashboardCopy(value?: string) {
       subtitle: "Ranking basato su vittorie, win rate, streak, livello e costanza.",
       scoreLabel: "Tennis Score",
       quickLabel: "Match tennis",
+    };
+  }
+
+  if (isGoalkeeperProfile(sport, role)) {
+    return {
+      title: "Profilo portiere",
+      subtitle: "Ranking basato su clean sheet, gol subiti, rigori parati, vittorie e RivalScore.",
+      scoreLabel: "Goalkeeper Score",
+      quickLabel: "Match calcetto",
     };
   }
 
@@ -207,6 +237,10 @@ function getDashboardMetrics({
   assists,
   mvp,
   winStreak,
+  role,
+  goalsConceded,
+  cleanSheets,
+  penaltiesSaved,
 }: {
   mainSport: string;
   matchesPlayed: number;
@@ -217,10 +251,26 @@ function getDashboardMetrics({
   assists: number;
   mvp: number;
   winStreak: number;
+  role: string;
+  goalsConceded: number;
+  cleanSheets: number;
+  penaltiesSaved: number;
 }) {
   const sport = normalizeSport(mainSport);
   const winRate =
     matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0;
+
+  if (isGoalkeeperProfile(mainSport, role)) {
+    const goalsConcededAverage =
+      matchesPlayed > 0 ? (goalsConceded / matchesPlayed).toFixed(1) : "0.0";
+
+    return [
+      { label: "Partite", value: String(matchesPlayed) },
+      { label: "Media GS", value: goalsConcededAverage },
+      { label: "Clean Sheet", value: String(cleanSheets) },
+      { label: "Rigori parati", value: String(penaltiesSaved) },
+    ];
+  }
 
   if (sport === "padel" || sport === "tennis") {
     return [
@@ -321,10 +371,15 @@ export default function DashboardPage() {
   const goals = profile?.goals ?? 0;
   const assists = profile?.assists ?? 0;
   const winStreak = profile?.winStreak ?? 0;
+  const role = profile?.role || "";
+  const goalsConceded = profile?.goalsConceded ?? 0;
+  const cleanSheets = profile?.cleanSheets ?? 0;
+  const penaltiesSaved = profile?.penaltiesSaved ?? 0;
   const mainSport = profile?.mainSport || profile?.sport || "calcetto";
   const photo = profile?.photoURL || profile?.photoUrl || "";
+  const goalkeeperProfile = isGoalkeeperProfile(mainSport, role);
 
-  const sportCopy = getSportDashboardCopy(mainSport);
+  const sportCopy = getSportDashboardCopy(mainSport, role);
   const dashboardMetrics = getDashboardMetrics({
     mainSport,
     matchesPlayed,
@@ -335,6 +390,10 @@ export default function DashboardPage() {
     assists,
     mvp,
     winStreak,
+    role,
+    goalsConceded,
+    cleanSheets,
+    penaltiesSaved,
   });
 
   if (loading) {
@@ -389,6 +448,10 @@ export default function DashboardPage() {
                 goals={goals}
                 assists={assists}
                 winStreak={winStreak}
+                role={role}
+                goalsConceded={goalsConceded}
+                cleanSheets={cleanSheets}
+                penaltiesSaved={penaltiesSaved}
               />
 
               <div className="pt-3 sm:pt-5">
@@ -425,9 +488,27 @@ export default function DashboardPage() {
 
                   <StatShield
                     tone="orange"
-                    value={normalizeSport(mainSport) === "calcetto" ? String(mvp) : String(winStreak)}
-                    label={normalizeSport(mainSport) === "calcetto" ? "MVP" : "Streak"}
-                    icon={normalizeSport(mainSport) === "calcetto" ? <Crown /> : <Star />}
+                    value={
+                      goalkeeperProfile
+                        ? String(cleanSheets)
+                        : normalizeSport(mainSport) === "calcetto"
+                        ? String(mvp)
+                        : String(winStreak)
+                    }
+                    label={
+                      goalkeeperProfile
+                        ? "Clean Sheet"
+                        : normalizeSport(mainSport) === "calcetto"
+                        ? "MVP"
+                        : "Streak"
+                    }
+                    icon={
+                      goalkeeperProfile
+                        ? <ShieldCheck />
+                        : normalizeSport(mainSport) === "calcetto"
+                        ? <Crown />
+                        : <Star />
+                    }
                   />
                 </div>
 
@@ -444,7 +525,7 @@ export default function DashboardPage() {
             </div>
 
             <aside className="space-y-5">
-              <ScorePanel rivalScore={rivalScore} mainSport={mainSport} />
+              <ScorePanel rivalScore={rivalScore} mainSport={mainSport} role={role} />
               <LevelPanel level={level} xp={xp} mainSport={mainSport} />
             </aside>
           </section>
@@ -834,11 +915,13 @@ function SmallMetric({
 function ScorePanel({
   rivalScore,
   mainSport,
+  role,
 }: {
   rivalScore: number;
   mainSport: string;
+  role: string;
 }) {
-  const sportCopy = getSportDashboardCopy(mainSport);
+  const sportCopy = getSportDashboardCopy(mainSport, role);
 
   return (
     <div className="rounded-[1.7rem] border border-cyan-300/20 bg-[#071126]/80 p-6 shadow-2xl">
