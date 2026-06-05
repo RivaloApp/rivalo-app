@@ -290,6 +290,78 @@ function getCompetitionUnits({
   return event.teams || [];
 }
 
+function getNextPowerOfTwo(value: number) {
+  if (value <= 2) return 2;
+
+  return Math.pow(2, Math.ceil(Math.log2(value)));
+}
+
+function getRoundName(round: number, totalRounds: number) {
+  const remainingRounds = totalRounds - round + 1;
+
+  if (remainingRounds === 1) return "Finale";
+  if (remainingRounds === 2) return "Semifinali";
+  if (remainingRounds === 3) return "Quarti";
+  if (remainingRounds === 4) return "Ottavi";
+
+  return `Round ${round}`;
+}
+
+function buildTournamentBracket(units: TeamInfo[]) {
+  const shuffledTeams = [...units].sort(() => Math.random() - 0.5);
+  const bracketSize = getNextPowerOfTwo(shuffledTeams.length);
+  const totalRounds = Math.ceil(Math.log2(bracketSize));
+  const firstRoundMatches = bracketSize / 2;
+  const bracket: BracketMatch[] = [];
+
+  let matchNumber = 1;
+
+  for (let index = 0; index < firstRoundMatches; index++) {
+    const homeTeam = shuffledTeams[index * 2];
+    const awayTeam = shuffledTeams[index * 2 + 1];
+
+    if (!homeTeam) continue;
+
+    bracket.push({
+      round: 1,
+      matchNumber: matchNumber++,
+      homeTeamId: homeTeam.id,
+      awayTeamId: awayTeam?.id || "",
+      homeName: homeTeam.name || "Da definire",
+      awayName: awayTeam?.name || "Riposo",
+      winnerTeamId: awayTeam ? "" : homeTeam.id,
+      matchId: "",
+      status: awayTeam ? "programmato" : "riposo",
+      resultStatus: awayTeam ? "da_creare" : "confermato",
+      homeScore: null,
+      awayScore: null,
+    });
+  }
+
+  for (let round = 2; round <= totalRounds; round++) {
+    const matchesInRound = Math.max(1, bracketSize / Math.pow(2, round));
+
+    for (let index = 0; index < matchesInRound; index++) {
+      bracket.push({
+        round,
+        matchNumber: matchNumber++,
+        homeTeamId: "",
+        awayTeamId: "",
+        homeName: `Vincitore match ${index * 2 + 1}`,
+        awayName: `Vincitore match ${index * 2 + 2}`,
+        winnerTeamId: "",
+        matchId: "",
+        status: "in_attesa",
+        resultStatus: "in_attesa",
+        homeScore: null,
+        awayScore: null,
+      });
+    }
+  }
+
+  return bracket;
+}
+
 function getTeamCreationTitle(format: CompetitionFormat, sport?: string) {
   if (isRacketSport(sport)) {
     if (format === "singolo") return "Crea player";
@@ -1244,29 +1316,7 @@ async function generateTournamentBracket() {
   setMessage("");
 
   try {
-    const shuffledTeams = [...validTeams].sort(() => Math.random() - 0.5);
-
-    const bracket: BracketMatch[] = [];
-
-    for (let i = 0; i < shuffledTeams.length; i += 2) {
-      const homeTeam = shuffledTeams[i];
-      const awayTeam = shuffledTeams[i + 1];
-
-      bracket.push({
-        round: 1,
-        matchNumber: bracket.length + 1,
-        homeTeamId: homeTeam?.id || "",
-        awayTeamId: awayTeam?.id || "",
-        homeName: homeTeam?.name || "Da definire",
-        awayName: awayTeam?.name || "Riposo",
-        winnerTeamId: "",
-        matchId: "",
-        status: awayTeam ? "programmato" : "riposo",
-        resultStatus: awayTeam ? "da_creare" : "confermato",
-        homeScore: null,
-        awayScore: null,
-      });
-    }
+    const bracket = buildTournamentBracket(validTeams);
 
     await updateDoc(doc(db, "events", event.id), {
       bracket,
@@ -2126,6 +2176,18 @@ const pendingCompetitionMatches = Math.max(
   totalCompetitionMatches - completedCompetitionMatches
 );
 
+const previewTournamentBracket =
+  event.type === "torneo" &&
+  (!event.bracket || event.bracket.length === 0) &&
+  hasEnoughValidTeams
+    ? buildTournamentBracket(competitionUnits)
+    : [];
+
+const visibleTournamentBracket =
+  event.bracket && event.bracket.length > 0
+    ? event.bracket
+    : previewTournamentBracket;
+
   const rankedEventStats =
     eventStats.length > 0
       ? [...eventStats].sort(
@@ -2587,6 +2649,12 @@ const pendingCompetitionMatches = Math.max(
       <Trophy className="text-yellow-300" />
     </div>
 
+    {previewTournamentBracket.length > 0 && (
+      <div className="mb-5 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-4 text-sm font-bold leading-6 text-cyan-100">
+        Anteprima tabellone: premi “Genera tabellone” per salvarlo e poter creare i match.
+      </div>
+    )}
+
     {event.status === "torneo completato" && (
       <div className="mb-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-5">
         <div className="text-xs font-black uppercase tracking-[0.2em] text-yellow-200">
@@ -2599,7 +2667,7 @@ const pendingCompetitionMatches = Math.max(
       </div>
     )}
 
-    {!event.bracket || event.bracket.length === 0 ? (
+    {visibleTournamentBracket.length === 0 ? (
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
         Nessun tabellone generato. Aggiungi almeno 2 {getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()} validi e genera il tabellone.
       </div>
@@ -2607,13 +2675,13 @@ const pendingCompetitionMatches = Math.max(
       <div className="overflow-x-auto pb-2">
         <div className="flex min-w-[720px] gap-4">
           {Array.from(
-            new Set(event.bracket.map((match) => Number(match.round || 1)))
+            new Set(visibleTournamentBracket.map((match) => Number(match.round || 1)))
           )
             .sort((a, b) => a - b)
             .map((round) => {
-              const roundMatches = event.bracket?.filter(
+              const roundMatches = visibleTournamentBracket.filter(
                 (match) => Number(match.round || 1) === round
-              ) || [];
+              );
 
               const roundTitle =
                 roundMatches.length === 1
@@ -2640,7 +2708,8 @@ const pendingCompetitionMatches = Math.max(
 
                   <div className="space-y-3">
                     {roundMatches.map((match) => {
-                      const isBye = !match.awayTeamId;
+                      const isWaiting = match.status === "in_attesa";
+                      const isBye = !isWaiting && !match.awayTeamId;
                       const isCompleted = match.resultStatus === "confermato";
                       const winnerName =
                         match.winnerTeamId === match.homeTeamId
@@ -2667,6 +2736,8 @@ const pendingCompetitionMatches = Math.max(
                                   ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
                                   : isBye
                                   ? "border-yellow-300/20 bg-yellow-400/10 text-yellow-200"
+                                  : isWaiting
+                                  ? "border-white/10 bg-white/[.03] text-slate-400"
                                   : "border-white/10 bg-white/[.03] text-slate-400"
                               }`}
                             >
@@ -2691,7 +2762,7 @@ const pendingCompetitionMatches = Math.max(
                           </div>
 
                           <div className="my-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                            {isBye ? "passa il turno" : "vs"}
+                            {isBye ? "passa il turno" : isWaiting ? "in attesa" : "vs"}
                           </div>
 
                           <div
@@ -2727,6 +2798,10 @@ const pendingCompetitionMatches = Math.max(
                           ) : isBye ? (
                             <div className="mt-3 inline-flex rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-2 text-xs font-black text-yellow-100">
                               Passaggio automatico
+                            </div>
+                          ) : isWaiting ? (
+                            <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs text-white/60">
+                              In attesa dei vincitori
                             </div>
                           ) : (
                             <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs text-white/60">
