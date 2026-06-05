@@ -439,7 +439,7 @@ function getCancelBlockedReason(match: MatchDoc) {
   }
 
   if (match.statsApplied || match.status === "ufficiale" || match.resultStatus === "confermato") {
-    return "Questo match ha già statistiche applicate o risultato ufficiale. Per annullarlo servirà una fase futura con rollback statistiche sicuro.";
+    return "Questo match ha già un risultato ufficiale o statistiche applicate. Non può essere annullato da qui.";
   }
 
   return "";
@@ -863,6 +863,51 @@ export default function MatchDetailsPage() {
     await updateDoc(eventRef, updatePayload);
   }
   
+  async function syncEventMatchCancellation(safeMatch: MatchDoc, reason: string) {
+    if (!safeMatch.eventId) return;
+
+    const eventRef = doc(db, "events", safeMatch.eventId);
+    const eventSnap = await getDoc(eventRef);
+
+    if (!eventSnap.exists()) return;
+
+    const eventData = eventSnap.data() as any;
+
+    const resetMatch = (item: any) => {
+      if (item.matchId !== matchId) return item;
+
+      return {
+        ...item,
+        matchId: "",
+        cancelledMatchId: matchId,
+        cancellationReason: reason,
+        homeScore: null,
+        awayScore: null,
+        winnerTeamId: "",
+        status: "da_creare",
+        resultStatus: "da_creare",
+        fairPlayStatus: "da_confermare",
+        updatedAt: serverTimestamp(),
+      };
+    };
+
+    const updatePayload: any = {
+      updatedAt: serverTimestamp(),
+    };
+
+    if (Array.isArray(eventData.bracket)) {
+      updatePayload.bracket = eventData.bracket.map(resetMatch);
+    }
+
+    if (Array.isArray(eventData.leagueFixtures)) {
+      updatePayload.leagueFixtures = eventData.leagueFixtures.map(resetMatch);
+    }
+
+    if (updatePayload.bracket || updatePayload.leagueFixtures) {
+      await updateDoc(eventRef, updatePayload);
+    }
+  }
+
   async function updateGroupTeamStats(safeMatch: MatchDoc) {
   if (safeMatch.sourceType !== "groupTeams") return;
   if (!safeMatch.homeTeamId || !safeMatch.awayTeamId) return;
@@ -1422,34 +1467,85 @@ setMessage("Risultato contestato. Servirà revisione.");
       return;
     }
 
+    const confirmCancel = window.confirm(
+      "Vuoi annullare questo match? Potrai ricrearlo dall'evento se non era ancora ufficiale."
+    );
+
+    if (!confirmCancel) return;
+
     setSaving(true);
     setMessage("");
 
+    const matchRef = doc(db, "matches", matchId);
+    let cancelledMatch: MatchDoc | null = null;
+
     try {
-      await updateDoc(doc(db, "matches", matchId), {
-        status: "annullato",
-        resultStatus: "annullato",
-        fairPlayStatus: "annullato",
-        cancellationReason: reason,
-        cancelledBy: user.uid,
-        cancelledAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+      await runTransaction(db, async (transaction) => {
+        const freshSnap = await transaction.get(matchRef);
+
+        if (!freshSnap.exists()) {
+          throw new Error("MATCH_NOT_FOUND");
+        }
+
+        const freshMatch = freshSnap.data() as MatchDoc;
+        cancelledMatch = freshMatch;
+
+        if (!canAccessMatch(freshMatch, user.uid)) {
+          throw new Error("UNAUTHORIZED");
+        }
+
+        if (!canUseMatch(freshMatch, user.uid, userSport)) {
+          throw new Error("SPORT_MISMATCH");
+        }
+
+        if (!canCancelMatch(freshMatch, user.uid)) {
+          throw new Error("CANCEL_NOT_ALLOWED");
+        }
+
+        if (!canCancelWithoutRollback(freshMatch)) {
+          throw new Error("CANCEL_BLOCKED");
+        }
+
+        transaction.update(matchRef, {
+          status: "annullato",
+          resultStatus: "annullato",
+          fairPlayStatus: "annullato",
+          cancellationReason: reason,
+          cancelledBy: user.uid,
+          cancelledAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
       });
+
+      const safeCancelledMatch = cancelledMatch || match;
+
+      await syncEventMatchCancellation(safeCancelledMatch, reason);
 
       await notifyMatchPlayers({
         type: "result_disputed",
         title: "Match annullato",
         message: `${homeTeam || "Squadra 1"} vs ${
           awayTeam || "Squadra 2"
-        } è stato annullato. Motivo: ${reason}`,
+        } è stato annullato.`,
       });
 
       await loadMatch(user.uid);
 
-      setMessage("Match annullato. Nessuna statistica era stata applicata.");
-    } catch (error) {
+      setMessage("Match annullato correttamente.");
+    } catch (error: any) {
       console.error(error);
-      setMessage("Errore durante l'annullamento del match.");
+
+      if (error?.message === "SPORT_MISMATCH") {
+        setMessage("Questo match appartiene a un altro sport. Usa un profilo sport compatibile.");
+      } else if (error?.message === "CANCEL_NOT_ALLOWED") {
+        setMessage("Solo creator o capitani possono annullare questo match.");
+      } else if (error?.message === "CANCEL_BLOCKED") {
+        setMessage(getCancelBlockedReason(match));
+      } else if (error?.message === "UNAUTHORIZED") {
+        setMessage("Non puoi annullare un match in cui non sei coinvolto.");
+      } else {
+        setMessage("Errore durante l'annullamento del match.");
+      }
     } finally {
       setSaving(false);
     }
@@ -2035,7 +2131,6 @@ setMessage("Risultato contestato. Servirà revisione.");
 
                   <p className="mt-2 text-sm leading-6 text-slate-300">
                     Puoi annullare solo match non ancora ufficiali e senza statistiche applicate.
-                    Se il match è già confermato, l'annullamento diretto viene bloccato per proteggere ranking e statistiche.
                   </p>
 
                   {!canCancelSafely && cancelBlockedReason && (
@@ -2081,7 +2176,7 @@ setMessage("Risultato contestato. Servirà revisione.");
             </Panel>
 
             <Panel icon={<Trophy />} title="Ranking">
-              {matchCopy.rankingText} I match annullabili sono solo quelli senza statistiche applicate.
+              {matchCopy.rankingText} I match annullati prima della conferma non aggiornano le statistiche applicate.
             </Panel>
           </div>
         </section>
