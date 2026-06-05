@@ -1536,6 +1536,47 @@ setMessage("Risultato contestato. Servirà revisione.");
       ? `${homeScore}-${awayScore}`
       : "";
 
+  const homeSideLabel = homeTeam || matchCopy.teamA;
+  const awaySideLabel = awayTeam || matchCopy.teamB;
+
+  const racketScoreOptions = [
+    {
+      value: "2-0",
+      winnerLabel: homeSideLabel,
+      loserLabel: awaySideLabel,
+      scoreLabel: "2 - 0",
+      setSummary: `${homeSideLabel}: 2 set · ${awaySideLabel}: 0 set`,
+    },
+    {
+      value: "2-1",
+      winnerLabel: homeSideLabel,
+      loserLabel: awaySideLabel,
+      scoreLabel: "2 - 1",
+      setSummary: `${homeSideLabel}: 2 set · ${awaySideLabel}: 1 set`,
+    },
+    {
+      value: "1-2",
+      winnerLabel: awaySideLabel,
+      loserLabel: homeSideLabel,
+      scoreLabel: "1 - 2",
+      setSummary: `${awaySideLabel}: 2 set · ${homeSideLabel}: 1 set`,
+    },
+    {
+      value: "0-2",
+      winnerLabel: awaySideLabel,
+      loserLabel: homeSideLabel,
+      scoreLabel: "0 - 2",
+      setSummary: `${awaySideLabel}: 2 set · ${homeSideLabel}: 0 set`,
+    },
+  ];
+
+  function selectRacketScore(value: string) {
+    const [nextHomeScore, nextAwayScore] = value.split("-");
+
+    setHomeScore(nextHomeScore || "");
+    setAwayScore(nextAwayScore || "");
+  }
+
   const isCancelled = isMatchCancelled(match);
 
   const isOfficial =
@@ -1680,36 +1721,59 @@ setMessage("Risultato contestato. Servirà revisione.");
               )}
 
               {racketMatch ? (
-                <Field label="Risultato set">
-                  <select
-                    required
-                    disabled={isOfficial || isCancelled || accountLocked}
-                    value={racketScoreValue}
-                    onChange={(e) => {
-                      const [nextHomeScore, nextAwayScore] = e.target.value.split("-");
+                <div className="rounded-2xl border border-white/10 bg-[#020617]/70 p-4">
+                  <div className="text-sm font-black text-slate-300">
+                    Risultato set
+                  </div>
 
-                      setHomeScore(nextHomeScore || "");
-                      setAwayScore(nextAwayScore || "");
-                    }}
-                    className="w-full bg-[#020617] text-white outline-none disabled:opacity-60"
-                  >
-                    <option value="" className="bg-[#020617] text-white">
-                      Scegli vincitore e set
-                    </option>
-                    <option value="2-0" className="bg-[#020617] text-white">
-                      Vince {homeTeam || matchCopy.teamA} — {homeTeam || matchCopy.teamA} 2 set, {awayTeam || matchCopy.teamB} 0
-                    </option>
-                    <option value="2-1" className="bg-[#020617] text-white">
-                      Vince {homeTeam || matchCopy.teamA} — {homeTeam || matchCopy.teamA} 2 set, {awayTeam || matchCopy.teamB} 1
-                    </option>
-                    <option value="1-2" className="bg-[#020617] text-white">
-                      Vince {awayTeam || matchCopy.teamB} — {awayTeam || matchCopy.teamB} 2 set, {homeTeam || matchCopy.teamA} 1
-                    </option>
-                    <option value="0-2" className="bg-[#020617] text-white">
-                      Vince {awayTeam || matchCopy.teamB} — {awayTeam || matchCopy.teamB} 2 set, {homeTeam || matchCopy.teamA} 0
-                    </option>
-                  </select>
-                </Field>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    {racketScoreOptions.map((option) => {
+                      const selected = racketScoreValue === option.value;
+
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          disabled={isOfficial || isCancelled || accountLocked}
+                          onClick={() => selectRacketScore(option.value)}
+                          className={`min-w-0 rounded-2xl border p-4 text-left transition disabled:opacity-60 ${
+                            selected
+                              ? "border-cyan-300/60 bg-cyan-400/15 shadow-[0_0_24px_rgba(34,211,238,.16)]"
+                              : "border-white/10 bg-white/[.03] hover:border-cyan-300/30"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">
+                                Vince
+                              </div>
+
+                              <div className="mt-2 break-words text-lg font-black text-white">
+                                {option.winnerLabel}
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 rounded-2xl border border-yellow-300/25 bg-yellow-400/10 px-3 py-2 text-xl font-black text-yellow-100">
+                              {option.scoreLabel}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs font-bold leading-5 text-slate-300">
+                            Perde: <span className="text-slate-100">{option.loserLabel}</span>
+                          </div>
+
+                          <div className="mt-2 break-words text-xs font-bold leading-5 text-slate-400">
+                            {option.setSummary}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-3 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-bold leading-5 text-cyan-100">
+                    Il dettaglio dei game o del tie-break va nelle note.
+                  </div>
+                </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label={matchCopy.homeScore}>
