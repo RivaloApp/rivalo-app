@@ -411,7 +411,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#020617] text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <Background />
 
       <section className="relative z-10 flex min-h-screen">
@@ -422,7 +422,7 @@ export default function DashboardPage() {
           onClose={() => setMobileMenuOpen(false)}
         />
 
-        <div className="min-w-0 flex-1 px-5 py-5 lg:px-8 xl:px-10">
+        <div className="min-w-0 flex-1 overflow-hidden px-3 py-5 sm:px-5 lg:px-8 xl:px-10">
           <div className="mb-6 lg:mb-3">
             <div className="lg:hidden">
               <Link href="/dashboard" className="block w-fit">
@@ -438,8 +438,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <section className="grid gap-7 xl:grid-cols-[1fr_330px] 2xl:grid-cols-[1fr_360px]">
-            <div className="grid items-start gap-6 xl:grid-cols-[310px_1fr] xl:gap-8 2xl:grid-cols-[330px_1fr]">
+          <section className="grid min-w-0 gap-7 xl:grid-cols-[1fr_330px] 2xl:grid-cols-[1fr_360px]">
+            <div className="grid min-w-0 items-start gap-6 overflow-hidden xl:grid-cols-[310px_1fr] xl:gap-8 2xl:grid-cols-[330px_1fr]">
               <PlayerCard
                 name={displayName}
                 nickname={nickname}
@@ -460,16 +460,16 @@ export default function DashboardPage() {
                 penaltiesSaved={penaltiesSaved}
               />
 
-              <div className="pt-3 sm:pt-5">
+              <div className="min-w-0 overflow-hidden pt-3 sm:pt-5">
                 <div className="text-xl font-medium text-white/90 sm:text-2xl">
                   Bentornato,
                 </div>
 
-                <h1 className="mt-2 text-4xl font-black uppercase leading-none tracking-tight text-white sm:text-5xl md:text-6xl">
+                <h1 className="mt-2 max-w-full break-words text-[2.45rem] font-black uppercase leading-none tracking-tight text-white sm:text-5xl md:text-6xl">
                   {displayName}
                 </h1>
 
-                <div className="mt-3 text-2xl font-black uppercase text-cyan-300 sm:text-3xl">
+                <div className="mt-3 max-w-full break-words text-2xl font-black uppercase text-cyan-300 sm:text-3xl">
                   {nickname}
                 </div>
 
@@ -518,7 +518,7 @@ export default function DashboardPage() {
                   />
                 </div>
 
-                <div className="mt-6 grid max-w-[680px] grid-cols-2 gap-4 md:grid-cols-4">
+                <div className="mt-6 grid max-w-[680px] grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
                   {dashboardMetrics.map((metric) => (
                     <SmallMetric
                       key={metric.label}
@@ -689,7 +689,7 @@ function MobileMenu({
         onClick={onClose}
       />
 
-      <div className="absolute right-0 top-0 flex h-full w-[88%] max-w-[390px] flex-col border-l border-cyan-400/15 bg-[#020617]/96 p-5 shadow-[0_0_50px_rgba(34,211,238,.16)]">
+      <div className="absolute left-1/2 top-0 flex h-full w-[92%] max-w-[420px] -translate-x-1/2 flex-col border-x border-cyan-400/15 bg-[#020617]/96 p-5 shadow-[0_0_50px_rgba(34,211,238,.16)]">
         <div className="flex items-center justify-between gap-4">
           <Link href="/dashboard" onClick={onClose} className="block min-w-0">
             <RivaloLogo />
@@ -709,19 +709,19 @@ function MobileMenu({
           Menu rapido
         </div>
 
-        <nav className="mt-4 grid gap-3 overflow-y-auto pr-1">
+        <nav className="mt-4 grid min-w-0 gap-3 overflow-y-auto pr-1">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={onClose}
-              className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-4 transition hover:border-cyan-400/30 hover:bg-cyan-400/10"
+              className="flex min-w-0 items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-4 transition hover:border-cyan-400/30 hover:bg-cyan-400/10"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-200 [&>svg]:h-5 [&>svg]:w-5">
                 {item.icon}
               </span>
 
-              <span className="min-w-0">
+              <span className="min-w-0 overflow-hidden">
                 <span className="block truncate text-base font-black text-white">
                   {item.text}
                 </span>
@@ -917,8 +917,8 @@ function SmallMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[.04] p-4">
-      <div className="text-3xl font-black text-cyan-200">{value}</div>
+    <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[.04] p-4">
+      <div className="break-words text-3xl font-black text-cyan-200">{value}</div>
 
       <div className="mt-1 text-xs font-black uppercase tracking-[.14em] text-slate-400">
         {label}

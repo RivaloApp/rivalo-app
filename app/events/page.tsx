@@ -62,6 +62,40 @@ type UserProfile = {
   deletionRequested?: boolean;
 };
 
+const TIME_OPTIONS = [
+  "08:00",
+  "08:30",
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+  "19:00",
+  "19:30",
+  "20:00",
+  "20:30",
+  "21:00",
+  "21:30",
+  "22:00",
+  "22:30",
+  "23:00",
+];
+
 function normalizeText(value?: string) {
   return (value || "")
     .toLowerCase()
@@ -384,10 +418,10 @@ export default function EventsPage() {
   const pageCopy = getEventCopy(userSport);
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <Background />
 
-      <section className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-5 sm:py-8">
+      <section className="relative z-10 mx-auto w-full max-w-7xl min-w-0 px-3 py-6 sm:px-5 sm:py-8">
         <header className="mb-6 sm:mb-8">
           <Link
             href="/dashboard"
@@ -424,10 +458,10 @@ export default function EventsPage() {
           </div>
         </header>
 
-        <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+        <div className="grid min-w-0 gap-6 xl:grid-cols-[0.85fr_1.15fr]">
           <form
             onSubmit={createEvent}
-            className="rounded-[2rem] border border-white/10 bg-white/[.045] p-4 shadow-2xl backdrop-blur sm:rounded-[2.5rem] sm:p-6"
+            className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.045] p-4 shadow-2xl backdrop-blur sm:rounded-[2.5rem] sm:p-6"
           >
             <div className="mb-5 flex items-center gap-3 sm:mb-6 sm:gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 sm:h-14 sm:w-14 sm:rounded-3xl">
@@ -604,12 +638,25 @@ export default function EventsPage() {
                 </Field>
 
                 <Field label="Ora">
-                  <input
-                    type="time"
+                  <select
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
-                    className="w-full bg-transparent outline-none"
-                  />
+                    className="w-full bg-[#020617] text-white outline-none"
+                  >
+                    <option className="bg-[#020617] text-white" value="">
+                      Seleziona ora
+                    </option>
+
+                    {TIME_OPTIONS.map((option) => (
+                      <option
+                        key={option}
+                        className="bg-[#020617] text-white"
+                        value={option}
+                      >
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
 
                 <Field label={isRacketSport(userSport) ? "Posti player" : "Posti"}>
@@ -650,7 +697,7 @@ export default function EventsPage() {
             </div>
           </form>
 
-          <section className="rounded-[2rem] border border-white/10 bg-white/[.045] p-4 shadow-2xl backdrop-blur sm:rounded-[2.5rem] sm:p-6">
+          <section className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.045] p-4 shadow-2xl backdrop-blur sm:rounded-[2.5rem] sm:p-6">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm font-black uppercase tracking-[.25em] text-cyan-300">
@@ -817,12 +864,12 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-300 sm:text-sm sm:tracking-[0.12em]">
         {label}
       </span>
 
-      <div className="rounded-2xl border border-white/10 bg-[#020617]/70 px-4 py-3 text-base sm:py-4">
+      <div className="min-w-0 rounded-2xl border border-white/10 bg-[#020617]/70 px-4 py-3 text-base sm:py-4">
         {children}
       </div>
     </label>
