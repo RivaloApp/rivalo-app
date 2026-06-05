@@ -245,6 +245,32 @@ function getParticipantName(participant?: ParticipantInfo) {
   return participant?.name || "Rivalo Player";
 }
 
+function buildAutoTeamName(players: ParticipantInfo[], format: CompetitionFormat) {
+  if (format === "singolo") {
+    return getParticipantName(players[0]);
+  }
+
+  return players.map(getParticipantName).join(" / ") || "Da definire";
+}
+
+function getTeamCreationTitle(format: CompetitionFormat, sport?: string) {
+  if (isRacketSport(sport)) {
+    if (format === "singolo") return "Crea player";
+    if (format === "doppio") return "Crea coppia";
+  }
+
+  return "Crea squadra";
+}
+
+function getTeamPluralLabel(format: CompetitionFormat, sport?: string) {
+  if (isRacketSport(sport)) {
+    if (format === "singolo") return "Player";
+    if (format === "doppio") return "Coppie";
+  }
+
+  return "Squadre";
+}
+
 function canManageEventTeam({
   userId,
   event,
@@ -694,22 +720,6 @@ if (competitionStarted) {
     return;
   }
 
-  if (!teamName.trim()) {
-    setMessage("Inserisci il nome della squadra.");
-    return;
-  }
-
-  const cleanTeamName = teamName.trim();
-
-  const duplicatedTeamName = (event.teams || []).some(
-    (team) => team.name?.toLowerCase().trim() === cleanTeamName.toLowerCase()
-  );
-
-  if (duplicatedTeamName) {
-    setMessage("Esiste già una squadra/coppia con questo nome nell'evento.");
-    return;
-  }
-
   const competitionFormat =
     event.competitionFormat ||
     (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
@@ -785,6 +795,25 @@ if (competitionStarted) {
     };
   });
 
+  const autoTeamName = buildAutoTeamName(selectedPlayers, competitionFormat);
+  const cleanTeamName = isRacketSport(event.sport)
+    ? autoTeamName
+    : teamName.trim();
+
+  if (!cleanTeamName.trim()) {
+    setMessage("Inserisci il nome della squadra.");
+    return;
+  }
+
+  const duplicatedTeamName = (event.teams || []).some(
+    (team) => team.name?.toLowerCase().trim() === cleanTeamName.toLowerCase()
+  );
+
+  if (duplicatedTeamName) {
+    setMessage("Esiste già una squadra/coppia/player con questo nome nell'evento.");
+    return;
+  }
+
   const captainPlayer =
     selectedPlayers.find((player) => player.uid === user.uid) ||
     selectedPlayers[0];
@@ -846,7 +875,7 @@ if (competitionStarted) {
     setParticipantsInfo(mergedParticipantsInfo);
     setTeamName("");
     setSelectedPlayerIds([]);
-    setMessage("Squadra creata. Il creator è stato impostato come capitano.");
+    setMessage(`${getTeamCreationTitle(competitionFormat, event.sport)} creato. Il creator è stato impostato come capitano.`);
   } catch (error) {
     console.error(error);
     setMessage("Errore durante la creazione della squadra.");
@@ -867,7 +896,7 @@ function getInvalidEventTeams() {
   return teams.filter((team) => {
     const playersCount = Array.isArray(team.players) ? team.players.length : 0;
 
-    if (competitionFormat === "singolo") {
+    if (competitionFormat === "singolo" && (event.teams || []).length < 2) {
       return playersCount !== 1;
     }
 
@@ -1272,7 +1301,9 @@ async function createMatchFromEvent() {
     (event.sport === "calcetto" ? "squadre" : "singolo");
 
   if (
-    (competitionFormat === "squadre" || competitionFormat === "doppio") &&
+    (competitionFormat === "squadre" ||
+      competitionFormat === "doppio" ||
+      (competitionFormat === "singolo" && (event.teams || []).length >= 2)) &&
     !validateTeamsForCompetition()
   ) {
     return;
@@ -1343,7 +1374,7 @@ setMessage("");
       const teams = event.teams || [];
 
       if (teams.length < 2) {
-        setMessage("Servono almeno 2 squadre per creare un match.");
+        setMessage(`Servono almeno 2 ${getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()} per creare un match.`);
         setCreatingMatch(false);
         return;
       }
@@ -1707,7 +1738,9 @@ async function cancelEvent() {
     (event.sport === "calcetto" ? "squadre" : "singolo");
 
   const isTeamCompetition =
-    competitionFormat === "squadre" || competitionFormat === "doppio";
+    competitionFormat === "squadre" ||
+    competitionFormat === "doppio" ||
+    (competitionFormat === "singolo" && isRacketSport(event.sport));
 
   const availableSpots =
     maxPlayers > 0 ? Math.max(0, maxPlayers - participants.length) : 0;
@@ -1894,7 +1927,7 @@ const pendingCompetitionMatches = Math.max(
 
               <div className="rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 px-6 py-4">
                 <div className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
-                  {isTeamCompetition ? "Squadre" : "Posti liberi"}
+                  {isTeamCompetition ? getTeamPluralLabel(competitionFormat, event.sport) : "Posti liberi"}
                 </div>
 
                 <div className="mt-1 text-3xl font-black text-cyan-100">
@@ -2006,7 +2039,7 @@ const pendingCompetitionMatches = Math.max(
 
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
   <SummaryBox
-    label={isTeamCompetition ? "Squadre" : "Partecipanti"}
+    label={isTeamCompetition ? getTeamPluralLabel(competitionFormat, event.sport) : "Partecipanti"}
     value={isTeamCompetition ? teams.length : participants.length}
     tone="cyan"
   />
@@ -2071,15 +2104,17 @@ const pendingCompetitionMatches = Math.max(
                 <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
                   <div className="mb-5">
                     <div className="text-sm font-black uppercase tracking-[0.25em] text-cyan-300">
-                      Squadre
+                      {getTeamPluralLabel(competitionFormat, event.sport)}
                     </div>
 
                     <h2 className="mt-2 text-2xl font-black sm:text-3xl">
-                      Gestione squadre
+                      Gestione {getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()}
                     </h2>
 
                     <p className="mt-2 text-sm text-slate-400">
-                      Crea le squadre o le coppie che parteciperanno alla competizione.
+                      {isRacketSport(event.sport)
+                        ? "Crea player o coppie usando gli iscritti all'evento. I nomi vengono generati dai profili selezionati."
+                        : "Crea le squadre che parteciperanno alla competizione."}
                     </p>
                     <div className="mt-5 grid gap-3 sm:grid-cols-3">
   <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-center">
@@ -2087,7 +2122,7 @@ const pendingCompetitionMatches = Math.max(
       {teams.length}
     </div>
     <div className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-      Team totali
+      {getTeamPluralLabel(competitionFormat, event.sport)}
     </div>
   </div>
 
@@ -2113,22 +2148,26 @@ const pendingCompetitionMatches = Math.max(
 
                   {isCreator && !accountLocked && !isCancelled && !competitionStarted && (
                     <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
-                      <Field label={competitionFormat === "doppio" ? "Nome coppia" : "Nome squadra"}>
-                        <input
-                          value={teamName}
-                          onChange={(e) => setTeamName(e.target.value)}
-                          placeholder={
-                            competitionFormat === "doppio"
-                              ? "Es. Coppia Blu"
-                              : "Es. Team Black"
-                          }
-                          className="w-full bg-transparent outline-none placeholder:text-slate-500"
-                        />
-                      </Field>
+                      {!isRacketSport(event.sport) ? (
+                        <Field label="Nome squadra">
+                          <input
+                            value={teamName}
+                            onChange={(e) => setTeamName(e.target.value)}
+                            placeholder="Es. Team Black"
+                            className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                          />
+                        </Field>
+                      ) : (
+                        <div className="rounded-2xl border border-lime-400/20 bg-lime-400/10 p-4 text-sm font-bold leading-6 text-lime-100">
+                          {competitionFormat === "singolo"
+                            ? "Nel singolo il nome del player viene preso dal profilo selezionato."
+                            : "Nel doppio il nome della coppia viene generato dai due profili selezionati."}
+                        </div>
+                      )}
 
                       <div className="mt-4">
                         <div className="mb-2 text-sm font-black uppercase tracking-[0.12em] text-slate-300">
-                          Giocatori iscritti all'evento
+                          {isRacketSport(event.sport) ? "Utenti iscritti all'evento" : "Giocatori iscritti all'evento"}
                         </div>
 
                         <select
@@ -2162,8 +2201,8 @@ const pendingCompetitionMatches = Math.max(
                         </select>
 
                         <div className="mt-2 text-xs leading-5 text-slate-400">
-                         Puoi selezionare solo giocatori già iscritti all'evento. Un giocatore non può stare in due squadre.
-                         Chi crea la squadra/coppia deve selezionare anche sé stesso: diventerà capitano.
+                         Puoi selezionare solo utenti già iscritti all'evento. Un utente non può stare in due squadre/coppie/player.
+                         Chi crea la squadra/coppia/player deve selezionare anche sé stesso: diventerà capitano.
                         </div>
                       </div>
 
@@ -2173,7 +2212,9 @@ const pendingCompetitionMatches = Math.max(
                         disabled={creatingTeam}
                         className="mt-4 w-full rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-4 font-black text-cyan-200 transition hover:bg-cyan-400/20 disabled:opacity-60"
                       >
-                        {creatingTeam ? "Creazione..." : "Crea squadra"}
+                        {creatingTeam
+                          ? "Creazione..."
+                          : getTeamCreationTitle(competitionFormat, event.sport)}
                       </button>
                     </div>
                   )}

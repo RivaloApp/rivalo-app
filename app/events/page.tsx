@@ -250,6 +250,14 @@ export default function EventsPage() {
     }
   }
 
+  function handleCompetitionFormatChange(value: CompetitionFormat) {
+    setCompetitionFormat(value);
+
+    if (sport === "padel" || sport === "tennis") {
+      setMaxPlayers(value === "doppio" ? "4" : "2");
+    }
+  }
+
   async function loadEvents(currentUserId: string, currentUserSport: string, currentUserCity: string) {
     setLoading(true);
 
@@ -497,7 +505,7 @@ export default function EventsPage() {
                 <select
                   value={competitionFormat}
                   onChange={(e) =>
-                    setCompetitionFormat(e.target.value as CompetitionFormat)
+                    handleCompetitionFormatChange(e.target.value as CompetitionFormat)
                   }
                   disabled={sport === "calcetto"}
                   className="w-full bg-[#020617] text-white outline-none disabled:cursor-not-allowed disabled:opacity-70"
@@ -522,6 +530,12 @@ export default function EventsPage() {
                   {pageCopy.formatHelp}
                 </div>
               </Field>
+
+              {isRacketSport(userSport) && (
+                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold leading-6 text-cyan-100">
+                  Gli eventi racket usano player/coppie e score a set. I nomi delle coppie o dei player verranno creati dagli utenti iscritti, non scritti a mano.
+                </div>
+              )}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Città">
@@ -598,7 +612,7 @@ export default function EventsPage() {
                   />
                 </Field>
 
-                <Field label="Posti">
+                <Field label={isRacketSport(userSport) ? "Posti player" : "Posti"}>
                   <input
                     type="number"
                     min="2"
