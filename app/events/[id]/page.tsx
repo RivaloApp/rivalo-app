@@ -45,9 +45,7 @@ type BracketMatch = {
   round: number;
   matchNumber: number;
   homeTeamId?: string;
-  homeCaptainId?: string;
   awayTeamId?: string;
-  awayCaptainId?: string;
   homeName: string;
   awayName: string;
   winnerTeamId?: string;
@@ -62,9 +60,7 @@ type LeagueFixture = {
   round: number;
   matchNumber: number;
   homeTeamId: string;
-  homeCaptainId?: string;
   awayTeamId: string;
-  awayCaptainId?: string;
   homeName: string;
   awayName: string;
   matchId?: string;
@@ -113,7 +109,6 @@ type EventStat = {
   mvp?: number;
   goalsFor?: number;
   goalsAgainst?: number;
-  goalDifference?: number;
   photoUrl?: string;
   teamId?: string;
   teamName?: string;
@@ -131,8 +126,6 @@ type TeamStat = {
   losses?: number;
   goalsFor?: number;
   goalsAgainst?: number;
-  goalDifference?: number;
-  sport?: string;
 };
 
 type EventData = {
@@ -145,8 +138,6 @@ type EventData = {
   time?: string;
   type?: string;
   competitionFormat?: CompetitionFormat;
-  scoreMode?: "football" | "racket";
-  sportStatsMode?: "football" | "racket";
   maxPlayers?: number;
   prize?: string;
   status?: string;
@@ -167,8 +158,6 @@ leagueFixtures?: LeagueFixture[];
 type UserProfile = {
   mainSport?: string;
   sport?: string;
-  accountStatus?: string;
-  deletionRequested?: boolean;
 };
 
 function normalizeSport(value?: string) {
@@ -187,231 +176,8 @@ function formatSportLabel(value?: string) {
   return "Calcetto";
 }
 
-function isRacketSport(value?: string) {
-  const sport = normalizeSport(value);
-
-  return sport === "padel" || sport === "tennis";
-}
-
-function getEventCopy(value?: string) {
-  const sport = normalizeSport(value);
-
-  if (sport === "padel") {
-    return {
-      teamLabel: "Coppie / player",
-      teamSingle: "Coppia",
-      teamPlural: "Coppie",
-      scoreFor: "SF",
-      scoreAgainst: "SS",
-      scoreDiff: "DS",
-      rankingTitle: "Ranking padel",
-      rankingText: "Classifica basata su punti, vittorie e score dei match confermati. Gol e assist non vengono usati.",
-      matchStatsMode: "no gol/assist",
-    };
-  }
-
-  if (sport === "tennis") {
-    return {
-      teamLabel: "Player / coppie",
-      teamSingle: "Player/Coppia",
-      teamPlural: "Player/Coppie",
-      scoreFor: "SF",
-      scoreAgainst: "SS",
-      scoreDiff: "DS",
-      rankingTitle: "Ranking tennis",
-      rankingText: "Classifica basata su punti, vittorie e score dei match confermati. Gol e assist non vengono usati.",
-      matchStatsMode: "no gol/assist",
-    };
-  }
-
-  return {
-    teamLabel: "Squadre",
-    teamSingle: "Squadra",
-    teamPlural: "Squadre",
-    scoreFor: "GF",
-    scoreAgainst: "GS",
-    scoreDiff: "DR",
-    rankingTitle: "Ranking competizione",
-    rankingText: "Classifica basata su punti, vittorie, gol fatti e differenza reti.",
-    matchStatsMode: "gol/assist",
-  };
-}
-
-function isProfileDeletionRequested(profile?: UserProfile | null) {
-  return Boolean(
-    profile?.accountStatus === "deletion_requested" ||
-      profile?.accountStatus === "deleted" ||
-      profile?.deletionRequested
-  );
-}
-
-function isUserCandidateActive(data: any) {
-  return !(
-    data?.accountStatus === "deletion_requested" ||
-    data?.accountStatus === "deleted" ||
-    data?.deletionRequested
-  );
-}
-
 function getParticipantName(participant?: ParticipantInfo) {
   return participant?.name || "Rivalo Player";
-}
-
-function getResolvedCaptain(team: TeamInfo) {
-  const players = Array.isArray(team.players) ? team.players : [];
-
-  const explicitCaptain = players.find(
-    (player) => player.uid === team.captainId
-  );
-
-  if (explicitCaptain) {
-    return explicitCaptain;
-  }
-
-  const creatorCaptain = players.find(
-    (player) => player.uid === team.createdBy
-  );
-
-  if (creatorCaptain) {
-    return creatorCaptain;
-  }
-
-  if (players.length === 1) {
-    return players[0];
-  }
-
-  return undefined;
-}
-
-function hasValidCaptain(team: TeamInfo) {
-  return Boolean(getResolvedCaptain(team));
-}
-
-function buildAutoTeamName(players: ParticipantInfo[], format: CompetitionFormat) {
-  if (format === "singolo") {
-    return getParticipantName(players[0]);
-  }
-
-  return players.map(getParticipantName).join(" / ") || "Da definire";
-}
-
-function buildSinglePlayerUnits(players: ParticipantInfo[]) {
-  return players.map((player) => ({
-    id: player.uid,
-    name: getParticipantName(player),
-    players: [player],
-    createdBy: player.uid,
-    captainId: player.uid,
-    captainName: getParticipantName(player),
-  })) as TeamInfo[];
-}
-
-function getCompetitionUnits({
-  event,
-  participantsInfo,
-}: {
-  event: EventData;
-  participantsInfo: ParticipantInfo[];
-}) {
-  const competitionFormat =
-    event.competitionFormat ||
-    (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
-
-  if (competitionFormat === "singolo" && isRacketSport(event.sport)) {
-    return buildSinglePlayerUnits(participantsInfo);
-  }
-
-  return event.teams || [];
-}
-
-function getNextPowerOfTwo(value: number) {
-  if (value <= 2) return 2;
-
-  return Math.pow(2, Math.ceil(Math.log2(value)));
-}
-
-function getRoundName(round: number, totalRounds: number) {
-  const remainingRounds = totalRounds - round + 1;
-
-  if (remainingRounds === 1) return "Finale";
-  if (remainingRounds === 2) return "Semifinali";
-  if (remainingRounds === 3) return "Quarti";
-  if (remainingRounds === 4) return "Ottavi";
-
-  return `Round ${round}`;
-}
-
-function buildTournamentBracket(units: TeamInfo[]) {
-  const shuffledTeams = [...units].sort(() => Math.random() - 0.5);
-  const bracketSize = getNextPowerOfTwo(shuffledTeams.length);
-  const totalRounds = Math.ceil(Math.log2(bracketSize));
-  const firstRoundMatches = bracketSize / 2;
-  const bracket: BracketMatch[] = [];
-
-  let matchNumber = 1;
-
-  for (let index = 0; index < firstRoundMatches; index++) {
-    const homeTeam = shuffledTeams[index * 2];
-    const awayTeam = shuffledTeams[index * 2 + 1];
-
-    if (!homeTeam) continue;
-
-    bracket.push({
-      round: 1,
-      matchNumber: matchNumber++,
-      homeTeamId: homeTeam.id,
-      awayTeamId: awayTeam?.id || "",
-      homeName: homeTeam.name || "Da definire",
-      awayName: awayTeam?.name || "Riposo",
-      winnerTeamId: awayTeam ? "" : homeTeam.id,
-      matchId: "",
-      status: awayTeam ? "programmato" : "riposo",
-      resultStatus: awayTeam ? "da_creare" : "confermato",
-      homeScore: null,
-      awayScore: null,
-    });
-  }
-
-  for (let round = 2; round <= totalRounds; round++) {
-    const matchesInRound = Math.max(1, bracketSize / Math.pow(2, round));
-
-    for (let index = 0; index < matchesInRound; index++) {
-      bracket.push({
-        round,
-        matchNumber: matchNumber++,
-        homeTeamId: "",
-        awayTeamId: "",
-        homeName: `Vincitore match ${index * 2 + 1}`,
-        awayName: `Vincitore match ${index * 2 + 2}`,
-        winnerTeamId: "",
-        matchId: "",
-        status: "in_attesa",
-        resultStatus: "in_attesa",
-        homeScore: null,
-        awayScore: null,
-      });
-    }
-  }
-
-  return bracket;
-}
-
-function getTeamCreationTitle(format: CompetitionFormat, sport?: string) {
-  if (isRacketSport(sport)) {
-    if (format === "singolo") return "Crea player";
-    if (format === "doppio") return "Crea coppia";
-  }
-
-  return "Crea squadra";
-}
-
-function getTeamPluralLabel(format: CompetitionFormat, sport?: string) {
-  if (isRacketSport(sport)) {
-    if (format === "singolo") return "Player";
-    if (format === "doppio") return "Coppie";
-  }
-
-  return "Squadre";
 }
 
 function canManageEventTeam({
@@ -425,10 +191,9 @@ function canManageEventTeam({
 }) {
   if (!userId) return false;
 
-  const resolvedCaptain = getResolvedCaptain(team);
-
   if (userId === event.createdBy) return true;
-  if (resolvedCaptain?.uid === userId) return true;
+  if (userId === team.captainId) return true;
+  if (!team.captainId && userId === team.createdBy) return true;
 
   return false;
 }
@@ -500,21 +265,16 @@ export default function EventDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [userSport, setUserSport] = useState("calcetto");
   const [sportMismatch, setSportMismatch] = useState(false);
-  const [accountLocked, setAccountLocked] = useState(false);
   const [event, setEvent] = useState<EventData | null>(null);
   const [participantsInfo, setParticipantsInfo] = useState<ParticipantInfo[]>([]);
   const [eventStats, setEventStats] = useState<EventStat[]>([]);
   const [teamStats, setTeamStats] = useState<any[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
-  const [candidateUsers, setCandidateUsers] = useState<UserOption[]>([]);
-  const [selectedUserToAdd, setSelectedUserToAdd] = useState("");
-  const [addingUser, setAddingUser] = useState(false);
   const [generatingBracket, setGeneratingBracket] = useState(false);
   const [generatingLeague, setGeneratingLeague] = useState(false);
 
   const [teamName, setTeamName] = useState("");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
-  const [selectedCaptainId, setSelectedCaptainId] = useState("");
   const [cancellationReason, setCancellationReason] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -542,7 +302,6 @@ export default function EventDetailPage() {
 
     setLoading(true);
     setSportMismatch(false);
-    setAccountLocked(false);
 
     try {
       const snap = await getDoc(doc(db, "events", id));
@@ -570,7 +329,6 @@ export default function EventDetailPage() {
       );
 
       setUserSport(currentUserSport);
-      setAccountLocked(isProfileDeletionRequested(profile));
       setCancellationReason(eventData.cancellationReason || "");
       setEvent(eventData);
 
@@ -578,7 +336,6 @@ export default function EventDetailPage() {
         setSportMismatch(true);
         setParticipantsInfo([]);
         setAvailableUsers([]);
-        setCandidateUsers([]);
         setEventStats([]);
         setTeamStats([]);
         return;
@@ -641,34 +398,6 @@ setAvailableUsers(
   }))
 );
 
-const usersSnap = await getDocs(collection(db, "users"));
-const candidateUsersResult: UserOption[] = [];
-
-usersSnap.docs.forEach((userDoc) => {
-  const data = userDoc.data() as any;
-  const candidateSport = normalizeSport(data.mainSport || data.sport || "calcetto");
-
-  if (candidateSport !== normalizeSport(eventData.sport)) return;
-  if (!isUserCandidateActive(data)) return;
-  if (participants.includes(userDoc.id)) return;
-
-  candidateUsersResult.push({
-    uid: userDoc.id,
-    name: data.name || data.nickname || "Rivalo Player",
-    nickname: data.nickname || "",
-    photoUrl: data.photoUrl || data.photoURL || "",
-    photoURL: data.photoURL || data.photoUrl || "",
-  });
-});
-
-setCandidateUsers(
-  candidateUsersResult.sort((a, b) =>
-    getParticipantName({ uid: a.uid, name: a.name }).localeCompare(
-      getParticipantName({ uid: b.uid, name: b.name })
-    )
-  )
-);
-
       const statsQuery = query(
         collection(db, "eventStats"),
         where("eventId", "==", id)
@@ -696,7 +425,6 @@ setCandidateUsers(
           mvp: Number(data.mvp || 0),
           goalsFor: Number(data.goalsFor || 0),
           goalsAgainst: Number(data.goalsAgainst || 0),
-          goalDifference: Number(data.goalDifference || 0),
         };
       });
 
@@ -732,11 +460,6 @@ setTeamStats(teamStatsResult);
 
   async function joinEvent() {
     if (!user || !event) return;
-
-    if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi iscriverti agli eventi.");
-      return;
-    }
 
     if (sportMismatch || normalizeSport(event.sport) !== userSport) {
       setMessage("Questo evento appartiene a un altro sport. Usa un profilo sport compatibile.");
@@ -865,147 +588,8 @@ if (competitionStarted) {
     setJoining(false);
   }
 
-async function addUserToEvent() {
-  if (!user || !event) return;
-
-  if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi aggiungere utenti.");
-    return;
-  }
-
-  if (user.uid !== event.createdBy) {
-    setMessage("Solo il creator può aggiungere utenti all'evento.");
-    return;
-  }
-
-  if (sportMismatch || normalizeSport(event.sport) !== userSport) {
-    setMessage("Non puoi aggiungere utenti a un evento di un altro sport.");
-    return;
-  }
-
-  if (isEventCancelled(event)) {
-    setMessage("Evento annullato. Non puoi aggiungere utenti.");
-    return;
-  }
-
-  const competitionStarted =
-    Boolean(event.bracket && event.bracket.length > 0) ||
-    Boolean(event.leagueFixtures && event.leagueFixtures.length > 0) ||
-    event.status === "tabellone creato" ||
-    event.status === "calendario creato" ||
-    event.status === "in corso" ||
-    event.status === "torneo completato" ||
-    event.status === "campionato completato";
-
-  if (competitionStarted) {
-    setMessage("Le iscrizioni sono chiuse perché la competizione è già iniziata.");
-    return;
-  }
-
-  if (!selectedUserToAdd) {
-    setMessage("Seleziona un utente da aggiungere.");
-    return;
-  }
-
-  const participants = event.participants || [];
-
-  if (participants.includes(selectedUserToAdd)) {
-    setMessage("Questo utente è già iscritto all'evento.");
-    return;
-  }
-
-  const maxPlayers = Number(event.maxPlayers || 0);
-
-  if (maxPlayers > 0 && participants.length >= maxPlayers) {
-    setMessage("Evento pieno.");
-    return;
-  }
-
-  const selectedUser = candidateUsers.find(
-    (candidate) => candidate.uid === selectedUserToAdd
-  );
-
-  if (!selectedUser) {
-    setMessage("Utente non disponibile o non compatibile con questo sport.");
-    return;
-  }
-
-  const newParticipant: ParticipantInfo = {
-    uid: selectedUser.uid,
-    name: selectedUser.name || selectedUser.nickname || "Rivalo Player",
-    photoUrl: selectedUser.photoUrl || selectedUser.photoURL || "",
-  };
-
-  const newParticipantsCount = participants.length + 1;
-  const nextStatus =
-    maxPlayers > 0 && newParticipantsCount >= maxPlayers
-      ? "completo"
-      : "aperto";
-
-  setAddingUser(true);
-  setMessage("");
-
-  try {
-    await updateDoc(doc(db, "events", event.id), {
-      participants: arrayUnion(newParticipant.uid),
-      participantsInfo: arrayUnion(newParticipant),
-      status: nextStatus,
-      updatedAt: serverTimestamp(),
-    });
-
-    await createNotification({
-      uid: newParticipant.uid,
-      type: "generic",
-      title: "Sei stato aggiunto a un evento",
-      message: `Sei stato aggiunto a ${event.title || "un evento Rivalo"}.`,
-      link: "/events/" + event.id,
-      createdBy: user.uid,
-      metadata: {
-        eventId: event.id,
-        eventTitle: event.title || "Evento Rivalo",
-      },
-    });
-
-    const nextParticipantsInfo = [...participantsInfo, newParticipant];
-
-    setEvent({
-      ...event,
-      participants: [...participants, newParticipant.uid],
-      participantsInfo: [...(event.participantsInfo || []), newParticipant],
-      status: nextStatus,
-    });
-
-    setParticipantsInfo(nextParticipantsInfo);
-    setAvailableUsers([
-      ...availableUsers,
-      {
-        uid: newParticipant.uid,
-        name: newParticipant.name || "Rivalo Player",
-        nickname: "",
-        photoUrl: newParticipant.photoUrl || "",
-        photoURL: newParticipant.photoUrl || "",
-      },
-    ]);
-    setCandidateUsers((current) =>
-      current.filter((candidate) => candidate.uid !== newParticipant.uid)
-    );
-    setSelectedUserToAdd("");
-    setMessage("Utente aggiunto all'evento.");
-  } catch (error) {
-    console.error(error);
-    setMessage("Errore durante l'aggiunta dell'utente.");
-  } finally {
-    setAddingUser(false);
-  }
-}
-
  async function createTeam() {
   if (!user || !event) return;
-
-  if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi creare squadre o coppie.");
-    return;
-  }
 
   if (sportMismatch || normalizeSport(event.sport) !== userSport) {
     setMessage("Non puoi creare squadre/coppie in un evento di un altro sport.");
@@ -1031,9 +615,25 @@ async function addUserToEvent() {
     return;
   }
 
+  if (!teamName.trim()) {
+    setMessage("Inserisci il nome della squadra.");
+    return;
+  }
+
+  const cleanTeamName = teamName.trim();
+
+  const duplicatedTeamName = (event.teams || []).some(
+    (team) => team.name?.toLowerCase().trim() === cleanTeamName.toLowerCase()
+  );
+
+  if (duplicatedTeamName) {
+    setMessage("Esiste già una squadra/coppia con questo nome nell'evento.");
+    return;
+  }
+
   const competitionFormat =
     event.competitionFormat ||
-    (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
+    (event.sport === "calcetto" ? "squadre" : "singolo");
 
   const eventParticipants = event.participants || [];
 
@@ -1053,8 +653,8 @@ async function addUserToEvent() {
   }
 
   if (competitionFormat === "squadre") {
-    const minPlayers = normalizeSport(event.sport) === "calcetto" ? 5 : 2;
-    const maxPlayers = normalizeSport(event.sport) === "calcetto" ? 8 : 2;
+    const minPlayers = event.sport === "calcetto" ? 5 : 2;
+    const maxPlayers = event.sport === "calcetto" ? 8 : 2;
 
     if (selectedPlayerIds.length < minPlayers) {
       setMessage(`Per questa squadra servono almeno ${minPlayers} giocatori.`);
@@ -1091,6 +691,11 @@ async function addUserToEvent() {
     return;
   }
 
+  if (!selectedPlayerIds.includes(user.uid)) {
+    setMessage("Chi crea la squadra/coppia deve essere incluso nella rosa e diventa capitano.");
+    return;
+  }
+
   const selectedPlayers: ParticipantInfo[] = selectedPlayerIds.map((uid) => {
     const selectedUser = availableUsers.find((u) => u.uid === uid);
 
@@ -1101,42 +706,17 @@ async function addUserToEvent() {
     };
   });
 
-  const selectedCaptain =
-    competitionFormat === "singolo"
-      ? selectedPlayers[0]
-      : selectedPlayers.find((player) => player.uid === selectedCaptainId);
-
-  if (!selectedCaptain) {
-    setMessage("Scegli il capitano.");
-    return;
-  }
-
-  const autoTeamName = buildAutoTeamName(selectedPlayers, competitionFormat);
-  const cleanTeamName = isRacketSport(event.sport)
-    ? autoTeamName
-    : teamName.trim();
-
-  if (!cleanTeamName.trim()) {
-    setMessage("Inserisci il nome della squadra.");
-    return;
-  }
-
-  const duplicatedTeamName = (event.teams || []).some(
-    (team) => team.name?.toLowerCase().trim() === cleanTeamName.toLowerCase()
-  );
-
-  if (duplicatedTeamName) {
-    setMessage("Esiste già una squadra/coppia/player con questo nome nell'evento.");
-    return;
-  }
+  const captainPlayer =
+    selectedPlayers.find((player) => player.uid === user.uid) ||
+    selectedPlayers[0];
 
   const newTeam: TeamInfo = {
     id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
     name: cleanTeamName,
     players: selectedPlayers,
     createdBy: user.uid,
-    captainId: selectedCaptain.uid,
-    captainName: getParticipantName(selectedCaptain),
+    captainId: captainPlayer?.uid || user.uid,
+    captainName: getParticipantName(captainPlayer),
   };
 
   const nextTeams = [...currentTeams, newTeam];
@@ -1187,8 +767,7 @@ async function addUserToEvent() {
     setParticipantsInfo(mergedParticipantsInfo);
     setTeamName("");
     setSelectedPlayerIds([]);
-    setSelectedCaptainId("");
-    setMessage(`${getTeamCreationTitle(competitionFormat, event.sport)} creato.`);
+    setMessage("Squadra creata. Il creator è stato impostato come capitano.");
   } catch (error) {
     console.error(error);
     setMessage("Errore durante la creazione della squadra.");
@@ -1202,18 +781,14 @@ function getInvalidEventTeams() {
 
   const competitionFormat =
     event.competitionFormat ||
-    (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
+    (event.sport === "calcetto" ? "squadre" : "singolo");
 
   const teams = event.teams || [];
 
   return teams.filter((team) => {
     const playersCount = Array.isArray(team.players) ? team.players.length : 0;
 
-    if (!hasValidCaptain(team)) {
-      return true;
-    }
-
-    if (competitionFormat === "singolo" && (event.teams || []).length < 2) {
+    if (competitionFormat === "singolo") {
       return playersCount !== 1;
     }
 
@@ -1222,8 +797,8 @@ function getInvalidEventTeams() {
     }
 
     if (competitionFormat === "squadre") {
-      const minPlayers = normalizeSport(event.sport) === "calcetto" ? 5 : 2;
-      const maxPlayers = normalizeSport(event.sport) === "calcetto" ? 8 : 2;
+      const minPlayers = event.sport === "calcetto" ? 5 : 2;
+      const maxPlayers = event.sport === "calcetto" ? 8 : 2;
 
       return playersCount < minPlayers || playersCount > maxPlayers;
     }
@@ -1235,23 +810,11 @@ function getInvalidEventTeams() {
 function validateTeamsForCompetition() {
   if (!event) return false;
 
-  const competitionFormat =
-    event.competitionFormat ||
-    (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
-
-  const teams = getCompetitionUnits({ event, participantsInfo });
+  const teams = event.teams || [];
 
   if (teams.length < 2) {
-    setMessage(
-      competitionFormat === "singolo" && isRacketSport(event.sport)
-        ? "Servono almeno 2 player iscritti per generare il tabellone."
-        : "Servono almeno 2 squadre/coppie/player per iniziare."
-    );
+    setMessage("Servono almeno 2 squadre/coppie per iniziare.");
     return false;
-  }
-
-  if (competitionFormat === "singolo" && isRacketSport(event.sport)) {
-    return true;
   }
 
   const invalidTeams = getInvalidEventTeams();
@@ -1280,13 +843,9 @@ function getTeamValidationLabel(team: TeamInfo) {
 
   const competitionFormat =
     event.competitionFormat ||
-    (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
+    (event.sport === "calcetto" ? "squadre" : "singolo");
 
   const playersCount = Array.isArray(team.players) ? team.players.length : 0;
-
-  if (!hasValidCaptain(team)) {
-    return "Scegli capitano";
-  }
 
   if (competitionFormat === "singolo") {
     return playersCount === 1 ? "Valida" : "Serve 1 giocatore";
@@ -1297,8 +856,8 @@ function getTeamValidationLabel(team: TeamInfo) {
   }
 
   if (competitionFormat === "squadre") {
-    const minPlayers = normalizeSport(event.sport) === "calcetto" ? 5 : 2;
-    const maxPlayers = normalizeSport(event.sport) === "calcetto" ? 8 : 2;
+    const minPlayers = event.sport === "calcetto" ? 5 : 2;
+    const maxPlayers = event.sport === "calcetto" ? 8 : 2;
 
     if (playersCount < minPlayers) {
       return `Minimo ${minPlayers} giocatori`;
@@ -1321,11 +880,6 @@ function isTeamValid(team: TeamInfo) {
 async function generateTournamentBracket() {
   if (!user || !event) return;
 
-  if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi generare tabelloni.");
-    return;
-  }
-
   if (sportMismatch || normalizeSport(event.sport) !== userSport) {
     setMessage("Non puoi generare tabelloni per eventi di un altro sport.");
     return;
@@ -1336,7 +890,7 @@ async function generateTournamentBracket() {
     return;
   }
 
-  const teams = getCompetitionUnits({ event, participantsInfo });
+  const teams = event.teams || [];
 
   if (event.type !== "torneo") {
     setMessage("Il tabellone è disponibile solo per i tornei.");
@@ -1362,7 +916,29 @@ async function generateTournamentBracket() {
   setMessage("");
 
   try {
-    const bracket = buildTournamentBracket(validTeams);
+    const shuffledTeams = [...validTeams].sort(() => Math.random() - 0.5);
+
+    const bracket: BracketMatch[] = [];
+
+    for (let i = 0; i < shuffledTeams.length; i += 2) {
+      const homeTeam = shuffledTeams[i];
+      const awayTeam = shuffledTeams[i + 1];
+
+      bracket.push({
+        round: 1,
+        matchNumber: bracket.length + 1,
+        homeTeamId: homeTeam?.id || "",
+        awayTeamId: awayTeam?.id || "",
+        homeName: homeTeam?.name || "Da definire",
+        awayName: awayTeam?.name || "Riposo",
+        winnerTeamId: "",
+        matchId: "",
+        status: awayTeam ? "programmato" : "riposo",
+        resultStatus: awayTeam ? "da_creare" : "confermato",
+        homeScore: null,
+        awayScore: null,
+      });
+    }
 
     await updateDoc(doc(db, "events", event.id), {
       bracket,
@@ -1419,11 +995,6 @@ setMessage("Tabellone generato.");
 async function generateLeagueSchedule() {
   if (!user || !event) return;
 
-  if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi generare calendari.");
-    return;
-  }
-
   if (sportMismatch || normalizeSport(event.sport) !== userSport) {
     setMessage("Non puoi generare calendari per eventi di un altro sport.");
     return;
@@ -1434,7 +1005,7 @@ async function generateLeagueSchedule() {
     return;
   }
 
-  const teams = getCompetitionUnits({ event, participantsInfo });
+  const teams = event.teams || [];
 
   if (event.type !== "campionato") {
     setMessage("Il calendario è disponibile solo per i campionati.");
@@ -1592,11 +1163,6 @@ setMessage("Calendario campionato generato.");
 async function createMatchFromEvent() {
   if (!user || !event) return;
 
-  if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi creare match evento.");
-    return;
-  }
-
   if (sportMismatch || normalizeSport(event.sport) !== userSport) {
     setMessage("Non puoi creare match da un evento di un altro sport.");
     return;
@@ -1611,7 +1177,10 @@ async function createMatchFromEvent() {
     event.competitionFormat ||
     (event.sport === "calcetto" ? "squadre" : "singolo");
 
-  if (!validateTeamsForCompetition()) {
+  if (
+    (competitionFormat === "squadre" || competitionFormat === "doppio") &&
+    !validateTeamsForCompetition()
+  ) {
     return;
   }
 
@@ -1656,76 +1225,31 @@ setMessage("");
     let sourceLeagueIndex = -1;
 
     if (competitionFormat === "singolo") {
-      const units = getCompetitionUnits({ event, participantsInfo });
-
-      if (units.length < 2) {
-        setMessage("Servono almeno 2 player per creare un match.");
+      if (participantsInfo.length < 2) {
+        setMessage("Servono almeno 2 partecipanti per creare un match.");
         setCreatingMatch(false);
         return;
       }
 
-      if (event.type === "torneo" && event.bracket?.length) {
-        const nextBracketIndex = event.bracket.findIndex(
-          (match) => !match.matchId && Boolean(match.awayTeamId)
-        );
+      players = participantsInfo.slice(0, 2).map((participant, index) => ({
+        uid: participant.uid,
+        name: participant.name || "Rivalo Player",
+        team: index === 0 ? "home" : "away",
+        goals: 0,
+        assists: 0,
+        isMvp: false,
+      }));
 
-        if (nextBracketIndex === -1) {
-          setMessage("Non ci sono match del tabellone da creare.");
-          setCreatingMatch(false);
-          return;
-        }
-
-        const bracketMatch = event.bracket[nextBracketIndex];
-
-        homeTeam = units.find((team) => team.id === bracketMatch.homeTeamId);
-        awayTeam = units.find((team) => team.id === bracketMatch.awayTeamId);
-
-        homeTeamName = bracketMatch.homeName;
-        awayTeamName = bracketMatch.awayName;
-        matchHomeTeamId = bracketMatch.homeTeamId || "";
-        matchAwayTeamId = bracketMatch.awayTeamId || "";
-        sourceBracketIndex = nextBracketIndex;
-      } else {
-        homeTeam = units[0];
-        awayTeam = units[1];
-
-        homeTeamName = homeTeam?.name || "Player 1";
-        awayTeamName = awayTeam?.name || "Player 2";
-        matchHomeTeamId = homeTeam?.id || "";
-        matchAwayTeamId = awayTeam?.id || "";
-      }
-
-      if (!homeTeam || !awayTeam) {
-        setMessage("Player non trovati. Controlla il tabellone.");
-        setCreatingMatch(false);
-        return;
-      }
-
-      sourceType = event.type === "torneo" ? "eventBracketPlayers" : "eventParticipants";
-
-      players = [
-        ...homeTeam.players.map((player) => ({
-          uid: player.uid,
-          name: player.name || "Rivalo Player",
-          team: "home" as const,
-          goals: 0,
-          assists: 0,
-          isMvp: false,
-        })),
-        ...awayTeam.players.map((player) => ({
-          uid: player.uid,
-          name: player.name || "Rivalo Player",
-          team: "away" as const,
-          goals: 0,
-          assists: 0,
-          isMvp: false,
-        })),
-      ];
+      homeTeamName = participantsInfo[0]?.name || "Player 1";
+      awayTeamName = participantsInfo[1]?.name || "Player 2";
+      matchHomeTeamId = participantsInfo[0]?.uid || "";
+      matchAwayTeamId = participantsInfo[1]?.uid || "";
+      sourceType = "eventParticipants";
     } else {
       const teams = event.teams || [];
 
       if (teams.length < 2) {
-        setMessage(`Servono almeno 2 ${getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()} per creare un match.`);
+        setMessage("Servono almeno 2 squadre per creare un match.");
         setCreatingMatch(false);
         return;
       }
@@ -1806,17 +1330,10 @@ setMessage("");
       ];
     }
 
-    const homeCaptain = homeTeam ? getResolvedCaptain(homeTeam) : undefined;
-    const awayCaptain = awayTeam ? getResolvedCaptain(awayTeam) : undefined;
-
-    if (!homeCaptain || !awayCaptain) {
-      setMessage("Scegli i capitani prima di creare il match.");
-      setCreatingMatch(false);
-      return;
-    }
-
-    const homeCaptainId = homeCaptain.uid;
-    const awayCaptainId = awayCaptain.uid;
+    const homeCaptainId =
+      homeTeam?.captainId || homeTeam?.createdBy || players[0]?.uid || "";
+    const awayCaptainId =
+      awayTeam?.captainId || awayTeam?.createdBy || players[1]?.uid || "";
 
     const matchRef = await addDoc(collection(db, "matches"), {
       createdBy: user.uid,
@@ -1832,9 +1349,7 @@ setMessage("");
           ? `${event.title || "Torneo"} · ${homeTeamName} vs ${awayTeamName}`
           : event.title || "Match da evento",
 
-      sport: normalizeSport(event.sport),
-      scoreMode: isRacketSport(event.sport) ? "racket" : "football",
-      sportStatsMode: isRacketSport(event.sport) ? "racket" : "football",
+      sport: event.sport || "calcetto",
       city: event.city || "",
       field: event.field || "",
       date: event.date || "",
@@ -1850,8 +1365,8 @@ setMessage("");
       awayTeam: awayTeamName,
       homeTeamId: matchHomeTeamId,
       awayTeamId: matchAwayTeamId,
-      homeCaptainId: homeTeam?.captainId || "",
-      awayCaptainId: awayTeam?.captainId || "",
+      homeCaptainId,
+      awayCaptainId,
       sourceType,
       homeScore: null,
       awayScore: null,
@@ -1877,9 +1392,6 @@ setMessage("");
       nextBracket[sourceBracketIndex] = {
         ...nextBracket[sourceBracketIndex],
         matchId: matchRef.id,
-        homeCaptainId: homeTeam?.captainId || "",
-        awayCaptainId: awayTeam?.captainId || "",
-        status: "match creato",
       };
 
       updatePayload.bracket = nextBracket;
@@ -1891,8 +1403,6 @@ setMessage("");
       nextFixtures[sourceLeagueIndex] = {
         ...nextFixtures[sourceLeagueIndex],
         matchId: matchRef.id,
-        homeCaptainId: homeTeam?.captainId || "",
-        awayCaptainId: awayTeam?.captainId || "",
         status: "match creato",
       };
 
@@ -1930,7 +1440,6 @@ await Promise.all(
         homeTeam: homeTeamName,
         awayTeam: awayTeamName,
         source: event.type || "evento",
-        scoreMode: isRacketSport(event.sport) ? "racket" : "football",
       },
     })
   )
@@ -1946,11 +1455,6 @@ await Promise.all(
 
 async function cancelEvent() {
   if (!user || !event) return;
-
-  if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi annullare eventi.");
-    return;
-  }
 
   if (user.uid !== event.createdBy) {
     setMessage("Solo il creator può annullare questo evento.");
@@ -2101,9 +1605,7 @@ async function cancelEvent() {
     (event.sport === "calcetto" ? "squadre" : "singolo");
 
   const isTeamCompetition =
-    competitionFormat === "squadre" ||
-    competitionFormat === "doppio" ||
-    (competitionFormat === "singolo" && isRacketSport(event.sport));
+    competitionFormat === "squadre" || competitionFormat === "doppio";
 
   const availableSpots =
     maxPlayers > 0 ? Math.max(0, maxPlayers - participants.length) : 0;
@@ -2113,7 +1615,7 @@ async function cancelEvent() {
 
   const isFull = maxPlayers > 0 && participants.length >= maxPlayers;
 
-  const canJoin = !accountLocked && !isCancelled && !isJoined && !isFull && event.status !== "completo";
+  const canJoin = !isCancelled && !isJoined && !isFull && event.status !== "completo";
 
   const sportLabel =
     event.sport === "padel"
@@ -2138,33 +1640,19 @@ async function cancelEvent() {
       ? "Squadre"
       : "Singolo";
 
-  const eventCopy = getEventCopy(event.sport);
-  const racketEvent = isRacketSport(event.sport);
-
       const invalidEventTeams = getInvalidEventTeams();
-const competitionUnits = getCompetitionUnits({ event, participantsInfo });
-const validEventTeamsCount =
-  competitionFormat === "singolo" && isRacketSport(event.sport)
-    ? competitionUnits.length
-    : teams.length - invalidEventTeams.length;
-const invalidEventTeamsCount =
-  competitionFormat === "singolo" && isRacketSport(event.sport)
-    ? 0
-    : invalidEventTeams.length;
+const validEventTeamsCount = teams.length - invalidEventTeams.length;
+const invalidEventTeamsCount = invalidEventTeams.length;
 
       const rankedTeamStats = [...teamStats].sort((a, b) => {
-  const scoreDiffA =
-    Number(a.goalDifference || 0) ||
-    Number(a.goalsFor || 0) - Number(a.goalsAgainst || 0);
-  const scoreDiffB =
-    Number(b.goalDifference || 0) ||
-    Number(b.goalsFor || 0) - Number(b.goalsAgainst || 0);
+  const goalDiffA = Number(a.goalsFor || 0) - Number(a.goalsAgainst || 0);
+  const goalDiffB = Number(b.goalsFor || 0) - Number(b.goalsAgainst || 0);
 
   return (
     Number(b.points || 0) - Number(a.points || 0) ||
-    scoreDiffB - scoreDiffA ||
-    Number(b.wins || 0) - Number(a.wins || 0) ||
-    Number(b.goalsFor || 0) - Number(a.goalsFor || 0)
+    goalDiffB - goalDiffA ||
+    Number(b.goalsFor || 0) - Number(a.goalsFor || 0) ||
+    Number(b.wins || 0) - Number(a.wins || 0)
   );
 });
 
@@ -2183,7 +1671,7 @@ const isCompetitionCompleted =
   event.status === "campionato completato";
 
 const canCreateEventMatch =
-  accountLocked || isCancelled || isCompetitionCompleted
+  isCancelled || isCompetitionCompleted
     ? false
     : event.type === "torneo"
     ? hasPendingTournamentMatch
@@ -2234,18 +1722,6 @@ const pendingCompetitionMatches = Math.max(
   totalCompetitionMatches - completedCompetitionMatches
 );
 
-const previewTournamentBracket =
-  event.type === "torneo" &&
-  (!event.bracket || event.bracket.length === 0) &&
-  hasEnoughValidTeams
-    ? buildTournamentBracket(competitionUnits)
-    : [];
-
-const visibleTournamentBracket =
-  event.bracket && event.bracket.length > 0
-    ? event.bracket
-    : previewTournamentBracket;
-
   const rankedEventStats =
     eventStats.length > 0
       ? [...eventStats].sort(
@@ -2275,8 +1751,8 @@ const visibleTournamentBracket =
         }));
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#020617] px-3 py-8 text-white sm:px-5">
-      <div className="mx-auto w-full max-w-6xl min-w-0 overflow-hidden">
+    <main className="min-h-screen bg-[#020617] px-5 py-8 text-white">
+      <div className="mx-auto max-w-6xl">
         <Link
           href="/events"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -2285,11 +1761,11 @@ const visibleTournamentBracket =
           Torna agli eventi
         </Link>
 
-        <section className="mt-8 w-full min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl sm:rounded-[2.5rem]">
-          <div className="relative min-w-0 border-b border-white/10 px-4 py-8 sm:px-8 sm:py-10">
+        <section className="mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[.04] shadow-2xl">
+          <div className="relative border-b border-white/10 px-8 py-10">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),transparent_60%)]" />
 
-            <div className="relative flex min-w-0 flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <div className="flex flex-wrap gap-2">
                   <Badge>{typeLabel}</Badge>
@@ -2298,7 +1774,7 @@ const visibleTournamentBracket =
                   <Badge>{event.status || "aperto"}</Badge>
                 </div>
 
-                <h1 className="mt-5 break-words text-3xl font-black uppercase sm:text-5xl">
+                <h1 className="mt-5 text-4xl font-black uppercase sm:text-5xl">
                   {event.title || "Evento Rivalo"}
                 </h1>
 
@@ -2309,12 +1785,12 @@ const visibleTournamentBracket =
 
               <div className="rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 px-6 py-4">
                 <div className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
-                  {isTeamCompetition ? getTeamPluralLabel(competitionFormat, event.sport) : "Posti liberi"}
+                  {isTeamCompetition ? "Squadre" : "Posti liberi"}
                 </div>
 
                 <div className="mt-1 text-3xl font-black text-cyan-100">
                   {isTeamCompetition
-                    ? competitionUnits.length
+                    ? teams.length
                     : maxPlayers > 0
                     ? availableSpots
                     : "N/D"}
@@ -2329,14 +1805,8 @@ const visibleTournamentBracket =
             </div>
           )}
 
-          {accountLocked && (
-            <div className="border-b border-yellow-300/20 bg-yellow-400/10 px-6 py-4 text-sm font-bold text-yellow-100">
-              Profilo segnato per rimozione: iscrizioni, squadre, tabelloni, calendari, match e annullamento evento sono bloccati.
-            </div>
-          )}
-
           <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[1fr_360px]">
-            <div className="min-w-0 space-y-5 overflow-hidden">
+            <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <InfoCard
                   icon={<MapPin />}
@@ -2404,7 +1874,7 @@ const visibleTournamentBracket =
               )}
 
               {(event.type === "torneo" || event.type === "campionato") && (
-  <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
+  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
     <div className="mb-5">
       <div className="text-sm font-black uppercase tracking-[0.25em] text-cyan-300">
         Riepilogo competizione
@@ -2419,17 +1889,17 @@ const visibleTournamentBracket =
       </p>
     </div>
 
-    <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
   <SummaryBox
-    label={isTeamCompetition ? getTeamPluralLabel(competitionFormat, event.sport) : "Partecipanti"}
-    value={isTeamCompetition ? competitionUnits.length : participants.length}
+    label={isTeamCompetition ? "Squadre" : "Partecipanti"}
+    value={isTeamCompetition ? teams.length : participants.length}
     tone="cyan"
   />
 
   {isTeamCompetition && (
     <>
       <SummaryBox
-        label={`${getTeamPluralLabel(competitionFormat, event.sport)} validi`}
+        label="Squadre valide"
         value={validTeamsCount}
         tone="green"
       />
@@ -2470,7 +1940,7 @@ const visibleTournamentBracket =
 )}
 
               {event.prize && (
-                <div className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-yellow-300/20 bg-yellow-400/10 p-4 sm:rounded-[2rem] sm:p-6">
+                <div className="rounded-[2rem] border border-yellow-300/20 bg-yellow-400/10 p-6">
                   <div className="flex items-center gap-3 text-yellow-200">
                     <Trophy />
                     <div className="text-sm font-black uppercase tracking-[0.2em]">
@@ -2482,70 +1952,19 @@ const visibleTournamentBracket =
                 </div>
               )}
 
-              {isCreator && !accountLocked && !isCancelled && !competitionStarted && (
-                <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-cyan-400/20 bg-cyan-400/5 p-4 sm:rounded-[2rem] sm:p-6">
-                  <div className="mb-4 flex items-center gap-3">
-                    <UserPlus className="text-cyan-300" />
-                    <div>
-                      <div className="text-sm font-black uppercase tracking-[0.22em] text-cyan-300">
-                        Aggiungi utente
-                      </div>
-                      <p className="mt-1 text-sm leading-6 text-slate-400">
-                        Aggiungi utenti Rivalo compatibili con {formatSportLabel(event.sport)} prima di creare player/coppie o generare la competizione.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-                    <select
-                      value={selectedUserToAdd}
-                      onChange={(e) => setSelectedUserToAdd(e.target.value)}
-                      className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
-                    >
-                      <option value="" className="bg-[#020617] text-white">
-                        {candidateUsers.length > 0
-                          ? "Seleziona utente"
-                          : "Nessun utente disponibile"}
-                      </option>
-
-                      {candidateUsers.map((candidate) => (
-                        <option
-                          key={candidate.uid}
-                          value={candidate.uid}
-                          className="bg-[#020617] text-white"
-                        >
-                          {candidate.name || candidate.nickname || "Rivalo Player"}
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={addUserToEvent}
-                      disabled={addingUser || !selectedUserToAdd}
-                      className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200 transition hover:bg-cyan-400/20 disabled:opacity-60"
-                    >
-                      {addingUser ? "Aggiungo..." : "Aggiungi"}
-                    </button>
-                  </div>
-                </section>
-              )}
-
               {isTeamCompetition && (
-                <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
+                <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
                   <div className="mb-5">
                     <div className="text-sm font-black uppercase tracking-[0.25em] text-cyan-300">
-                      {getTeamPluralLabel(competitionFormat, event.sport)}
+                      Squadre
                     </div>
 
                     <h2 className="mt-2 text-2xl font-black sm:text-3xl">
-                      Gestione {getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()}
+                      Gestione squadre
                     </h2>
 
                     <p className="mt-2 text-sm text-slate-400">
-                      {isRacketSport(event.sport)
-                        ? "Crea player o coppie usando gli iscritti all'evento. I nomi vengono generati dai profili selezionati."
-                        : "Crea le squadre che parteciperanno alla competizione."}
+                      Crea le squadre o le coppie che parteciperanno alla competizione.
                     </p>
                     <div className="mt-5 grid gap-3 sm:grid-cols-3">
   <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-center">
@@ -2553,7 +1972,7 @@ const visibleTournamentBracket =
       {teams.length}
     </div>
     <div className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-      {getTeamPluralLabel(competitionFormat, event.sport)}
+      Team totali
     </div>
   </div>
 
@@ -2577,51 +1996,36 @@ const visibleTournamentBracket =
 </div>
                   </div>
 
-                  {isCreator && !accountLocked && !isCancelled && !competitionStarted && (
+                  {isCreator && !isCancelled && !competitionStarted && (
                     <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
-                      {!isRacketSport(event.sport) ? (
-                        <Field label="Nome squadra">
-                          <input
-                            value={teamName}
-                            onChange={(e) => setTeamName(e.target.value)}
-                            placeholder="Es. Team Black"
-                            className="w-full bg-transparent outline-none placeholder:text-slate-500"
-                          />
-                        </Field>
-                      ) : (
-                        <div className="rounded-2xl border border-lime-400/20 bg-lime-400/10 p-4 text-sm font-bold leading-6 text-lime-100">
-                          {competitionFormat === "singolo"
-                            ? "Nel singolo il nome del player viene preso dal profilo selezionato."
-                            : "Nel doppio il nome della coppia viene generato dai due profili selezionati."}
-                        </div>
-                      )}
+                      <Field label={competitionFormat === "doppio" ? "Nome coppia" : "Nome squadra"}>
+                        <input
+                          value={teamName}
+                          onChange={(e) => setTeamName(e.target.value)}
+                          placeholder={
+                            competitionFormat === "doppio"
+                              ? "Es. Coppia Blu"
+                              : "Es. Team Black"
+                          }
+                          className="w-full bg-transparent outline-none placeholder:text-slate-500"
+                        />
+                      </Field>
 
                       <div className="mt-4">
                         <div className="mb-2 text-sm font-black uppercase tracking-[0.12em] text-slate-300">
-                          {isRacketSport(event.sport) ? "Utenti iscritti all'evento" : "Giocatori iscritti all'evento"}
+                          Giocatori iscritti all'evento
                         </div>
 
                         <select
                           multiple
                           value={selectedPlayerIds}
-                          onChange={(e) => {
-                            const nextSelectedPlayerIds = Array.from(
-                              e.target.selectedOptions
-                            ).map((option) => option.value);
-
-                            setSelectedPlayerIds(nextSelectedPlayerIds);
-
-                            if (!nextSelectedPlayerIds.includes(selectedCaptainId)) {
-                              setSelectedCaptainId("");
-                            }
-
-                            if (
-                              competitionFormat === "singolo" &&
-                              nextSelectedPlayerIds.length === 1
-                            ) {
-                              setSelectedCaptainId(nextSelectedPlayerIds[0]);
-                            }
-                          }}
+                          onChange={(e) =>
+                            setSelectedPlayerIds(
+                              Array.from(e.target.selectedOptions).map(
+                                (option) => option.value
+                              )
+                            )
+                          }
                           className="min-h-[150px] w-full rounded-2xl border border-white/10 bg-[#020617] p-4 text-white outline-none"
                         >
                           {availableUsers.length === 0 && (
@@ -2643,55 +2047,9 @@ const visibleTournamentBracket =
                         </select>
 
                         <div className="mt-2 text-xs leading-5 text-slate-400">
-                         Puoi selezionare solo utenti già iscritti all'evento. Un utente non può stare in due squadre/coppie/player.
+                         Puoi selezionare solo giocatori già iscritti all'evento. Un giocatore non può stare in due squadre.
+                         Chi crea la squadra/coppia deve selezionare anche sé stesso: diventerà capitano.
                         </div>
-
-                        {selectedPlayerIds.length > 0 && (
-                          <div className="mt-4">
-                            <div className="mb-2 text-sm font-black uppercase tracking-[0.12em] text-slate-300">
-                              Capitano
-                            </div>
-
-                            {competitionFormat === "singolo" ? (
-                              <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-3 font-black text-yellow-100">
-                                {getParticipantName(
-                                  participantsInfo.find(
-                                    (participant) =>
-                                      participant.uid === selectedPlayerIds[0]
-                                  )
-                                )}
-                              </div>
-                            ) : (
-                              <select
-                                value={selectedCaptainId}
-                                onChange={(e) => setSelectedCaptainId(e.target.value)}
-                                className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-4 text-white outline-none"
-                              >
-                                <option className="bg-[#020617] text-white" value="">
-                                  Scegli capitano
-                                </option>
-
-                                {selectedPlayerIds.map((selectedUid) => {
-                                  const selectedUser = availableUsers.find(
-                                    (availableUser) => availableUser.uid === selectedUid
-                                  );
-
-                                  return (
-                                    <option
-                                      key={selectedUid}
-                                      className="bg-[#020617] text-white"
-                                      value={selectedUid}
-                                    >
-                                      {selectedUser?.name ||
-                                        selectedUser?.nickname ||
-                                        "Rivalo Player"}
-                                    </option>
-                                  );
-                                })}
-                              </select>
-                            )}
-                          </div>
-                        )}
                       </div>
 
                       <button
@@ -2700,9 +2058,7 @@ const visibleTournamentBracket =
                         disabled={creatingTeam}
                         className="mt-4 w-full rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-4 font-black text-cyan-200 transition hover:bg-cyan-400/20 disabled:opacity-60"
                       >
-                        {creatingTeam
-                          ? "Creazione..."
-                          : getTeamCreationTitle(competitionFormat, event.sport)}
+                        {creatingTeam ? "Creazione..." : "Crea squadra"}
                       </button>
                     </div>
                   )}
@@ -2715,12 +2071,6 @@ const visibleTournamentBracket =
                   {isCreator && isCancelled && (
   <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm font-bold text-red-100">
     Evento annullato: gestione squadre/coppie bloccata.
-  </div>
-)}
-
-                  {isCreator && accountLocked && (
-  <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold text-yellow-100">
-    Profilo segnato per rimozione: gestione squadre/coppie bloccata.
   </div>
 )}
 
@@ -2745,7 +2095,7 @@ const visibleTournamentBracket =
 
               
 {event.type === "torneo" && (
-  <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
+  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
         <div className="text-sm font-black uppercase tracking-[0.25em] text-yellow-300">
@@ -2753,22 +2103,16 @@ const visibleTournamentBracket =
         </div>
 
         <h2 className="mt-2 text-2xl font-black sm:text-3xl">
-          Mappa torneo
+          Tabellone completo
         </h2>
 
         <p className="mt-2 text-sm text-slate-400">
-          Il tabellone mostra round, passaggi, match creati e vincitori. Vale per calcetto, padel e tennis: cambia solo l’unità di gioco, cioè squadre, coppie o player.
+          Le sfide vengono generate dalle squadre iscritte al torneo.
         </p>
       </div>
 
       <Trophy className="text-yellow-300" />
     </div>
-
-    {previewTournamentBracket.length > 0 && (
-      <div className="mb-5 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-4 text-sm font-bold leading-6 text-cyan-100">
-        Anteprima tabellone: premi “Genera tabellone” per salvarlo e poter creare i match.
-      </div>
-    )}
 
     {event.status === "torneo completato" && (
       <div className="mb-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-5">
@@ -2777,176 +2121,86 @@ const visibleTournamentBracket =
         </div>
 
         <div className="mt-2 text-2xl font-black text-yellow-100">
-          Vincitore: {(event as any).winnerTeamName || "Vincitore torneo"}
+          Vincitore: {(event as any).winnerTeamName || "Squadra vincitrice"}
         </div>
       </div>
     )}
 
-    {visibleTournamentBracket.length === 0 ? (
+    {!event.bracket || event.bracket.length === 0 ? (
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
-        Nessun tabellone generato. Aggiungi almeno 2 {getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()} validi e genera il tabellone.
+        Nessun tabellone generato.
       </div>
     ) : (
-      <div className="w-full min-w-0 overflow-hidden pb-2 lg:overflow-x-auto">
-        <div className="flex w-full min-w-0 flex-col gap-4 lg:min-w-[720px] lg:flex-row">
-          {Array.from(
-            new Set(visibleTournamentBracket.map((match) => Number(match.round || 1)))
-          )
-            .sort((a, b) => a - b)
-            .map((round) => {
-              const roundMatches = visibleTournamentBracket.filter(
-                (match) => Number(match.round || 1) === round
-              );
+      <div className="space-y-3">
+        {event.bracket.map((match) => (
+          <div
+            key={`${match.round}_${match.matchNumber}`}
+            className="rounded-2xl border border-white/10 bg-white/[.03] p-4"
+          >
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                Round {match.round} · Match {match.matchNumber}
+              </div>
 
-              const roundTitle =
-                roundMatches.length === 1
-                  ? "Finale"
-                  : roundMatches.length === 2
-                  ? "Semifinali"
-                  : roundMatches.length === 4
-                  ? "Quarti"
-                  : `Round ${round}`;
+              <div
+                className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
+                  match.resultStatus === "confermato"
+                    ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
+                    : match.matchId
+                    ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+                    : "border-white/10 bg-white/[.03] text-slate-400"
+                }`}
+              >
+                {match.resultStatus === "confermato"
+                  ? "Completato"
+                  : match.matchId
+                  ? "Match creato"
+                  : "Da creare"}
+              </div>
+            </div>
 
-              return (
-                <div
-                  key={round}
-                  className="w-full min-w-0 flex-1 overflow-hidden rounded-[1.4rem] border border-white/10 bg-white/[.025] p-3 sm:rounded-[1.7rem] lg:min-w-[260px] lg:p-4"
-                >
-                  <div className="mb-4">
-                    <div className="text-xs font-black uppercase tracking-[0.22em] text-yellow-200">
-                      {roundTitle}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      {roundMatches.length} match
-                    </div>
-                  </div>
+            <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
+              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 font-black text-cyan-100">
+                {match.homeName}
+              </div>
 
-                  <div className="space-y-3">
-                    {roundMatches.map((match) => {
-                      const isWaiting = match.status === "in_attesa";
-                      const isBye = !isWaiting && !match.awayTeamId;
-                      const isCompleted = match.resultStatus === "confermato";
-                      const winnerName =
-                        match.winnerTeamId === match.homeTeamId
-                          ? match.homeName
-                          : match.winnerTeamId === match.awayTeamId
-                          ? match.awayName
-                          : "";
+              <div className="text-center text-sm font-black text-slate-400">
+                VS
+              </div>
 
-                      return (
-                        <div
-                          key={`${match.round}_${match.matchNumber}`}
-                          className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-3"
-                        >
-                          <div className="mb-3 flex items-center justify-between gap-2">
-                            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
-                              Match {match.matchNumber}
-                            </div>
+              <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-4 font-black text-fuchsia-100">
+                {match.awayName}
+              </div>
+            </div>
 
-                            <div
-                              className={`rounded-xl border px-2 py-1 text-[10px] font-black uppercase ${
-                                isCompleted
-                                  ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
-                                  : match.matchId
-                                  ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
-                                  : isBye
-                                  ? "border-yellow-300/20 bg-yellow-400/10 text-yellow-200"
-                                  : isWaiting
-                                  ? "border-white/10 bg-white/[.03] text-slate-400"
-                                  : "border-white/10 bg-white/[.03] text-slate-400"
-                              }`}
-                            >
-                              {isCompleted
-                                ? isBye
-                                  ? "Bye"
-                                  : "Completato"
-                                : match.matchId
-                                ? "Creato"
-                                : "Da creare"}
-                            </div>
-                          </div>
-
-                          <div
-                            className={`min-w-0 break-words rounded-xl border px-3 py-2 text-sm font-black ${
-                              winnerName && winnerName === match.homeName
-                                ? "border-lime-300/30 bg-lime-400/10 text-lime-100"
-                                : "border-cyan-400/20 bg-cyan-400/10 text-cyan-100"
-                            }`}
-                          >
-                            {match.homeName}
-                          </div>
-
-                          <div className="my-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                            {isBye ? "passa il turno" : isWaiting ? "in attesa" : "vs"}
-                          </div>
-
-                          <div
-                            className={`min-w-0 break-words rounded-xl border px-3 py-2 text-sm font-black ${
-                              winnerName && winnerName === match.awayName
-                                ? "border-lime-300/30 bg-lime-400/10 text-lime-100"
-                                : "border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-100"
-                            }`}
-                          >
-                            {isBye ? "Riposo" : match.awayName}
-                          </div>
-
-                          {typeof match.homeScore === "number" &&
-                            typeof match.awayScore === "number" && (
-                              <div className="mt-3 rounded-xl border border-lime-400/20 bg-lime-400/10 px-3 py-2 text-xs font-black text-lime-200">
-                                Risultato: {match.homeScore} - {match.awayScore}
-                              </div>
-                            )}
-
-                          {winnerName && (
-                            <div className="mt-3 rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-3 py-2 text-xs font-black text-yellow-100">
-                              Passa: {winnerName}
-                            </div>
-                          )}
-
-                          {match.matchId ? (
-                            <Link
-                              href={"/match/" + match.matchId}
-                              className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200 transition hover:bg-lime-400/20"
-                            >
-                              Apri match
-                            </Link>
-                          ) : isBye ? (
-                            <div className="mt-3 inline-flex rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-2 text-xs font-black text-yellow-100">
-                              Passaggio automatico
-                            </div>
-                          ) : isWaiting ? (
-                            <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs text-white/60">
-                              In attesa dei vincitori
-                            </div>
-                          ) : event.bracket && event.bracket.length > 0 ? (
-                            <button
-                              type="button"
-                              onClick={createMatchFromEvent}
-                              disabled={creatingMatch || accountLocked || isCancelled}
-                              className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
-                            >
-                              {creatingMatch ? "Creazione..." : "Crea match"}
-                            </button>
-                          ) : (
-                            <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs text-white/60">
-                              Genera tabellone prima
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+            {typeof match.homeScore === "number" &&
+              typeof match.awayScore === "number" && (
+                <div className="mt-3 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200">
+                  Risultato: {match.homeScore} - {match.awayScore}
                 </div>
-              );
-            })}
-        </div>
+              )}
+
+            {match.matchId ? (
+              <Link
+                href={"/match/" + match.matchId}
+                className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200 transition hover:bg-lime-400/20"
+              >
+                Apri match
+              </Link>
+            ) : (
+              <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs text-white/60">
+                Match non ancora creato
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     )}
   </section>
 )}
 
 {event.type === "campionato" && isTeamCompetition && (
-  <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
+  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
         <div className="text-sm font-black uppercase tracking-[0.25em] text-lime-300">
@@ -3051,19 +2305,19 @@ const visibleTournamentBracket =
 )}
 
 {isTeamCompetition && (event.type === "campionato" || event.type === "torneo") && (
-  <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
+  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
         <div className="text-sm font-black uppercase tracking-[0.25em] text-lime-300">
-          Classifica {getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()}
+          Classifica squadre
         </div>
 
         <h2 className="mt-2 text-2xl font-black sm:text-3xl">
-          {eventCopy.rankingTitle}
+          Ranking competizione
         </h2>
 
         <p className="mt-2 text-sm text-slate-400">
-          {eventCopy.rankingText}
+          Qui contano solo i risultati confermati di questa competizione.
         </p>
       </div>
 
@@ -3072,19 +2326,19 @@ const visibleTournamentBracket =
 
     {rankedTeamStats.length === 0 ? (
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
-        Nessuna statistica ancora.
+        Nessuna statistica squadra ancora.
       </div>
     ) : (
       <div className="space-y-3">
         {rankedTeamStats.map((team, index) => (
-          <TeamRankRow key={team.id} team={team} index={index} eventCopy={eventCopy} />
+          <TeamRankRow key={team.id} team={team} index={index} />
         ))}
       </div>
     )}
   </section>
 )}
 
-              <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
+              <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
                 <div className="mb-5 flex items-center justify-between gap-4">
                   <div>
                     <div className="text-sm font-black uppercase tracking-[0.25em] text-cyan-300">
@@ -3110,14 +2364,14 @@ const visibleTournamentBracket =
                 ) : (
                   <div className="space-y-3">
                     {rankedEventStats.map((stat, index) => (
-                      <EventRankRow key={stat.uid} stat={stat} index={index} eventCopy={eventCopy} racketEvent={racketEvent} />
+                      <EventRankRow key={stat.uid} stat={stat} index={index} />
                     ))}
                   </div>
                 )}
               </section>
             </div>
 
-            <aside className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
+            <aside className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
               <div className="flex items-center gap-3">
                 <Users className="text-cyan-300" />
 
@@ -3159,13 +2413,11 @@ const visibleTournamentBracket =
               {!isTeamCompetition && (
                 <button
                   onClick={joinEvent}
-                  disabled={joining || accountLocked || !canJoin}
+                  disabled={joining || !canJoin}
                   className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black transition hover:scale-[1.01] disabled:opacity-60"
                 >
                   <UserPlus size={18} />
-                  {accountLocked
-                    ? "Azione bloccata"
-                    : isCancelled
+                  {isCancelled
                     ? "Evento annullato"
                     : isJoined
                     ? "Già iscritto"
@@ -3189,22 +2441,16 @@ const visibleTournamentBracket =
   <>
     <button
       onClick={createMatchFromEvent}
-      disabled={creatingMatch || accountLocked || isCancelled || !canCreateEventMatch}
+      disabled={creatingMatch || isCancelled || !canCreateEventMatch}
       className="mt-3 flex w-full items-center justify-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/10 px-6 py-4 font-black text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
     >
       <PlayCircle size={18} />
       {creatingMatch
   ? "Creazione match..."
-  : accountLocked
-  ? "Azione bloccata"
   : isCancelled
   ? "Evento annullato"
   : isCompetitionCompleted
   ? "Competizione completata"
-  : event.type === "torneo" && (!event.bracket || event.bracket.length === 0)
-  ? "Genera prima il tabellone"
-  : event.type === "torneo" && (!event.bracket || event.bracket.length === 0)
-  ? "Genera prima il tabellone"
   : !canCreateEventMatch
   ? "Tutti i match creati"
   : event.type === "torneo"
@@ -3219,7 +2465,6 @@ const visibleTournamentBracket =
         onClick={generateTournamentBracket}
         disabled={
   generatingBracket ||
-  accountLocked ||
   isCancelled ||
   Boolean(event.bracket?.length) ||
   !hasEnoughValidTeams
@@ -3232,7 +2477,7 @@ const visibleTournamentBracket =
   : event.bracket?.length
   ? "Tabellone già generato"
   : !hasEnoughValidTeams
-  ? `Servono ${getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()} validi`
+  ? "Servono squadre valide"
   : "Genera tabellone"}
       </button>
     )}
@@ -3241,7 +2486,6 @@ const visibleTournamentBracket =
     onClick={generateLeagueSchedule}
     disabled={
   generatingLeague ||
-  accountLocked ||
   isCancelled ||
   Boolean(event.leagueFixtures?.length) ||
   !hasEnoughValidTeams
@@ -3254,7 +2498,7 @@ const visibleTournamentBracket =
   : event.leagueFixtures?.length
   ? "Calendario già generato"
   : !hasEnoughValidTeams
-  ? `Servono ${getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()} validi`
+  ? "Servono squadre valide"
   : "Genera calendario"}
   </button>
 )}
@@ -3277,7 +2521,7 @@ const visibleTournamentBracket =
       <textarea
         value={cancellationReason}
         onChange={(e) => setCancellationReason(e.target.value)}
-        disabled={accountLocked || isCancelled || !canCancelSafely}
+        disabled={isCancelled || !canCancelSafely}
         placeholder="Motivo annullamento"
         className="mt-3 min-h-[90px] w-full resize-none rounded-2xl border border-white/10 bg-[#020617]/80 px-4 py-3 text-white outline-none placeholder:text-slate-500 disabled:opacity-60"
       />
@@ -3285,13 +2529,11 @@ const visibleTournamentBracket =
       <button
         type="button"
         onClick={cancelEvent}
-        disabled={accountLocked || isCancelled || !canCancelSafely}
+        disabled={isCancelled || !canCancelSafely}
         className="mt-3 w-full rounded-2xl border border-red-300/30 bg-red-500/10 px-6 py-4 font-black text-red-200 disabled:opacity-60"
       >
         {isCancelled
           ? "Evento già annullato"
-          : accountLocked
-          ? "Azione bloccata"
           : canCancelSafely
           ? "Annulla evento"
           : "Annullamento bloccato"}
@@ -3350,11 +2592,14 @@ function TeamCard({
   validationLabel: string;
   valid: boolean;
 }) {
-  const captain = getResolvedCaptain(team);
+  const captain =
+    team.players.find((player) => player.uid === team.captainId) ||
+    team.players.find((player) => player.uid === team.createdBy);
+
   const captainName = team.captainName || captain?.name || "Rivalo Player";
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] p-3 sm:p-4">
+    <div className="rounded-2xl border border-white/10 bg-white/[.03] p-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         <div>
           <div className="text-xl font-black uppercase text-cyan-200">
@@ -3401,7 +2646,8 @@ function TeamCard({
               </div>
             </div>
 
-            {player.uid === captain?.uid && (
+            {(player.uid === team.captainId ||
+              (!team.captainId && player.uid === team.createdBy)) && (
               <span className="shrink-0 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-yellow-100">
                 Capitano
               </span>
@@ -3416,14 +2662,11 @@ function TeamCard({
 function TeamRankRow({
   team,
   index,
-  eventCopy,
 }: {
   team: TeamStat;
   index: number;
-  eventCopy: ReturnType<typeof getEventCopy>;
 }) {
   const goalDifference =
-    Number(team.goalDifference || 0) ||
     Number(team.goalsFor || 0) - Number(team.goalsAgainst || 0);
 
   return (
@@ -3434,8 +2677,8 @@ function TeamRankRow({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="break-words text-base font-black uppercase sm:text-lg">
-            {team.teamName || eventCopy.teamSingle}
+          <div className="truncate text-lg font-black uppercase">
+            {team.teamName || "Squadra"}
           </div>
 
           <div className="text-xs text-slate-400">
@@ -3444,15 +2687,15 @@ function TeamRankRow({
         </div>
       </div>
 
-      <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-4 gap-2">
         <RankStat label="PT" value={team.points || 0} />
         <RankStat label="G" value={team.matchesPlayed || 0} />
         <RankStat label="V" value={team.wins || 0} />
         <RankStat label="N" value={team.draws || 0} />
         <RankStat label="P" value={team.losses || 0} />
-        <RankStat label={eventCopy.scoreFor} value={team.goalsFor || 0} />
-        <RankStat label={eventCopy.scoreAgainst} value={team.goalsAgainst || 0} />
-        <RankStat label={eventCopy.scoreDiff} value={goalDifference} />
+        <RankStat label="GF" value={team.goalsFor || 0} />
+        <RankStat label="GS" value={team.goalsAgainst || 0} />
+        <RankStat label="DR" value={goalDifference} />
       </div>
     </div>
   );
@@ -3461,13 +2704,9 @@ function TeamRankRow({
 function EventRankRow({
   stat,
   index,
-  eventCopy,
-  racketEvent,
 }: {
   stat: EventStat;
   index: number;
-  eventCopy: ReturnType<typeof getEventCopy>;
-  racketEvent: boolean;
 }) {
   const icon =
     index === 0 ? (
@@ -3481,15 +2720,14 @@ function EventRankRow({
     );
 
   const goalDifference =
-    Number(stat.goalDifference || 0) ||
     Number(stat.goalsFor || 0) - Number(stat.goalsAgainst || 0);
 
   return (
     <Link
       href={`/public/${stat.uid}`}
-      className="block min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] p-3 transition hover:border-cyan-400/30 sm:p-4"
+      className="block rounded-2xl border border-white/10 bg-white/[.03] p-4 transition hover:border-cyan-400/30"
     >
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-black/30">
           {icon}
         </div>
@@ -3508,7 +2746,7 @@ function EventRankRow({
           </div>
 
           <div className="min-w-0">
-            <div className="break-words text-base font-black uppercase sm:text-lg">
+            <div className="truncate text-lg font-black uppercase">
               {stat.playerName || "Rivalo Player"}
             </div>
 
@@ -3519,11 +2757,11 @@ function EventRankRow({
         </div>
       </div>
 
-      <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-4 gap-2">
         <RankStat label="PT" value={stat.points || 0} />
         <RankStat label="V" value={stat.wins || 0} />
         <RankStat label="MVP" value={stat.mvp || 0} />
-        <RankStat label={eventCopy.scoreDiff} value={goalDifference} />
+        <RankStat label="DR" value={goalDifference} />
       </div>
     </Link>
   );
@@ -3537,12 +2775,12 @@ function RankStat({
   value: number;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 px-2 py-3 text-center">
-      <div className="break-words text-base font-black text-cyan-200">
+    <div className="rounded-xl border border-white/10 bg-black/20 px-2 py-3 text-center">
+      <div className="text-base font-black text-cyan-200">
         {value}
       </div>
 
-      <div className="mt-1 break-words text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
+      <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
         {label}
       </div>
     </div>
@@ -3651,10 +2889,10 @@ function SummaryBox({
       : "border-cyan-300/20 bg-cyan-400/10 text-cyan-200";
 
   return (
-    <div className={`min-w-0 rounded-2xl border p-3 text-center sm:p-4 ${toneClass}`}>
+    <div className={`rounded-2xl border p-3 text-center sm:p-4 ${toneClass}`}>
       <div className="text-2xl font-black sm:text-3xl">{value}</div>
 
-      <div className="mt-2 break-words text-[10px] font-black uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.16em]">
+      <div className="mt-2 truncate text-[10px] font-black uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.16em]">
         {label}
       </div>
     </div>
