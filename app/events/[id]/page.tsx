@@ -2217,8 +2217,8 @@ const visibleTournamentBracket =
         }));
 
   return (
-    <main className="min-h-screen bg-[#020617] px-5 py-8 text-white">
-      <div className="mx-auto max-w-6xl">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] px-3 py-8 text-white sm:px-5">
+      <div className="mx-auto w-full max-w-6xl min-w-0 overflow-hidden">
         <Link
           href="/events"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -2227,11 +2227,11 @@ const visibleTournamentBracket =
           Torna agli eventi
         </Link>
 
-        <section className="mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[.04] shadow-2xl">
-          <div className="relative border-b border-white/10 px-8 py-10">
+        <section className="mt-8 w-full min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl sm:rounded-[2.5rem]">
+          <div className="relative min-w-0 border-b border-white/10 px-4 py-8 sm:px-8 sm:py-10">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),transparent_60%)]" />
 
-            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="relative flex min-w-0 flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <div className="flex flex-wrap gap-2">
                   <Badge>{typeLabel}</Badge>
@@ -2240,7 +2240,7 @@ const visibleTournamentBracket =
                   <Badge>{event.status || "aperto"}</Badge>
                 </div>
 
-                <h1 className="mt-5 text-4xl font-black uppercase sm:text-5xl">
+                <h1 className="mt-5 break-words text-3xl font-black uppercase sm:text-5xl">
                   {event.title || "Evento Rivalo"}
                 </h1>
 
@@ -2256,7 +2256,7 @@ const visibleTournamentBracket =
 
                 <div className="mt-1 text-3xl font-black text-cyan-100">
                   {isTeamCompetition
-                    ? teams.length
+                    ? competitionUnits.length
                     : maxPlayers > 0
                     ? availableSpots
                     : "N/D"}
@@ -2278,7 +2278,7 @@ const visibleTournamentBracket =
           )}
 
           <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[1fr_360px]">
-            <div className="space-y-6">
+            <div className="min-w-0 space-y-5 overflow-hidden">
               <div className="grid gap-4 md:grid-cols-2">
                 <InfoCard
                   icon={<MapPin />}
@@ -2346,7 +2346,7 @@ const visibleTournamentBracket =
               )}
 
               {(event.type === "torneo" || event.type === "campionato") && (
-  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
+  <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
     <div className="mb-5">
       <div className="text-sm font-black uppercase tracking-[0.25em] text-cyan-300">
         Riepilogo competizione
@@ -2412,7 +2412,7 @@ const visibleTournamentBracket =
 )}
 
               {event.prize && (
-                <div className="rounded-[2rem] border border-yellow-300/20 bg-yellow-400/10 p-6">
+                <div className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-yellow-300/20 bg-yellow-400/10 p-4 sm:rounded-[2rem] sm:p-6">
                   <div className="flex items-center gap-3 text-yellow-200">
                     <Trophy />
                     <div className="text-sm font-black uppercase tracking-[0.2em]">
@@ -2425,7 +2425,7 @@ const visibleTournamentBracket =
               )}
 
               {isCreator && !accountLocked && !isCancelled && !competitionStarted && (
-                <section className="rounded-[2rem] border border-cyan-400/20 bg-cyan-400/5 p-6">
+                <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-cyan-400/20 bg-cyan-400/5 p-4 sm:rounded-[2rem] sm:p-6">
                   <div className="mb-4 flex items-center gap-3">
                     <UserPlus className="text-cyan-300" />
                     <div>
@@ -2474,7 +2474,7 @@ const visibleTournamentBracket =
               )}
 
               {isTeamCompetition && (
-                <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
+                <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
                   <div className="mb-5">
                     <div className="text-sm font-black uppercase tracking-[0.25em] text-cyan-300">
                       {getTeamPluralLabel(competitionFormat, event.sport)}
@@ -2630,7 +2630,7 @@ const visibleTournamentBracket =
 
               
 {event.type === "torneo" && (
-  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
+  <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
         <div className="text-sm font-black uppercase tracking-[0.25em] text-yellow-300">
@@ -2672,8 +2672,8 @@ const visibleTournamentBracket =
         Nessun tabellone generato. Aggiungi almeno 2 {getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()} validi e genera il tabellone.
       </div>
     ) : (
-      <div className="min-w-0 overflow-hidden pb-2 sm:overflow-x-auto">
-        <div className="flex min-w-0 flex-col gap-4 sm:min-w-[720px] sm:flex-row">
+      <div className="w-full min-w-0 overflow-hidden pb-2 lg:overflow-x-auto">
+        <div className="flex w-full min-w-0 flex-col gap-4 lg:min-w-[720px] lg:flex-row">
           {Array.from(
             new Set(visibleTournamentBracket.map((match) => Number(match.round || 1)))
           )
@@ -2695,7 +2695,7 @@ const visibleTournamentBracket =
               return (
                 <div
                   key={round}
-                  className="min-w-0 flex-1 rounded-[1.7rem] border border-white/10 bg-white/[.025] p-3 sm:min-w-[260px] sm:p-4"
+                  className="w-full min-w-0 flex-1 overflow-hidden rounded-[1.4rem] border border-white/10 bg-white/[.025] p-3 sm:rounded-[1.7rem] lg:min-w-[260px] lg:p-4"
                 >
                   <div className="mb-4">
                     <div className="text-xs font-black uppercase tracking-[0.22em] text-yellow-200">
@@ -2831,7 +2831,7 @@ const visibleTournamentBracket =
 )}
 
 {event.type === "campionato" && isTeamCompetition && (
-  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
+  <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
         <div className="text-sm font-black uppercase tracking-[0.25em] text-lime-300">
@@ -2936,7 +2936,7 @@ const visibleTournamentBracket =
 )}
 
 {isTeamCompetition && (event.type === "campionato" || event.type === "torneo") && (
-  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
+  <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
         <div className="text-sm font-black uppercase tracking-[0.25em] text-lime-300">
@@ -2969,7 +2969,7 @@ const visibleTournamentBracket =
   </section>
 )}
 
-              <section className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
+              <section className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
                 <div className="mb-5 flex items-center justify-between gap-4">
                   <div>
                     <div className="text-sm font-black uppercase tracking-[0.25em] text-cyan-300">
@@ -3002,7 +3002,7 @@ const visibleTournamentBracket =
               </section>
             </div>
 
-            <aside className="rounded-[2rem] border border-white/10 bg-black/20 p-6">
+            <aside className="w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 sm:rounded-[2rem] sm:p-6">
               <div className="flex items-center gap-3">
                 <Users className="text-cyan-300" />
 
@@ -3086,6 +3086,8 @@ const visibleTournamentBracket =
   ? "Evento annullato"
   : isCompetitionCompleted
   ? "Competizione completata"
+  : event.type === "torneo" && (!event.bracket || event.bracket.length === 0)
+  ? "Genera prima il tabellone"
   : event.type === "torneo" && (!event.bracket || event.bracket.length === 0)
   ? "Genera prima il tabellone"
   : !canCreateEventMatch
@@ -3240,7 +3242,7 @@ function TeamCard({
   const captainName = team.captainName || captain?.name || "Rivalo Player";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[.03] p-4">
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] p-3 sm:p-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         <div>
           <div className="text-xl font-black uppercase text-cyan-200">
@@ -3321,7 +3323,7 @@ function TeamRankRow({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="truncate text-lg font-black uppercase">
+          <div className="break-words text-base font-black uppercase sm:text-lg">
             {team.teamName || eventCopy.teamSingle}
           </div>
 
@@ -3374,7 +3376,7 @@ function EventRankRow({
   return (
     <Link
       href={`/public/${stat.uid}`}
-      className="block rounded-2xl border border-white/10 bg-white/[.03] p-4 transition hover:border-cyan-400/30"
+      className="block min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] p-3 transition hover:border-cyan-400/30 sm:p-4"
     >
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-black/30">
@@ -3395,7 +3397,7 @@ function EventRankRow({
           </div>
 
           <div className="min-w-0">
-            <div className="truncate text-lg font-black uppercase">
+            <div className="break-words text-base font-black uppercase sm:text-lg">
               {stat.playerName || "Rivalo Player"}
             </div>
 
@@ -3538,7 +3540,7 @@ function SummaryBox({
       : "border-cyan-300/20 bg-cyan-400/10 text-cyan-200";
 
   return (
-    <div className={`rounded-2xl border p-3 text-center sm:p-4 ${toneClass}`}>
+    <div className={`min-w-0 rounded-2xl border p-3 text-center sm:p-4 ${toneClass}`}>
       <div className="text-2xl font-black sm:text-3xl">{value}</div>
 
       <div className="mt-2 break-words text-[10px] font-black uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.16em]">
