@@ -261,6 +261,35 @@ function buildAutoTeamName(players: ParticipantInfo[], format: CompetitionFormat
   return players.map(getParticipantName).join(" / ") || "Da definire";
 }
 
+function buildSinglePlayerUnits(players: ParticipantInfo[]) {
+  return players.map((player) => ({
+    id: player.uid,
+    name: getParticipantName(player),
+    players: [player],
+    createdBy: player.uid,
+    captainId: player.uid,
+    captainName: getParticipantName(player),
+  })) as TeamInfo[];
+}
+
+function getCompetitionUnits({
+  event,
+  participantsInfo,
+}: {
+  event: EventData;
+  participantsInfo: ParticipantInfo[];
+}) {
+  const competitionFormat =
+    event.competitionFormat ||
+    (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
+
+  if (competitionFormat === "singolo" && isRacketSport(event.sport)) {
+    return buildSinglePlayerUnits(participantsInfo);
+  }
+
+  return event.teams || [];
+}
+
 function getTeamCreationTitle(format: CompetitionFormat, sport?: string) {
   if (isRacketSport(sport)) {
     if (format === "singolo") return "Crea player";
@@ -1092,11 +1121,23 @@ function getInvalidEventTeams() {
 function validateTeamsForCompetition() {
   if (!event) return false;
 
-  const teams = event.teams || [];
+  const competitionFormat =
+    event.competitionFormat ||
+    (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
+
+  const teams = getCompetitionUnits({ event, participantsInfo });
 
   if (teams.length < 2) {
-    setMessage("Servono almeno 2 squadre/coppie/player per iniziare.");
+    setMessage(
+      competitionFormat === "singolo" && isRacketSport(event.sport)
+        ? "Servono almeno 2 player iscritti per generare il tabellone."
+        : "Servono almeno 2 squadre/coppie/player per iniziare."
+    );
     return false;
+  }
+
+  if (competitionFormat === "singolo" && isRacketSport(event.sport)) {
+    return true;
   }
 
   const invalidTeams = getInvalidEventTeams();
@@ -1177,7 +1218,7 @@ async function generateTournamentBracket() {
     return;
   }
 
-  const teams = event.teams || [];
+  const teams = getCompetitionUnits({ event, participantsInfo });
 
   if (event.type !== "torneo") {
     setMessage("Il tabellone è disponibile solo per i tornei.");
@@ -1474,12 +1515,7 @@ async function createMatchFromEvent() {
     event.competitionFormat ||
     (event.sport === "calcetto" ? "squadre" : "singolo");
 
-  if (
-    (competitionFormat === "squadre" ||
-      competitionFormat === "doppio" ||
-      (competitionFormat === "singolo" && (event.teams || []).length >= 2)) &&
-    !validateTeamsForCompetition()
-  ) {
+  if (!validateTeamsForCompetition()) {
     return;
   }
 
@@ -1524,26 +1560,71 @@ setMessage("");
     let sourceLeagueIndex = -1;
 
     if (competitionFormat === "singolo") {
-      if (participantsInfo.length < 2) {
-        setMessage("Servono almeno 2 partecipanti per creare un match.");
+      const units = getCompetitionUnits({ event, participantsInfo });
+
+      if (units.length < 2) {
+        setMessage("Servono almeno 2 player per creare un match.");
         setCreatingMatch(false);
         return;
       }
 
-      players = participantsInfo.slice(0, 2).map((participant, index) => ({
-        uid: participant.uid,
-        name: participant.name || "Rivalo Player",
-        team: index === 0 ? "home" : "away",
-        goals: 0,
-        assists: 0,
-        isMvp: false,
-      }));
+      if (event.type === "torneo" && event.bracket?.length) {
+        const nextBracketIndex = event.bracket.findIndex(
+          (match) => !match.matchId && Boolean(match.awayTeamId)
+        );
 
-      homeTeamName = participantsInfo[0]?.name || "Player 1";
-      awayTeamName = participantsInfo[1]?.name || "Player 2";
-      matchHomeTeamId = participantsInfo[0]?.uid || "";
-      matchAwayTeamId = participantsInfo[1]?.uid || "";
-      sourceType = "eventParticipants";
+        if (nextBracketIndex === -1) {
+          setMessage("Non ci sono match del tabellone da creare.");
+          setCreatingMatch(false);
+          return;
+        }
+
+        const bracketMatch = event.bracket[nextBracketIndex];
+
+        homeTeam = units.find((team) => team.id === bracketMatch.homeTeamId);
+        awayTeam = units.find((team) => team.id === bracketMatch.awayTeamId);
+
+        homeTeamName = bracketMatch.homeName;
+        awayTeamName = bracketMatch.awayName;
+        matchHomeTeamId = bracketMatch.homeTeamId || "";
+        matchAwayTeamId = bracketMatch.awayTeamId || "";
+        sourceBracketIndex = nextBracketIndex;
+      } else {
+        homeTeam = units[0];
+        awayTeam = units[1];
+
+        homeTeamName = homeTeam?.name || "Player 1";
+        awayTeamName = awayTeam?.name || "Player 2";
+        matchHomeTeamId = homeTeam?.id || "";
+        matchAwayTeamId = awayTeam?.id || "";
+      }
+
+      if (!homeTeam || !awayTeam) {
+        setMessage("Player non trovati. Controlla il tabellone.");
+        setCreatingMatch(false);
+        return;
+      }
+
+      sourceType = event.type === "torneo" ? "eventBracketPlayers" : "eventParticipants";
+
+      players = [
+        ...homeTeam.players.map((player) => ({
+          uid: player.uid,
+          name: player.name || "Rivalo Player",
+          team: "home" as const,
+          goals: 0,
+          assists: 0,
+          isMvp: false,
+        })),
+        ...awayTeam.players.map((player) => ({
+          uid: player.uid,
+          name: player.name || "Rivalo Player",
+          team: "away" as const,
+          goals: 0,
+          assists: 0,
+          isMvp: false,
+        })),
+      ];
     } else {
       const teams = event.teams || [];
 
@@ -1953,8 +2034,15 @@ async function cancelEvent() {
   const racketEvent = isRacketSport(event.sport);
 
       const invalidEventTeams = getInvalidEventTeams();
-const validEventTeamsCount = teams.length - invalidEventTeams.length;
-const invalidEventTeamsCount = invalidEventTeams.length;
+const competitionUnits = getCompetitionUnits({ event, participantsInfo });
+const validEventTeamsCount =
+  competitionFormat === "singolo" && isRacketSport(event.sport)
+    ? competitionUnits.length
+    : teams.length - invalidEventTeams.length;
+const invalidEventTeamsCount =
+  competitionFormat === "singolo" && isRacketSport(event.sport)
+    ? 0
+    : invalidEventTeams.length;
 
       const rankedTeamStats = [...teamStats].sort((a, b) => {
   const scoreDiffA =
@@ -2488,11 +2576,11 @@ const pendingCompetitionMatches = Math.max(
         </div>
 
         <h2 className="mt-2 text-2xl font-black sm:text-3xl">
-          Tabellone completo
+          Mappa torneo
         </h2>
 
         <p className="mt-2 text-sm text-slate-400">
-          Le sfide vengono generate dalle squadre iscritte al torneo.
+          Il tabellone mostra round, passaggi, match creati e vincitori. Con 2 player viene generata direttamente la finale.
         </p>
       </div>
 
@@ -2506,79 +2594,153 @@ const pendingCompetitionMatches = Math.max(
         </div>
 
         <div className="mt-2 text-2xl font-black text-yellow-100">
-          Vincitore: {(event as any).winnerTeamName || "Squadra vincitrice"}
+          Vincitore: {(event as any).winnerTeamName || "Vincitore torneo"}
         </div>
       </div>
     )}
 
     {!event.bracket || event.bracket.length === 0 ? (
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
-        Nessun tabellone generato.
+        Nessun tabellone generato. Aggiungi almeno 2 {getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()} validi e genera il tabellone.
       </div>
     ) : (
-      <div className="space-y-3">
-        {event.bracket.map((match) => (
-          <div
-            key={`${match.round}_${match.matchNumber}`}
-            className="rounded-2xl border border-white/10 bg-white/[.03] p-4"
-          >
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                Round {match.round} · Match {match.matchNumber}
-              </div>
+      <div className="overflow-x-auto pb-2">
+        <div className="flex min-w-[720px] gap-4">
+          {Array.from(
+            new Set(event.bracket.map((match) => Number(match.round || 1)))
+          )
+            .sort((a, b) => a - b)
+            .map((round) => {
+              const roundMatches = event.bracket?.filter(
+                (match) => Number(match.round || 1) === round
+              ) || [];
 
-              <div
-                className={`rounded-xl border px-3 py-1 text-xs font-black uppercase ${
-                  match.resultStatus === "confermato"
-                    ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
-                    : match.matchId
-                    ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
-                    : "border-white/10 bg-white/[.03] text-slate-400"
-                }`}
-              >
-                {match.resultStatus === "confermato"
-                  ? "Completato"
-                  : match.matchId
-                  ? "Match creato"
-                  : "Da creare"}
-              </div>
-            </div>
+              const roundTitle =
+                roundMatches.length === 1
+                  ? "Finale"
+                  : roundMatches.length === 2
+                  ? "Semifinali"
+                  : roundMatches.length === 4
+                  ? "Quarti"
+                  : `Round ${round}`;
 
-            <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
-              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 font-black text-cyan-100">
-                {match.homeName}
-              </div>
+              return (
+                <div
+                  key={round}
+                  className="min-w-[260px] flex-1 rounded-[1.7rem] border border-white/10 bg-white/[.025] p-4"
+                >
+                  <div className="mb-4">
+                    <div className="text-xs font-black uppercase tracking-[0.22em] text-yellow-200">
+                      {roundTitle}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {roundMatches.length} match
+                    </div>
+                  </div>
 
-              <div className="text-center text-sm font-black text-slate-400">
-                VS
-              </div>
+                  <div className="space-y-3">
+                    {roundMatches.map((match) => {
+                      const isBye = !match.awayTeamId;
+                      const isCompleted = match.resultStatus === "confermato";
+                      const winnerName =
+                        match.winnerTeamId === match.homeTeamId
+                          ? match.homeName
+                          : match.winnerTeamId === match.awayTeamId
+                          ? match.awayName
+                          : "";
 
-              <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-4 font-black text-fuchsia-100">
-                {match.awayName}
-              </div>
-            </div>
+                      return (
+                        <div
+                          key={`${match.round}_${match.matchNumber}`}
+                          className="rounded-2xl border border-white/10 bg-black/25 p-3"
+                        >
+                          <div className="mb-3 flex items-center justify-between gap-2">
+                            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
+                              Match {match.matchNumber}
+                            </div>
 
-            {typeof match.homeScore === "number" &&
-              typeof match.awayScore === "number" && (
-                <div className="mt-3 rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200">
-                  Risultato: {match.homeScore} - {match.awayScore}
+                            <div
+                              className={`rounded-xl border px-2 py-1 text-[10px] font-black uppercase ${
+                                isCompleted
+                                  ? "border-lime-400/20 bg-lime-400/10 text-lime-200"
+                                  : match.matchId
+                                  ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+                                  : isBye
+                                  ? "border-yellow-300/20 bg-yellow-400/10 text-yellow-200"
+                                  : "border-white/10 bg-white/[.03] text-slate-400"
+                              }`}
+                            >
+                              {isCompleted
+                                ? isBye
+                                  ? "Bye"
+                                  : "Completato"
+                                : match.matchId
+                                ? "Creato"
+                                : "Da creare"}
+                            </div>
+                          </div>
+
+                          <div
+                            className={`rounded-xl border px-3 py-2 text-sm font-black ${
+                              winnerName && winnerName === match.homeName
+                                ? "border-lime-300/30 bg-lime-400/10 text-lime-100"
+                                : "border-cyan-400/20 bg-cyan-400/10 text-cyan-100"
+                            }`}
+                          >
+                            {match.homeName}
+                          </div>
+
+                          <div className="my-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                            {isBye ? "passa il turno" : "vs"}
+                          </div>
+
+                          <div
+                            className={`rounded-xl border px-3 py-2 text-sm font-black ${
+                              winnerName && winnerName === match.awayName
+                                ? "border-lime-300/30 bg-lime-400/10 text-lime-100"
+                                : "border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-100"
+                            }`}
+                          >
+                            {isBye ? "Riposo" : match.awayName}
+                          </div>
+
+                          {typeof match.homeScore === "number" &&
+                            typeof match.awayScore === "number" && (
+                              <div className="mt-3 rounded-xl border border-lime-400/20 bg-lime-400/10 px-3 py-2 text-xs font-black text-lime-200">
+                                Risultato: {match.homeScore} - {match.awayScore}
+                              </div>
+                            )}
+
+                          {winnerName && (
+                            <div className="mt-3 rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-3 py-2 text-xs font-black text-yellow-100">
+                              Passa: {winnerName}
+                            </div>
+                          )}
+
+                          {match.matchId ? (
+                            <Link
+                              href={"/match/" + match.matchId}
+                              className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200 transition hover:bg-lime-400/20"
+                            >
+                              Apri match
+                            </Link>
+                          ) : isBye ? (
+                            <div className="mt-3 inline-flex rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-2 text-xs font-black text-yellow-100">
+                              Passaggio automatico
+                            </div>
+                          ) : (
+                            <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs text-white/60">
+                              Match non ancora creato
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
-
-            {match.matchId ? (
-              <Link
-                href={"/match/" + match.matchId}
-                className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200 transition hover:bg-lime-400/20"
-              >
-                Apri match
-              </Link>
-            ) : (
-              <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs text-white/60">
-                Match non ancora creato
-              </div>
-            )}
-          </div>
-        ))}
+              );
+            })}
+        </div>
       </div>
     )}
   </section>
@@ -2867,7 +3029,7 @@ const pendingCompetitionMatches = Math.max(
   : event.bracket?.length
   ? "Tabellone già generato"
   : !hasEnoughValidTeams
-  ? "Servono squadre valide"
+  ? `Servono ${getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()} validi`
   : "Genera tabellone"}
       </button>
     )}
@@ -2889,7 +3051,7 @@ const pendingCompetitionMatches = Math.max(
   : event.leagueFixtures?.length
   ? "Calendario già generato"
   : !hasEnoughValidTeams
-  ? "Servono squadre valide"
+  ? `Servono ${getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()} validi`
   : "Genera calendario"}
   </button>
 )}
