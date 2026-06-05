@@ -2361,7 +2361,7 @@ const visibleTournamentBracket =
       </p>
     </div>
 
-    <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
+    <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
   <SummaryBox
     label={isTeamCompetition ? getTeamPluralLabel(competitionFormat, event.sport) : "Partecipanti"}
     value={isTeamCompetition ? competitionUnits.length : participants.length}
@@ -2803,9 +2803,18 @@ const visibleTournamentBracket =
                             <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs text-white/60">
                               In attesa dei vincitori
                             </div>
+                          ) : event.bracket && event.bracket.length > 0 ? (
+                            <button
+                              type="button"
+                              onClick={createMatchFromEvent}
+                              disabled={creatingMatch || accountLocked || isCancelled}
+                              className="mt-3 inline-flex rounded-xl border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
+                            >
+                              {creatingMatch ? "Creazione..." : "Crea match"}
+                            </button>
                           ) : (
                             <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[.03] px-4 py-2 text-xs text-white/60">
-                              Match non ancora creato
+                              Genera tabellone prima
                             </div>
                           )}
                         </div>
@@ -3077,6 +3086,8 @@ const visibleTournamentBracket =
   ? "Evento annullato"
   : isCompetitionCompleted
   ? "Competizione completata"
+  : event.type === "torneo" && (!event.bracket || event.bracket.length === 0)
+  ? "Genera prima il tabellone"
   : !canCreateEventMatch
   ? "Tutti i match creati"
   : event.type === "torneo"
@@ -3320,7 +3331,7 @@ function TeamRankRow({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-4 gap-2">
+      <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
         <RankStat label="PT" value={team.points || 0} />
         <RankStat label="G" value={team.matchesPlayed || 0} />
         <RankStat label="V" value={team.wins || 0} />
@@ -3365,7 +3376,7 @@ function EventRankRow({
       href={`/public/${stat.uid}`}
       className="block rounded-2xl border border-white/10 bg-white/[.03] p-4 transition hover:border-cyan-400/30"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-black/30">
           {icon}
         </div>
@@ -3395,7 +3406,7 @@ function EventRankRow({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-4 gap-2">
+      <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
         <RankStat label="PT" value={stat.points || 0} />
         <RankStat label="V" value={stat.wins || 0} />
         <RankStat label="MVP" value={stat.mvp || 0} />
@@ -3413,12 +3424,12 @@ function RankStat({
   value: number;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black/20 px-2 py-3 text-center">
-      <div className="text-base font-black text-cyan-200">
+    <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 px-2 py-3 text-center">
+      <div className="break-words text-base font-black text-cyan-200">
         {value}
       </div>
 
-      <div className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
+      <div className="mt-1 break-words text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
         {label}
       </div>
     </div>
@@ -3530,7 +3541,7 @@ function SummaryBox({
     <div className={`rounded-2xl border p-3 text-center sm:p-4 ${toneClass}`}>
       <div className="text-2xl font-black sm:text-3xl">{value}</div>
 
-      <div className="mt-2 truncate text-[10px] font-black uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.16em]">
+      <div className="mt-2 break-words text-[10px] font-black uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.16em]">
         {label}
       </div>
     </div>
