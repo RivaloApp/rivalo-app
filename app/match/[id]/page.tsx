@@ -615,6 +615,83 @@ export default function MatchDetailsPage() {
       updatedAt: serverTimestamp(),
     };
 
+    function getBracketWinner(bracketMatch: any) {
+      if (!bracketMatch?.winnerTeamId) return null;
+
+      const winnerName =
+        bracketMatch.winnerTeamId === bracketMatch.homeTeamId
+          ? bracketMatch.homeName
+          : bracketMatch.winnerTeamId === bracketMatch.awayTeamId
+          ? bracketMatch.awayName
+          : bracketMatch.winnerName || "Vincitore";
+
+      return {
+        teamId: bracketMatch.winnerTeamId,
+        name: winnerName || "Vincitore",
+      };
+    }
+
+    function fillNextRound({
+      bracket,
+      round,
+      winners,
+    }: {
+      bracket: any[];
+      round: number;
+      winners: { teamId: string; name: string }[];
+    }) {
+      return bracket.map((bracketMatch: any, index: number) => {
+        if (Number(bracketMatch.round || 1) !== round + 1) {
+          return bracketMatch;
+        }
+
+        const nextRoundIndex = bracket
+          .filter((candidate: any) => Number(candidate.round || 1) === round + 1)
+          .findIndex(
+            (candidate: any) =>
+              candidate.matchNumber === bracketMatch.matchNumber
+          );
+
+        const homeWinner = winners[nextRoundIndex * 2];
+        const awayWinner = winners[nextRoundIndex * 2 + 1];
+
+        if (!homeWinner) return bracketMatch;
+
+        const alreadyHasConfirmedResult =
+          bracketMatch.resultStatus === "confermato" &&
+          Boolean(bracketMatch.winnerTeamId);
+
+        if (alreadyHasConfirmedResult) return bracketMatch;
+
+        return {
+          ...bracketMatch,
+          homeTeamId: homeWinner.teamId,
+          awayTeamId: awayWinner?.teamId || "",
+          homeName: homeWinner.name || "Da definire",
+          awayName: awayWinner?.name || "Riposo",
+          winnerTeamId: awayWinner ? "" : homeWinner.teamId,
+          status: awayWinner
+            ? bracketMatch.matchId
+              ? bracketMatch.status || "match creato"
+              : "programmato"
+            : "riposo",
+          resultStatus: awayWinner
+            ? bracketMatch.resultStatus === "confermato"
+              ? "confermato"
+              : bracketMatch.matchId
+              ? bracketMatch.resultStatus || "da_confermare"
+              : "da_creare"
+            : "confermato",
+          homeScore: alreadyHasConfirmedResult
+            ? bracketMatch.homeScore
+            : null,
+          awayScore: alreadyHasConfirmedResult
+            ? bracketMatch.awayScore
+            : null,
+        };
+      });
+    }
+
     if (Array.isArray(eventData.bracket)) {
       let nextBracket = eventData.bracket.map((bracketMatch: any) => {
         if (bracketMatch.matchId !== matchId) return bracketMatch;
@@ -640,76 +717,58 @@ export default function MatchDetailsPage() {
         };
       });
 
-      const currentMatch = nextBracket.find(
-        (bracketMatch: any) => bracketMatch.matchId === matchId
+      const maxRound = Math.max(
+        1,
+        ...nextBracket.map((bracketMatch: any) =>
+          Number(bracketMatch.round || 1)
+        )
       );
 
-      const currentRound = Number(currentMatch?.round || 1);
-
-      const roundMatches = nextBracket.filter(
-        (bracketMatch: any) => Number(bracketMatch.round || 1) === currentRound
-      );
-
-      const allRoundCompleted =
-        roundMatches.length > 0 &&
-        roundMatches.every(
-          (bracketMatch: any) =>
-            bracketMatch.resultStatus === "confermato" &&
-            Boolean(bracketMatch.winnerTeamId)
+      for (let round = 1; round <= maxRound; round += 1) {
+        const roundMatches = nextBracket.filter(
+          (bracketMatch: any) => Number(bracketMatch.round || 1) === round
         );
 
-      const nextRoundAlreadyExists = nextBracket.some(
-        (bracketMatch: any) =>
-          Number(bracketMatch.round || 1) === currentRound + 1
-      );
+        const allRoundCompleted =
+          roundMatches.length > 0 &&
+          roundMatches.every(
+            (bracketMatch: any) =>
+              bracketMatch.resultStatus === "confermato" &&
+              Boolean(bracketMatch.winnerTeamId)
+          );
 
-      if (allRoundCompleted && !nextRoundAlreadyExists) {
+        if (!allRoundCompleted) continue;
+
         const winners = roundMatches
-          .map((bracketMatch: any) => ({
-            teamId: bracketMatch.winnerTeamId,
-            name:
-              bracketMatch.winnerTeamId === bracketMatch.homeTeamId
-                ? bracketMatch.homeName
-                : bracketMatch.awayName,
-          }))
-          .filter((winner: any) => Boolean(winner.teamId));
+          .map(getBracketWinner)
+          .filter(Boolean) as { teamId: string; name: string }[];
 
-        if (winners.length === 1) {
-          updatePayload.status = "torneo completato";
-          updatePayload.winnerTeamId = winners[0].teamId;
-          updatePayload.winnerTeamName = winners[0].name;
-        }
+        if (winners.length === 0) continue;
 
-        if (winners.length > 1) {
-          const nextRoundMatches: any[] = [];
+        const nextRoundMatches = nextBracket.filter(
+          (bracketMatch: any) => Number(bracketMatch.round || 1) === round + 1
+        );
 
-          for (let i = 0; i < winners.length; i += 2) {
-            const homeWinner = winners[i];
-            const awayWinner = winners[i + 1];
-
-            nextRoundMatches.push({
-              round: currentRound + 1,
-              matchNumber: nextBracket.length + nextRoundMatches.length + 1,
-              homeTeamId: homeWinner?.teamId || "",
-              awayTeamId: awayWinner?.teamId || "",
-              homeName: homeWinner?.name || "Da definire",
-              awayName: awayWinner?.name || "Riposo",
-              winnerTeamId: awayWinner ? "" : homeWinner?.teamId || "",
-              matchId: "",
-              status: awayWinner ? "programmato" : "riposo",
-              resultStatus: awayWinner ? "da_creare" : "confermato",
-              homeScore: null,
-              awayScore: null,
-            });
+        if (nextRoundMatches.length === 0) {
+          if (winners.length === 1) {
+            updatePayload.status = "torneo completato";
+            updatePayload.winnerTeamId = winners[0].teamId;
+            updatePayload.winnerTeamName = winners[0].name;
           }
 
-          nextBracket = [...nextBracket, ...nextRoundMatches];
-
-          updatePayload.status =
-            winners.length === 2
-              ? "finale generata"
-              : `round ${currentRound + 1} generato`;
+          continue;
         }
+
+        nextBracket = fillNextRound({
+          bracket: nextBracket,
+          round,
+          winners,
+        });
+
+        updatePayload.status =
+          nextRoundMatches.length === 1
+            ? "finale generata"
+            : `round ${round + 1} aggiornato`;
       }
 
       updatePayload.bracket = nextBracket;
@@ -811,6 +870,14 @@ export default function MatchDetailsPage() {
 
     if (match.status === "ufficiale" || match.resultStatus === "confermato") {
       setMessage("Match già ufficiale. Non puoi modificare il risultato.");
+      return;
+    }
+
+    if (
+      match.mode === "torneo" &&
+      Number(homeScore || 0) === Number(awayScore || 0)
+    ) {
+      setMessage("Nei tornei serve un vincitore: inserisci un risultato non in parità.");
       return;
     }
 
@@ -927,6 +994,14 @@ setMessage(
 
     if (!autoConfirmAllowed && match.resultProposedBy === user.uid) {
       setMessage("Chi propone il risultato non può confermarlo da solo.");
+      return;
+    }
+
+    if (
+      match.mode === "torneo" &&
+      Number(homeScore || 0) === Number(awayScore || 0)
+    ) {
+      setMessage("Nei tornei serve un vincitore: il risultato non può essere in parità.");
       return;
     }
 
