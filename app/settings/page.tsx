@@ -8,6 +8,7 @@ import {
   Bell,
   ChevronRight,
   Lock,
+  Save,
   Settings,
   ShieldCheck,
   Trash2,
@@ -86,6 +87,9 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [requestingDeletion, setRequestingDeletion] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileNickname, setProfileNickname] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -100,7 +104,11 @@ export default function SettingsPage() {
         const snap = await getDoc(doc(db, "users", currentUser.uid));
 
         if (snap.exists()) {
-          setProfile(snap.data() as UserProfile);
+          const data = snap.data() as UserProfile;
+
+          setProfile(data);
+          setProfileName(data.name || "");
+          setProfileNickname(data.nickname || "");
         }
       } finally {
         setLoading(false);
@@ -113,6 +121,13 @@ export default function SettingsPage() {
   const displayName =
     profile?.name || profile?.nickname || user?.displayName || "Rivalo Player";
 
+  const cleanProfileName = profileName.trim();
+  const cleanProfileNickname = profileNickname.trim();
+
+  const profileEditDirty =
+    cleanProfileName !== (profile?.name || "").trim() ||
+    cleanProfileNickname !== (profile?.nickname || "").trim();
+
   const sport = profile?.mainSport || profile?.sport || "calcetto";
   const city = profile?.city || "Non impostata";
   const email = user?.email || "Email non disponibile";
@@ -124,6 +139,47 @@ export default function SettingsPage() {
   const mvp = profile?.mvp ?? 0;
   const deletionActive = isDeletionActive(profile);
   const deletionDate = formatDeletionDate(profile?.deletionRequestedAt);
+
+  async function saveProfileIdentity() {
+    if (!user || deletionActive) return;
+
+    const nextName = cleanProfileName;
+    const nextNickname = cleanProfileNickname;
+
+    if (nextName.length < 2) {
+      setMessage("Inserisci un nome di almeno 2 caratteri.");
+      return;
+    }
+
+    if (nextNickname.length < 2) {
+      setMessage("Inserisci un nickname di almeno 2 caratteri.");
+      return;
+    }
+
+    setSavingProfile(true);
+    setMessage("");
+
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        name: nextName,
+        nickname: nextNickname,
+        updatedAt: serverTimestamp(),
+      });
+
+      setProfile((current) => ({
+        ...(current || {}),
+        name: nextName,
+        nickname: nextNickname,
+      }));
+
+      setMessage("Profilo aggiornato.");
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante il salvataggio del profilo.");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
 
   async function requestAccountDeletion() {
     if (!user) return;
@@ -247,7 +303,22 @@ export default function SettingsPage() {
               title="Profilo"
               text="Dati principali collegati alla tua card Rivalo."
             >
-              <InfoRow label="Nome" value={displayName} />
+              <EditableField
+                label="Nome"
+                value={profileName}
+                placeholder="Il tuo nome"
+                disabled={deletionActive || savingProfile}
+                onChange={setProfileName}
+              />
+
+              <EditableField
+                label="Nickname"
+                value={profileNickname}
+                placeholder="Nickname Rivalo"
+                disabled={deletionActive || savingProfile}
+                onChange={setProfileNickname}
+              />
+
               <InfoRow label="Email" value={email} />
               <InfoRow label="Città" value={city} />
               <InfoRow
@@ -260,13 +331,30 @@ export default function SettingsPage() {
                   Le modifiche del profilo sono bloccate.
                 </div>
               ) : (
-                <Link
-                  href="/profile"
-                  className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200 transition hover:bg-cyan-400/20"
-                >
-                  Apri profilo
-                  <ChevronRight size={18} />
-                </Link>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={saveProfileIdentity}
+                    disabled={
+                      savingProfile ||
+                      !profileEditDirty ||
+                      cleanProfileName.length < 2 ||
+                      cleanProfileNickname.length < 2
+                    }
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200 transition hover:bg-cyan-400/20 disabled:opacity-60"
+                  >
+                    <Save size={18} />
+                    {savingProfile ? "Salvataggio..." : "Salva modifiche"}
+                  </button>
+
+                  <Link
+                    href="/profile"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[.04] px-5 py-3 font-black text-slate-200 transition hover:border-cyan-400/30 hover:bg-cyan-400/10"
+                  >
+                    Apri profilo
+                    <ChevronRight size={18} />
+                  </Link>
+                </div>
               )}
             </SettingsCard>
 
@@ -451,6 +539,37 @@ function SettingsCard({
 
       <div className="min-w-0 space-y-3">{children}</div>
     </section>
+  );
+}
+
+function EditableField({
+  label,
+  value,
+  placeholder,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block min-w-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+      <span className="mb-2 block break-words text-sm font-bold text-slate-400">
+        {label}
+      </span>
+
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        maxLength={32}
+        className="w-full bg-transparent font-black text-white outline-none placeholder:text-slate-600 disabled:opacity-60"
+      />
+    </label>
   );
 }
 
