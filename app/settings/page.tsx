@@ -142,6 +142,7 @@ export default function SettingsPage() {
         deletionRequestedAt: serverTimestamp(),
         deletionRequestedBy: user.uid,
         accountStatus: "deletion_requested",
+        actionLockedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
@@ -154,7 +155,7 @@ export default function SettingsPage() {
 
       setDeleteConfirmText("");
       setMessage(
-        "Richiesta registrata. Da ora il profilo è bloccato per nuove azioni e i dati pubblici verranno mostrati come profilo non attivo."
+        "Richiesta registrata. Il profilo è ora in stato non attivo."
       );
     } catch (error) {
       console.error(error);
@@ -173,10 +174,10 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#020617] px-5 py-8 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] px-3 py-8 text-white sm:px-5">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_6%,rgba(34,211,238,.16),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(217,70,239,.14),transparent_32%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
 
-      <section className="relative z-10 mx-auto max-w-6xl">
+      <section className="relative z-10 mx-auto w-full max-w-6xl min-w-0 overflow-hidden">
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -185,19 +186,19 @@ export default function SettingsPage() {
           Torna alla dashboard
         </Link>
 
-        <header className="mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[.04] p-7 shadow-2xl backdrop-blur sm:p-9">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
+        <header className="mt-8 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] p-5 shadow-2xl backdrop-blur sm:rounded-[2.5rem] sm:p-9">
+          <div className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-cyan-200">
                 <Settings size={16} />
                 Impostazioni
               </div>
 
-              <h1 className="mt-5 text-4xl font-black uppercase tracking-tight sm:text-5xl">
+              <h1 className="mt-5 break-words text-3xl font-black uppercase tracking-tight sm:text-5xl">
                 Account Rivalo
               </h1>
 
-              <p className="mt-4 max-w-3xl leading-7 text-slate-300">
+              <p className="mt-4 max-w-3xl break-words leading-7 text-slate-300">
                 Gestisci profilo, sport, privacy, notifiche e sicurezza account.
               </p>
             </div>
@@ -231,8 +232,7 @@ export default function SettingsPage() {
                 </div>
 
                 <p className="mt-2 text-sm font-bold leading-6">
-                  Il profilo è bloccato per nuove azioni su match, eventi e gruppi.
-                  Le statistiche storiche restano conservate per mantenere corrette classifiche e risultati.
+                  Il profilo non può più creare o modificare match, eventi e gruppi.
                   {deletionDate ? ` Richiesta registrata il ${deletionDate}.` : ""}
                 </p>
               </div>
@@ -240,8 +240,8 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <section className="mt-7 grid gap-6 lg:grid-cols-[1fr_.9fr]">
-          <div className="space-y-6">
+        <section className="mt-7 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,.9fr)]">
+          <div className="min-w-0 space-y-6">
             <SettingsCard
               icon={<UserRound />}
               title="Profilo"
@@ -273,7 +273,7 @@ export default function SettingsPage() {
             <SettingsCard
               icon={<Trophy />}
               title="Sport e statistiche"
-              text="Lo sport attivo protegge statistiche, ranking, eventi e match."
+              text="Statistiche e ranking restano ordinati in base allo sport scelto."
             >
               <InfoRow label="Sport principale" value={sportLabel(sport)} />
               <InfoRow label="RivalScore" value={String(rivalScore)} />
@@ -281,8 +281,7 @@ export default function SettingsPage() {
               <InfoRow label="Partite" value={String(matchesPlayed)} />
 
               <div className="mt-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm leading-6 text-yellow-100">
-                Le statistiche restano separate per sport, così ranking e card
-                rimangono coerenti con il profilo attivo.
+                Il profilo sportivo mantiene card, ranking e statistiche sempre coerenti.
               </div>
             </SettingsCard>
 
@@ -301,7 +300,7 @@ export default function SettingsPage() {
             </SettingsCard>
           </div>
 
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <SettingsCard
               icon={<ShieldCheck />}
               title="Privacy"
@@ -311,8 +310,8 @@ export default function SettingsPage() {
                 label="Profilo pubblico"
                 value={deletionActive ? "Nascosto" : "Visibile"}
               />
-              <InfoRow label="Ranking globale" value="Storico mantenuto" />
-              <InfoRow label="Eventi pubblici" value="Filtrati per sport/zona" />
+              <InfoRow label="Ranking globale" value="Visibile" />
+              <InfoRow label="Eventi pubblici" value="Disponibili" />
             </SettingsCard>
 
             <SettingsCard
@@ -321,7 +320,7 @@ export default function SettingsPage() {
               text="Accesso, email e protezione dell’account Rivalo."
             >
               <InfoRow label="Email account" value={email} />
-              <InfoRow label="Provider" value="Firebase Auth" />
+              <InfoRow label="Accesso" value="Email e password" />
               <InfoRow
                 label="Sessione"
                 value={deletionActive ? "Limitata" : "Attiva"}
@@ -346,8 +345,8 @@ export default function SettingsPage() {
                     value="Bloccate"
                   />
                   <InfoRow
-                    label="Dati storici"
-                    value="Conservati"
+                    label="Storico sportivo"
+                    value="Protetto"
                   />
 
                   <Link
@@ -367,8 +366,7 @@ export default function SettingsPage() {
                     </div>
 
                     Dopo la richiesta, il profilo non potrà più creare o modificare
-                    match, eventi e gruppi. Le statistiche storiche resteranno salvate
-                    per mantenere corretti risultati e classifiche.
+                    match, eventi e gruppi. Il tuo storico sportivo resterà protetto.
                   </div>
 
                   <label className="mt-4 block">
@@ -428,13 +426,13 @@ function SettingsCard({
 }) {
   return (
     <section
-      className={`rounded-[2rem] border p-6 shadow-2xl backdrop-blur ${
+      className={`min-w-0 overflow-hidden rounded-[2rem] border p-5 shadow-2xl backdrop-blur sm:p-6 ${
         danger
           ? "border-red-400/20 bg-red-500/[.055]"
           : "border-white/10 bg-white/[.045]"
       }`}
     >
-      <div className="mb-5 flex items-start gap-4">
+      <div className="mb-5 flex min-w-0 items-start gap-4">
         <div
           className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${
             danger
@@ -445,22 +443,22 @@ function SettingsCard({
           {icon}
         </div>
 
-        <div>
-          <h2 className="text-2xl font-black">{title}</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-400">{text}</p>
+        <div className="min-w-0">
+          <h2 className="break-words text-2xl font-black">{title}</h2>
+          <p className="mt-1 break-words text-sm leading-6 text-slate-400">{text}</p>
         </div>
       </div>
 
-      <div className="space-y-3">{children}</div>
+      <div className="min-w-0 space-y-3">{children}</div>
     </section>
   );
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-      <span className="text-sm font-bold text-slate-400">{label}</span>
-      <span className="min-w-0 truncate text-right font-black text-white">
+    <div className="flex min-w-0 flex-col gap-1 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <span className="break-words text-sm font-bold text-slate-400">{label}</span>
+      <span className="min-w-0 break-words text-left font-black text-white sm:text-right">
         {value}
       </span>
     </div>
@@ -469,9 +467,9 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 function MiniStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-white/[.045] p-5 text-center">
-      <div className="text-4xl font-black text-cyan-200">{value}</div>
-      <div className="mt-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+    <div className="min-w-0 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[.045] p-5 text-center">
+      <div className="break-words text-4xl font-black text-cyan-200">{value}</div>
+      <div className="mt-2 break-words text-xs font-black uppercase tracking-[0.16em] text-slate-400">
         {label}
       </div>
     </div>
