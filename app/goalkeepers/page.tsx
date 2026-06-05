@@ -222,9 +222,13 @@ export default function GoalkeepersPage() {
     return topBy(goalkeepers, (user) => Number(user.penaltiesSaved || 0));
   }, [goalkeepers]);
 
+  const topRivalScore = useMemo(() => {
+    return topBy(goalkeepers, (user) => Number(user.rivalScore || 1000));
+  }, [goalkeepers]);
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] px-4 py-6 text-white sm:px-5 sm:py-8">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto w-full max-w-7xl min-w-0">
         <Link
           href="/leaderboard"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -253,7 +257,7 @@ export default function GoalkeepersPage() {
                   </h1>
 
                   <p className="mt-3 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
-                    Ranking dedicato solo ai portieri calcetto. Conta partite,
+                    Ranking dedicato ai portieri calcetto, ordinato per continuità,
                     clean sheet, media gol subiti, rigori parati, vittorie, MVP
                     e RivalScore.
                   </p>
@@ -278,7 +282,7 @@ export default function GoalkeepersPage() {
               </div>
             ) : (
               <>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                   <CategoryCard
                     title="Top Portiere"
                     value={
@@ -309,6 +313,13 @@ export default function GoalkeepersPage() {
                     value={topPenaltySaver?.penaltiesSaved || 0}
                     user={topPenaltySaver}
                     icon={<Medal className="text-yellow-200" />}
+                  />
+
+                  <CategoryCard
+                    title="RivalScore"
+                    value={topRivalScore?.rivalScore || 0}
+                    user={topRivalScore}
+                    icon={<Trophy className="text-cyan-200" />}
                   />
                 </div>
 
@@ -383,7 +394,7 @@ function CategoryCard({
         {value}
       </div>
 
-      <div className="mt-2 truncate text-sm text-lime-200">
+      <div className="mt-2 break-words text-sm font-bold text-lime-200">
         {getDisplayName(user)}
       </div>
     </div>
@@ -430,7 +441,7 @@ function GoalkeeperRowCard({
           </div>
 
           <div className="min-w-0">
-            <div className="truncate text-xl font-black uppercase leading-tight text-white sm:text-2xl">
+            <div className="break-words text-xl font-black uppercase leading-tight text-white sm:text-2xl">
               {displayName}
             </div>
 
@@ -440,14 +451,16 @@ function GoalkeeperRowCard({
           </div>
         </div>
 
-        <div className="grid flex-1 grid-cols-3 gap-2 sm:grid-cols-7">
+        <div className="grid min-w-0 flex-1 grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-9">
           <MiniStat label="Score" value={score} color="text-lime-200" />
           <MiniStat label="Partite" value={matches} />
-          <MiniStat label="CS" value={user.cleanSheets || 0} color="text-lime-200" />
+          <MiniStat label="GS" value={user.goalsConceded || 0} color="text-orange-100" />
           <MiniStat label="Media GS" value={average} color="text-orange-200" />
+          <MiniStat label="CS" value={user.cleanSheets || 0} color="text-lime-200" />
           <MiniStat label="RP" value={user.penaltiesSaved || 0} color="text-cyan-200" />
           <MiniStat label="Vittorie" value={user.wins || 0} color="text-lime-300" />
           <MiniStat label="MVP" value={user.mvp || 0} color="text-yellow-100" />
+          <MiniStat label="RIV" value={user.rivalScore || 1000} color="text-cyan-200" />
         </div>
       </div>
     </Link>
@@ -465,11 +478,11 @@ function MiniStat({
 }) {
   return (
     <div className="min-w-0 rounded-2xl border border-white/10 bg-black/25 px-2 py-3 text-center">
-      <div className={`truncate text-lg font-black leading-none sm:text-xl ${color || "text-white"}`}>
+      <div className={`break-words text-lg font-black leading-none sm:text-xl ${color || "text-white"}`}>
         {value}
       </div>
 
-      <div className="mt-1 truncate text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 sm:text-[10px]">
+      <div className="mt-1 break-words text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 sm:text-[10px]">
         {label}
       </div>
     </div>
