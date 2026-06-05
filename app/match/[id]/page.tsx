@@ -216,6 +216,33 @@ function getSafePlayersForStats(match: MatchDoc, players: MatchPlayer[]) {
   }));
 }
 
+function getRacketScoreError(match: MatchDoc, homeValue: string | number | null | undefined, awayValue: string | number | null | undefined) {
+  if (!isRacketSport(match.sport)) return "";
+
+  const homeScoreNumber = Number(homeValue);
+  const awayScoreNumber = Number(awayValue);
+
+  if (
+    homeValue === "" ||
+    awayValue === "" ||
+    homeValue === null ||
+    awayValue === null ||
+    Number.isNaN(homeScoreNumber) ||
+    Number.isNaN(awayScoreNumber)
+  ) {
+    return "Seleziona un risultato set valido.";
+  }
+
+  const validScores = new Set(["2-0", "2-1", "1-2", "0-2"]);
+  const scoreKey = `${homeScoreNumber}-${awayScoreNumber}`;
+
+  if (!validScores.has(scoreKey)) {
+    return "Per padel e tennis puoi inserire solo risultati set reali: 2-0, 2-1, 1-2 o 0-2.";
+  }
+
+  return "";
+}
+
 function isSameUserSport(match: MatchDoc, userSport: string) {
   return normalizeSport(match.sport) === normalizeSport(userSport);
 }
@@ -873,6 +900,13 @@ export default function MatchDetailsPage() {
       return;
     }
 
+    const racketScoreError = getRacketScoreError(match, homeScore, awayScore);
+
+    if (racketScoreError) {
+      setMessage(racketScoreError);
+      return;
+    }
+
     if (
       match.mode === "torneo" &&
       Number(homeScore || 0) === Number(awayScore || 0)
@@ -997,6 +1031,13 @@ setMessage(
       return;
     }
 
+    const racketScoreError = getRacketScoreError(match, homeScore, awayScore);
+
+    if (racketScoreError) {
+      setMessage(racketScoreError);
+      return;
+    }
+
     if (
       match.mode === "torneo" &&
       Number(homeScore || 0) === Number(awayScore || 0)
@@ -1044,6 +1085,16 @@ setMessage(
 
 if (freshMatch.resultStatus !== "proposto") {
   throw new Error("NO_RESULT_PROPOSAL");
+}
+
+const freshRacketScoreError = getRacketScoreError(
+  freshMatch,
+  freshMatch.homeScore,
+  freshMatch.awayScore
+);
+
+if (freshRacketScoreError) {
+  throw new Error("RACKET_SCORE_INVALID");
 }
 
 if (
@@ -1188,6 +1239,8 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
         setMessage("Chi propone il risultato non può confermarlo da solo.");
       } else if (error?.message === "RESULT_DISPUTED") {
         setMessage("Il risultato è contestato. Serve revisione prima della conferma.");
+      } else if (error?.message === "RACKET_SCORE_INVALID") {
+        setMessage("Risultato non valido: per padel e tennis usa 2-0, 2-1, 1-2 o 0-2.");
       } else if (error?.message === "MATCH_CANCELLED") {
         setMessage("Match annullato. Statistiche non applicate.");
       } else if (error?.message === "ACCOUNT_LOCKED") {
@@ -1423,6 +1476,10 @@ setMessage("Risultato contestato. Servirà revisione.");
   const matchCopy = getMatchCopy(match.sport, safeCompetitionFormat);
   const racketMatch = isRacketSport(match.sport);
   const namesLockedFromGroup = racketMatch && players.length > 0;
+  const racketScoreValue =
+    racketMatch && homeScore !== "" && awayScore !== ""
+      ? `${homeScore}-${awayScore}`
+      : "";
 
   const isCancelled = isMatchCancelled(match);
 
@@ -1567,35 +1624,68 @@ setMessage("Risultato contestato. Servirà revisione.");
                 </div>
               )}
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={matchCopy.homeScore}>
-                  <input
+              {racketMatch ? (
+                <Field label="Risultato set">
+                  <select
                     required
                     disabled={isOfficial || isCancelled || accountLocked}
-                    type="number"
-                    min="0"
-                    value={homeScore}
-                    onChange={(e) => setHomeScore(e.target.value)}
-                    className="w-full bg-transparent outline-none disabled:opacity-60"
-                  />
-                </Field>
+                    value={racketScoreValue}
+                    onChange={(e) => {
+                      const [nextHomeScore, nextAwayScore] = e.target.value.split("-");
 
-                <Field label={matchCopy.awayScore}>
-                  <input
-                    required
-                    disabled={isOfficial || isCancelled || accountLocked}
-                    type="number"
-                    min="0"
-                    value={awayScore}
-                    onChange={(e) => setAwayScore(e.target.value)}
-                    className="w-full bg-transparent outline-none disabled:opacity-60"
-                  />
+                      setHomeScore(nextHomeScore || "");
+                      setAwayScore(nextAwayScore || "");
+                    }}
+                    className="w-full bg-[#020617] text-white outline-none disabled:opacity-60"
+                  >
+                    <option value="" className="bg-[#020617] text-white">
+                      Seleziona risultato valido
+                    </option>
+                    <option value="2-0" className="bg-[#020617] text-white">
+                      {homeTeam || matchCopy.teamA} vince 2-0
+                    </option>
+                    <option value="2-1" className="bg-[#020617] text-white">
+                      {homeTeam || matchCopy.teamA} vince 2-1
+                    </option>
+                    <option value="1-2" className="bg-[#020617] text-white">
+                      {awayTeam || matchCopy.teamB} vince 2-1
+                    </option>
+                    <option value="0-2" className="bg-[#020617] text-white">
+                      {awayTeam || matchCopy.teamB} vince 2-0
+                    </option>
+                  </select>
                 </Field>
-              </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label={matchCopy.homeScore}>
+                    <input
+                      required
+                      disabled={isOfficial || isCancelled || accountLocked}
+                      type="number"
+                      min="0"
+                      value={homeScore}
+                      onChange={(e) => setHomeScore(e.target.value)}
+                      className="w-full bg-transparent outline-none disabled:opacity-60"
+                    />
+                  </Field>
+
+                  <Field label={matchCopy.awayScore}>
+                    <input
+                      required
+                      disabled={isOfficial || isCancelled || accountLocked}
+                      type="number"
+                      min="0"
+                      value={awayScore}
+                      onChange={(e) => setAwayScore(e.target.value)}
+                      className="w-full bg-transparent outline-none disabled:opacity-60"
+                    />
+                  </Field>
+                </div>
+              )}
 
               {racketMatch && (
                 <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold leading-6 text-cyan-100">
-                  {matchCopy.scoreHelp} Gol e assist non vengono applicati.
+                  Seleziona un risultato set reale: 2-0, 2-1, 1-2 o 0-2. Il dettaglio game/tie-break va nelle note. Gol e assist non vengono applicati.
                 </div>
               )}
 
