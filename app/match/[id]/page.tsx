@@ -1339,13 +1339,13 @@ setMessage("Risultato contestato. Servirà revisione.");
   }
 
   const safeCompetitionFormat: CompetitionFormat =
-  match.competitionFormat === "doppio"
-    ? "doppio"
-    : match.competitionFormat === "squadre"
-    ? "squadre"
-    : "singolo";
+    match.competitionFormat === "doppio"
+      ? "doppio"
+      : match.competitionFormat === "squadre"
+      ? "squadre"
+      : "singolo";
 
-const matchCopy = getMatchCopy(match.sport, safeCompetitionFormat);
+  const matchCopy = getMatchCopy(match.sport, safeCompetitionFormat);
   const racketMatch = isRacketSport(match.sport);
   const namesLockedFromGroup = racketMatch && players.length > 0;
 
@@ -1367,10 +1367,10 @@ const matchCopy = getMatchCopy(match.sport, safeCompetitionFormat);
   );
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_10%_4%,rgba(34,211,238,.16),transparent_28%),radial-gradient(circle_at_88%_8%,rgba(217,70,239,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
 
-      <section className="relative z-10 mx-auto max-w-7xl px-5 py-8">
+      <section className="relative z-10 mx-auto w-full max-w-7xl min-w-0 px-3 py-8 sm:px-5">
         <Link
           href="/match"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -1379,19 +1379,19 @@ const matchCopy = getMatchCopy(match.sport, safeCompetitionFormat);
           Torna ai match
         </Link>
 
-        <section className="mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[.04] shadow-2xl backdrop-blur">
-          <div className="relative overflow-hidden p-8 md:p-10">
-            <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-              <div>
+        <section className="mt-8 w-full min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl backdrop-blur sm:rounded-[2.5rem]">
+          <div className="relative min-w-0 overflow-hidden p-4 sm:p-8 md:p-10">
+            <div className="relative flex min-w-0 flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
                 <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[.22em] text-cyan-200">
                   {sportLabel(match.sport)}
                 </div>
 
-                <h1 className="mt-5 text-5xl font-black tracking-tight md:text-6xl">
+                <h1 className="mt-5 break-words text-3xl font-black leading-tight tracking-tight sm:text-5xl md:text-6xl">
                   {match.name}
                 </h1>
 
-                <div className="mt-5 flex flex-wrap items-center gap-4 text-sm font-semibold text-slate-300">
+                <div className="mt-5 flex min-w-0 flex-wrap items-center gap-3 text-sm font-semibold text-slate-300 sm:gap-4">
                   <Info icon={<MapPin size={17} />} text={match.city || "-"} />
                   <Info
                     icon={<CalendarDays size={17} />}
@@ -1405,7 +1405,7 @@ const matchCopy = getMatchCopy(match.sport, safeCompetitionFormat);
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3 lg:min-w-[360px]">
                 <Stat value={String(match.slots || 0)} label="Slot" />
                 <Stat value={match.status || "programmata"} label="Stato" />
                 <Stat
@@ -1417,7 +1417,7 @@ const matchCopy = getMatchCopy(match.sport, safeCompetitionFormat);
           </div>
         </section>
                 {match.eventId && (
-          <section className="mt-6 rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 p-5">
+          <section className="mt-6 w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-cyan-400/20 bg-cyan-400/10 p-4 sm:rounded-[2rem] sm:p-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
@@ -1443,10 +1443,10 @@ const matchCopy = getMatchCopy(match.sport, safeCompetitionFormat);
           </section>
         )}
 
-        <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_.9fr]">
+        <section className="mt-8 grid min-w-0 gap-5 lg:grid-cols-[1fr_.9fr]">
           <form
             onSubmit={proposeResult}
-            className="rounded-[2rem] border border-white/10 bg-white/[.045] p-6 shadow-2xl backdrop-blur"
+            className="min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[.045] p-4 shadow-2xl backdrop-blur sm:rounded-[2rem] sm:p-6"
           >
             <div className="mb-6 flex items-center gap-3">
               <Trophy className="text-cyan-300" size={30} />
