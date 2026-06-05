@@ -278,6 +278,21 @@ function canAccessMatch(match: MatchDoc, uid: string) {
   return false;
 }
 
+function isPlayerInMatch(match: MatchDoc, uid: string) {
+  return Boolean(
+    uid &&
+      Array.isArray(match.players) &&
+      match.players.some((player) => player.uid === uid)
+  );
+}
+
+function canManageMatchResult(match: MatchDoc, uid: string) {
+  if (!uid) return false;
+  if (!isPlayerInMatch(match, uid)) return false;
+
+  return Boolean(getUserConfirmationTeam(match, uid));
+}
+
 function getUserTeam(match: MatchDoc, uid: string): "home" | "away" | "" {
   if (!uid) return "";
 
@@ -302,7 +317,25 @@ function getCaptainTeam(match: MatchDoc, uid: string): "home" | "away" | "" {
 }
 
 function hasCaptainRules(match: MatchDoc) {
-  return Boolean(match.homeCaptainId || match.awayCaptainId);
+  return Boolean(match.homeCaptainId && match.awayCaptainId);
+}
+
+function isEventLinkedMatch(match: MatchDoc) {
+  const sourceType = (match.sourceType || "").toLowerCase();
+
+  return Boolean(match.eventId) ||
+    sourceType.includes("event") ||
+    match.mode === "torneo" ||
+    match.mode === "campionato";
+}
+
+function requiresCaptainRules(match: MatchDoc) {
+  return (
+    hasCaptainRules(match) ||
+    isEventLinkedMatch(match) ||
+    match.competitionFormat === "doppio" ||
+    match.competitionFormat === "squadre"
+  );
 }
 
 function getUserConfirmationTeam(match: MatchDoc, uid: string): "home" | "away" | "" {
@@ -310,15 +343,15 @@ function getUserConfirmationTeam(match: MatchDoc, uid: string): "home" | "away" 
 
   if (captainTeam) return captainTeam;
 
-  if (hasCaptainRules(match)) return "";
+  if (requiresCaptainRules(match)) return "";
 
   return getUserTeam(match, uid);
 }
 
 function getPermissionLabel(match: MatchDoc) {
-  return hasCaptainRules(match)
+  return requiresCaptainRules(match)
     ? "Solo i capitani possono gestire risultato e FairPlay."
-    : "Solo i partecipanti coinvolti possono gestire il risultato.";
+    : "Solo i player coinvolti possono gestire il risultato.";
 }
 
 function getOpponentCaptainLabel(match: MatchDoc, team: "home" | "away" | "") {
@@ -885,6 +918,15 @@ export default function MatchDetailsPage() {
       return;
     }
 
+    if (!canManageMatchResult(match, user.uid)) {
+      setMessage(
+        requiresCaptainRules(match)
+          ? "Solo un capitano di questo match può proporre il risultato."
+          : "Solo i player di questo match possono proporre il risultato."
+      );
+      return;
+    }
+
     if (isMatchCancelled(match)) {
       setMessage("Match annullato. Non puoi proporre o modificare il risultato.");
       return;
@@ -923,8 +965,8 @@ export default function MatchDetailsPage() {
 
       if (!proposerTeam) {
         setMessage(
-          hasCaptainRules(match)
-            ? "Solo il capitano può proporre il risultato."
+          requiresCaptainRules(match)
+            ? "Solo un capitano di questo match può proporre il risultato."
             : "Per proporre il risultato devi essere tra i player del match."
         );
         setSaving(false);
@@ -1005,6 +1047,15 @@ setMessage(
       return;
     }
 
+    if (!canManageMatchResult(match, user.uid)) {
+      setMessage(
+        requiresCaptainRules(match)
+          ? "Solo il capitano avversario può confermare o contestare."
+          : "Solo i player coinvolti possono confermare o contestare."
+      );
+      return;
+    }
+
     if (isMatchCancelled(match)) {
       setMessage("Match annullato. Non puoi confermare né applicare statistiche.");
       return;
@@ -1069,6 +1120,10 @@ setMessage(
 
         if (!canUseMatch(freshMatch, user.uid, userSport)) {
           throw new Error("SPORT_MISMATCH");
+        }
+
+        if (!canManageMatchResult(freshMatch, user.uid)) {
+          throw new Error("CAPTAIN_REQUIRED");
         }
 
         if (isMatchCancelled(freshMatch)) {
@@ -1639,19 +1694,19 @@ setMessage("Risultato contestato. Servirà revisione.");
                     className="w-full bg-[#020617] text-white outline-none disabled:opacity-60"
                   >
                     <option value="" className="bg-[#020617] text-white">
-                      Seleziona risultato valido
+                      Scegli vincitore e set
                     </option>
                     <option value="2-0" className="bg-[#020617] text-white">
-                      {homeTeam || matchCopy.teamA} vince 2-0
+                      Vince {homeTeam || matchCopy.teamA} — {homeTeam || matchCopy.teamA} 2 set, {awayTeam || matchCopy.teamB} 0
                     </option>
                     <option value="2-1" className="bg-[#020617] text-white">
-                      {homeTeam || matchCopy.teamA} vince 2-1
+                      Vince {homeTeam || matchCopy.teamA} — {homeTeam || matchCopy.teamA} 2 set, {awayTeam || matchCopy.teamB} 1
                     </option>
                     <option value="1-2" className="bg-[#020617] text-white">
-                      {awayTeam || matchCopy.teamB} vince 2-1
+                      Vince {awayTeam || matchCopy.teamB} — {awayTeam || matchCopy.teamB} 2 set, {homeTeam || matchCopy.teamA} 1
                     </option>
                     <option value="0-2" className="bg-[#020617] text-white">
-                      {awayTeam || matchCopy.teamB} vince 2-0
+                      Vince {awayTeam || matchCopy.teamB} — {awayTeam || matchCopy.teamB} 2 set, {homeTeam || matchCopy.teamA} 0
                     </option>
                   </select>
                 </Field>

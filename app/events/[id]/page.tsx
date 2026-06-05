@@ -45,7 +45,9 @@ type BracketMatch = {
   round: number;
   matchNumber: number;
   homeTeamId?: string;
+  homeCaptainId?: string;
   awayTeamId?: string;
+  awayCaptainId?: string;
   homeName: string;
   awayName: string;
   winnerTeamId?: string;
@@ -60,7 +62,9 @@ type LeagueFixture = {
   round: number;
   matchNumber: number;
   homeTeamId: string;
+  homeCaptainId?: string;
   awayTeamId: string;
+  awayCaptainId?: string;
   homeName: string;
   awayName: string;
   matchId?: string;
@@ -1846,8 +1850,8 @@ setMessage("");
       awayTeam: awayTeamName,
       homeTeamId: matchHomeTeamId,
       awayTeamId: matchAwayTeamId,
-      homeCaptainId,
-      awayCaptainId,
+      homeCaptainId: homeTeam?.captainId || "",
+      awayCaptainId: awayTeam?.captainId || "",
       sourceType,
       homeScore: null,
       awayScore: null,
@@ -1873,6 +1877,9 @@ setMessage("");
       nextBracket[sourceBracketIndex] = {
         ...nextBracket[sourceBracketIndex],
         matchId: matchRef.id,
+        homeCaptainId: homeTeam?.captainId || "",
+        awayCaptainId: awayTeam?.captainId || "",
+        status: "match creato",
       };
 
       updatePayload.bracket = nextBracket;
@@ -1884,6 +1891,8 @@ setMessage("");
       nextFixtures[sourceLeagueIndex] = {
         ...nextFixtures[sourceLeagueIndex],
         matchId: matchRef.id,
+        homeCaptainId: homeTeam?.captainId || "",
+        awayCaptainId: awayTeam?.captainId || "",
         status: "match creato",
       };
 
