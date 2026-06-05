@@ -241,6 +241,14 @@ function isProfileDeletionRequested(profile?: UserProfile | null) {
   );
 }
 
+function isUserCandidateActive(data: any) {
+  return !(
+    data?.accountStatus === "deletion_requested" ||
+    data?.accountStatus === "deleted" ||
+    data?.deletionRequested
+  );
+}
+
 function getParticipantName(participant?: ParticipantInfo) {
   return participant?.name || "Rivalo Player";
 }
@@ -362,6 +370,9 @@ export default function EventDetailPage() {
   const [eventStats, setEventStats] = useState<EventStat[]>([]);
   const [teamStats, setTeamStats] = useState<any[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
+  const [candidateUsers, setCandidateUsers] = useState<UserOption[]>([]);
+  const [selectedUserToAdd, setSelectedUserToAdd] = useState("");
+  const [addingUser, setAddingUser] = useState(false);
   const [generatingBracket, setGeneratingBracket] = useState(false);
   const [generatingLeague, setGeneratingLeague] = useState(false);
 
@@ -430,6 +441,7 @@ export default function EventDetailPage() {
         setSportMismatch(true);
         setParticipantsInfo([]);
         setAvailableUsers([]);
+        setCandidateUsers([]);
         setEventStats([]);
         setTeamStats([]);
         return;
@@ -490,6 +502,34 @@ setAvailableUsers(
     photoUrl: participant.photoUrl || "",
     photoURL: participant.photoUrl || "",
   }))
+);
+
+const usersSnap = await getDocs(collection(db, "users"));
+const candidateUsersResult: UserOption[] = [];
+
+usersSnap.docs.forEach((userDoc) => {
+  const data = userDoc.data() as any;
+  const candidateSport = normalizeSport(data.mainSport || data.sport || "calcetto");
+
+  if (candidateSport !== normalizeSport(eventData.sport)) return;
+  if (!isUserCandidateActive(data)) return;
+  if (participants.includes(userDoc.id)) return;
+
+  candidateUsersResult.push({
+    uid: userDoc.id,
+    name: data.name || data.nickname || "Rivalo Player",
+    nickname: data.nickname || "",
+    photoUrl: data.photoUrl || data.photoURL || "",
+    photoURL: data.photoURL || data.photoUrl || "",
+  });
+});
+
+setCandidateUsers(
+  candidateUsersResult.sort((a, b) =>
+    getParticipantName({ uid: a.uid, name: a.name }).localeCompare(
+      getParticipantName({ uid: b.uid, name: b.name })
+    )
+  )
 );
 
       const statsQuery = query(
@@ -687,6 +727,140 @@ if (competitionStarted) {
 
     setJoining(false);
   }
+
+async function addUserToEvent() {
+  if (!user || !event) return;
+
+  if (accountLocked) {
+    setMessage("Profilo segnato per rimozione: non puoi aggiungere utenti.");
+    return;
+  }
+
+  if (user.uid !== event.createdBy) {
+    setMessage("Solo il creator può aggiungere utenti all'evento.");
+    return;
+  }
+
+  if (sportMismatch || normalizeSport(event.sport) !== userSport) {
+    setMessage("Non puoi aggiungere utenti a un evento di un altro sport.");
+    return;
+  }
+
+  if (isEventCancelled(event)) {
+    setMessage("Evento annullato. Non puoi aggiungere utenti.");
+    return;
+  }
+
+  const competitionStarted =
+    Boolean(event.bracket && event.bracket.length > 0) ||
+    Boolean(event.leagueFixtures && event.leagueFixtures.length > 0) ||
+    event.status === "tabellone creato" ||
+    event.status === "calendario creato" ||
+    event.status === "in corso" ||
+    event.status === "torneo completato" ||
+    event.status === "campionato completato";
+
+  if (competitionStarted) {
+    setMessage("Le iscrizioni sono chiuse perché la competizione è già iniziata.");
+    return;
+  }
+
+  if (!selectedUserToAdd) {
+    setMessage("Seleziona un utente da aggiungere.");
+    return;
+  }
+
+  const participants = event.participants || [];
+
+  if (participants.includes(selectedUserToAdd)) {
+    setMessage("Questo utente è già iscritto all'evento.");
+    return;
+  }
+
+  const maxPlayers = Number(event.maxPlayers || 0);
+
+  if (maxPlayers > 0 && participants.length >= maxPlayers) {
+    setMessage("Evento pieno.");
+    return;
+  }
+
+  const selectedUser = candidateUsers.find(
+    (candidate) => candidate.uid === selectedUserToAdd
+  );
+
+  if (!selectedUser) {
+    setMessage("Utente non disponibile o non compatibile con questo sport.");
+    return;
+  }
+
+  const newParticipant: ParticipantInfo = {
+    uid: selectedUser.uid,
+    name: selectedUser.name || selectedUser.nickname || "Rivalo Player",
+    photoUrl: selectedUser.photoUrl || selectedUser.photoURL || "",
+  };
+
+  const newParticipantsCount = participants.length + 1;
+  const nextStatus =
+    maxPlayers > 0 && newParticipantsCount >= maxPlayers
+      ? "completo"
+      : "aperto";
+
+  setAddingUser(true);
+  setMessage("");
+
+  try {
+    await updateDoc(doc(db, "events", event.id), {
+      participants: arrayUnion(newParticipant.uid),
+      participantsInfo: arrayUnion(newParticipant),
+      status: nextStatus,
+      updatedAt: serverTimestamp(),
+    });
+
+    await createNotification({
+      uid: newParticipant.uid,
+      type: "generic",
+      title: "Sei stato aggiunto a un evento",
+      message: `Sei stato aggiunto a ${event.title || "un evento Rivalo"}.`,
+      link: "/events/" + event.id,
+      createdBy: user.uid,
+      metadata: {
+        eventId: event.id,
+        eventTitle: event.title || "Evento Rivalo",
+      },
+    });
+
+    const nextParticipantsInfo = [...participantsInfo, newParticipant];
+
+    setEvent({
+      ...event,
+      participants: [...participants, newParticipant.uid],
+      participantsInfo: [...(event.participantsInfo || []), newParticipant],
+      status: nextStatus,
+    });
+
+    setParticipantsInfo(nextParticipantsInfo);
+    setAvailableUsers([
+      ...availableUsers,
+      {
+        uid: newParticipant.uid,
+        name: newParticipant.name || "Rivalo Player",
+        nickname: "",
+        photoUrl: newParticipant.photoUrl || "",
+        photoURL: newParticipant.photoUrl || "",
+      },
+    ]);
+    setCandidateUsers((current) =>
+      current.filter((candidate) => candidate.uid !== newParticipant.uid)
+    );
+    setSelectedUserToAdd("");
+    setMessage("Utente aggiunto all'evento.");
+  } catch (error) {
+    console.error(error);
+    setMessage("Errore durante l'aggiunta dell'utente.");
+  } finally {
+    setAddingUser(false);
+  }
+}
 
  async function createTeam() {
   if (!user || !event) return;
@@ -2098,6 +2272,55 @@ const pendingCompetitionMatches = Math.max(
 
                   <div className="mt-3 text-2xl font-black">{event.prize}</div>
                 </div>
+              )}
+
+              {isCreator && !accountLocked && !isCancelled && !competitionStarted && (
+                <section className="rounded-[2rem] border border-cyan-400/20 bg-cyan-400/5 p-6">
+                  <div className="mb-4 flex items-center gap-3">
+                    <UserPlus className="text-cyan-300" />
+                    <div>
+                      <div className="text-sm font-black uppercase tracking-[0.22em] text-cyan-300">
+                        Aggiungi utente
+                      </div>
+                      <p className="mt-1 text-sm leading-6 text-slate-400">
+                        Aggiungi utenti Rivalo compatibili con {formatSportLabel(event.sport)} prima di creare player/coppie o generare la competizione.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                    <select
+                      value={selectedUserToAdd}
+                      onChange={(e) => setSelectedUserToAdd(e.target.value)}
+                      className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
+                    >
+                      <option value="" className="bg-[#020617] text-white">
+                        {candidateUsers.length > 0
+                          ? "Seleziona utente"
+                          : "Nessun utente disponibile"}
+                      </option>
+
+                      {candidateUsers.map((candidate) => (
+                        <option
+                          key={candidate.uid}
+                          value={candidate.uid}
+                          className="bg-[#020617] text-white"
+                        >
+                          {candidate.name || candidate.nickname || "Rivalo Player"}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={addUserToEvent}
+                      disabled={addingUser || !selectedUserToAdd}
+                      className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200 transition hover:bg-cyan-400/20 disabled:opacity-60"
+                    >
+                      {addingUser ? "Aggiungo..." : "Aggiungi"}
+                    </button>
+                  </div>
+                </section>
               )}
 
               {isTeamCompetition && (
