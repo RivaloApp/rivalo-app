@@ -2361,17 +2361,17 @@ const visibleTournamentBracket =
       </p>
     </div>
 
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
+    <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
   <SummaryBox
     label={isTeamCompetition ? getTeamPluralLabel(competitionFormat, event.sport) : "Partecipanti"}
-    value={isTeamCompetition ? teams.length : participants.length}
+    value={isTeamCompetition ? competitionUnits.length : participants.length}
     tone="cyan"
   />
 
   {isTeamCompetition && (
     <>
       <SummaryBox
-        label="Squadre valide"
+        label={`${getTeamPluralLabel(competitionFormat, event.sport)} validi`}
         value={validTeamsCount}
         tone="green"
       />
@@ -2642,7 +2642,7 @@ const visibleTournamentBracket =
         </h2>
 
         <p className="mt-2 text-sm text-slate-400">
-          Il tabellone mostra round, passaggi, match creati e vincitori. Con 2 player viene generata direttamente la finale.
+          Il tabellone mostra round, passaggi, match creati e vincitori. Vale per calcetto, padel e tennis: cambia solo l’unità di gioco, cioè squadre, coppie o player.
         </p>
       </div>
 
@@ -2672,8 +2672,8 @@ const visibleTournamentBracket =
         Nessun tabellone generato. Aggiungi almeno 2 {getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()} validi e genera il tabellone.
       </div>
     ) : (
-      <div className="overflow-x-auto pb-2">
-        <div className="flex min-w-[720px] gap-4">
+      <div className="min-w-0 overflow-hidden pb-2 sm:overflow-x-auto">
+        <div className="flex min-w-0 flex-col gap-4 sm:min-w-[720px] sm:flex-row">
           {Array.from(
             new Set(visibleTournamentBracket.map((match) => Number(match.round || 1)))
           )
@@ -2695,7 +2695,7 @@ const visibleTournamentBracket =
               return (
                 <div
                   key={round}
-                  className="min-w-[260px] flex-1 rounded-[1.7rem] border border-white/10 bg-white/[.025] p-4"
+                  className="min-w-0 flex-1 rounded-[1.7rem] border border-white/10 bg-white/[.025] p-3 sm:min-w-[260px] sm:p-4"
                 >
                   <div className="mb-4">
                     <div className="text-xs font-black uppercase tracking-[0.22em] text-yellow-200">
@@ -2721,7 +2721,7 @@ const visibleTournamentBracket =
                       return (
                         <div
                           key={`${match.round}_${match.matchNumber}`}
-                          className="rounded-2xl border border-white/10 bg-black/25 p-3"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-3"
                         >
                           <div className="mb-3 flex items-center justify-between gap-2">
                             <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
@@ -2752,7 +2752,7 @@ const visibleTournamentBracket =
                           </div>
 
                           <div
-                            className={`rounded-xl border px-3 py-2 text-sm font-black ${
+                            className={`min-w-0 break-words rounded-xl border px-3 py-2 text-sm font-black ${
                               winnerName && winnerName === match.homeName
                                 ? "border-lime-300/30 bg-lime-400/10 text-lime-100"
                                 : "border-cyan-400/20 bg-cyan-400/10 text-cyan-100"
@@ -2766,7 +2766,7 @@ const visibleTournamentBracket =
                           </div>
 
                           <div
-                            className={`rounded-xl border px-3 py-2 text-sm font-black ${
+                            className={`min-w-0 break-words rounded-xl border px-3 py-2 text-sm font-black ${
                               winnerName && winnerName === match.awayName
                                 ? "border-lime-300/30 bg-lime-400/10 text-lime-100"
                                 : "border-fuchsia-400/20 bg-fuchsia-400/10 text-fuchsia-100"
@@ -2931,7 +2931,7 @@ const visibleTournamentBracket =
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
         <div className="text-sm font-black uppercase tracking-[0.25em] text-lime-300">
-          Classifica {eventCopy.teamPlural.toLowerCase()}
+          Classifica {getTeamPluralLabel(competitionFormat, event.sport).toLowerCase()}
         </div>
 
         <h2 className="mt-2 text-2xl font-black sm:text-3xl">
@@ -2948,7 +2948,7 @@ const visibleTournamentBracket =
 
     {rankedTeamStats.length === 0 ? (
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-400">
-        Nessuna statistica squadra ancora.
+        Nessuna statistica ancora.
       </div>
     ) : (
       <div className="space-y-3">
