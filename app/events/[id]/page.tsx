@@ -253,6 +253,36 @@ function getParticipantName(participant?: ParticipantInfo) {
   return participant?.name || "Rivalo Player";
 }
 
+function getResolvedCaptain(team: TeamInfo) {
+  const players = Array.isArray(team.players) ? team.players : [];
+
+  const explicitCaptain = players.find(
+    (player) => player.uid === team.captainId
+  );
+
+  if (explicitCaptain) {
+    return explicitCaptain;
+  }
+
+  const creatorCaptain = players.find(
+    (player) => player.uid === team.createdBy
+  );
+
+  if (creatorCaptain) {
+    return creatorCaptain;
+  }
+
+  if (players.length === 1) {
+    return players[0];
+  }
+
+  return undefined;
+}
+
+function hasValidCaptain(team: TeamInfo) {
+  return Boolean(getResolvedCaptain(team));
+}
+
 function buildAutoTeamName(players: ParticipantInfo[], format: CompetitionFormat) {
   if (format === "singolo") {
     return getParticipantName(players[0]);
@@ -391,9 +421,10 @@ function canManageEventTeam({
 }) {
   if (!userId) return false;
 
+  const resolvedCaptain = getResolvedCaptain(team);
+
   if (userId === event.createdBy) return true;
-  if (userId === team.captainId) return true;
-  if (!team.captainId && userId === team.createdBy) return true;
+  if (resolvedCaptain?.uid === userId) return true;
 
   return false;
 }
@@ -479,6 +510,7 @@ export default function EventDetailPage() {
 
   const [teamName, setTeamName] = useState("");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [selectedCaptainId, setSelectedCaptainId] = useState("");
   const [cancellationReason, setCancellationReason] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -1055,11 +1087,6 @@ async function addUserToEvent() {
     return;
   }
 
-  if (!selectedPlayerIds.includes(user.uid)) {
-    setMessage("Chi crea la squadra/coppia deve essere incluso nella rosa e diventa capitano.");
-    return;
-  }
-
   const selectedPlayers: ParticipantInfo[] = selectedPlayerIds.map((uid) => {
     const selectedUser = availableUsers.find((u) => u.uid === uid);
 
@@ -1069,6 +1096,16 @@ async function addUserToEvent() {
       photoUrl: selectedUser?.photoUrl || selectedUser?.photoURL || "",
     };
   });
+
+  const selectedCaptain =
+    competitionFormat === "singolo"
+      ? selectedPlayers[0]
+      : selectedPlayers.find((player) => player.uid === selectedCaptainId);
+
+  if (!selectedCaptain) {
+    setMessage("Scegli il capitano.");
+    return;
+  }
 
   const autoTeamName = buildAutoTeamName(selectedPlayers, competitionFormat);
   const cleanTeamName = isRacketSport(event.sport)
@@ -1089,17 +1126,13 @@ async function addUserToEvent() {
     return;
   }
 
-  const captainPlayer =
-    selectedPlayers.find((player) => player.uid === user.uid) ||
-    selectedPlayers[0];
-
   const newTeam: TeamInfo = {
     id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
     name: cleanTeamName,
     players: selectedPlayers,
     createdBy: user.uid,
-    captainId: captainPlayer?.uid || user.uid,
-    captainName: getParticipantName(captainPlayer),
+    captainId: selectedCaptain.uid,
+    captainName: getParticipantName(selectedCaptain),
   };
 
   const nextTeams = [...currentTeams, newTeam];
@@ -1150,7 +1183,8 @@ async function addUserToEvent() {
     setParticipantsInfo(mergedParticipantsInfo);
     setTeamName("");
     setSelectedPlayerIds([]);
-    setMessage(`${getTeamCreationTitle(competitionFormat, event.sport)} creato. Il creator è stato impostato come capitano.`);
+    setSelectedCaptainId("");
+    setMessage(`${getTeamCreationTitle(competitionFormat, event.sport)} creato.`);
   } catch (error) {
     console.error(error);
     setMessage("Errore durante la creazione della squadra.");
@@ -1170,6 +1204,10 @@ function getInvalidEventTeams() {
 
   return teams.filter((team) => {
     const playersCount = Array.isArray(team.players) ? team.players.length : 0;
+
+    if (!hasValidCaptain(team)) {
+      return true;
+    }
 
     if (competitionFormat === "singolo" && (event.teams || []).length < 2) {
       return playersCount !== 1;
@@ -1241,6 +1279,10 @@ function getTeamValidationLabel(team: TeamInfo) {
     (normalizeSport(event.sport) === "calcetto" ? "squadre" : "singolo");
 
   const playersCount = Array.isArray(team.players) ? team.players.length : 0;
+
+  if (!hasValidCaptain(team)) {
+    return "Scegli capitano";
+  }
 
   if (competitionFormat === "singolo") {
     return playersCount === 1 ? "Valida" : "Serve 1 giocatore";
@@ -1388,7 +1430,7 @@ async function generateLeagueSchedule() {
     return;
   }
 
-  const teams = event.teams || [];
+  const teams = getCompetitionUnits({ event, participantsInfo });
 
   if (event.type !== "campionato") {
     setMessage("Il calendario è disponibile solo per i campionati.");
@@ -1760,10 +1802,17 @@ setMessage("");
       ];
     }
 
-    const homeCaptainId =
-      homeTeam?.captainId || homeTeam?.createdBy || players[0]?.uid || "";
-    const awayCaptainId =
-      awayTeam?.captainId || awayTeam?.createdBy || players[1]?.uid || "";
+    const homeCaptain = homeTeam ? getResolvedCaptain(homeTeam) : undefined;
+    const awayCaptain = awayTeam ? getResolvedCaptain(awayTeam) : undefined;
+
+    if (!homeCaptain || !awayCaptain) {
+      setMessage("Scegli i capitani prima di creare il match.");
+      setCreatingMatch(false);
+      return;
+    }
+
+    const homeCaptainId = homeCaptain.uid;
+    const awayCaptainId = awayCaptain.uid;
 
     const matchRef = await addDoc(collection(db, "matches"), {
       createdBy: user.uid,
@@ -2546,13 +2595,24 @@ const visibleTournamentBracket =
                         <select
                           multiple
                           value={selectedPlayerIds}
-                          onChange={(e) =>
-                            setSelectedPlayerIds(
-                              Array.from(e.target.selectedOptions).map(
-                                (option) => option.value
-                              )
-                            )
-                          }
+                          onChange={(e) => {
+                            const nextSelectedPlayerIds = Array.from(
+                              e.target.selectedOptions
+                            ).map((option) => option.value);
+
+                            setSelectedPlayerIds(nextSelectedPlayerIds);
+
+                            if (!nextSelectedPlayerIds.includes(selectedCaptainId)) {
+                              setSelectedCaptainId("");
+                            }
+
+                            if (
+                              competitionFormat === "singolo" &&
+                              nextSelectedPlayerIds.length === 1
+                            ) {
+                              setSelectedCaptainId(nextSelectedPlayerIds[0]);
+                            }
+                          }}
                           className="min-h-[150px] w-full rounded-2xl border border-white/10 bg-[#020617] p-4 text-white outline-none"
                         >
                           {availableUsers.length === 0 && (
@@ -2575,8 +2635,54 @@ const visibleTournamentBracket =
 
                         <div className="mt-2 text-xs leading-5 text-slate-400">
                          Puoi selezionare solo utenti già iscritti all'evento. Un utente non può stare in due squadre/coppie/player.
-                         Chi crea la squadra/coppia/player deve selezionare anche sé stesso: diventerà capitano.
                         </div>
+
+                        {selectedPlayerIds.length > 0 && (
+                          <div className="mt-4">
+                            <div className="mb-2 text-sm font-black uppercase tracking-[0.12em] text-slate-300">
+                              Capitano
+                            </div>
+
+                            {competitionFormat === "singolo" ? (
+                              <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-3 font-black text-yellow-100">
+                                {getParticipantName(
+                                  participantsInfo.find(
+                                    (participant) =>
+                                      participant.uid === selectedPlayerIds[0]
+                                  )
+                                )}
+                              </div>
+                            ) : (
+                              <select
+                                value={selectedCaptainId}
+                                onChange={(e) => setSelectedCaptainId(e.target.value)}
+                                className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-4 text-white outline-none"
+                              >
+                                <option className="bg-[#020617] text-white" value="">
+                                  Scegli capitano
+                                </option>
+
+                                {selectedPlayerIds.map((selectedUid) => {
+                                  const selectedUser = availableUsers.find(
+                                    (availableUser) => availableUser.uid === selectedUid
+                                  );
+
+                                  return (
+                                    <option
+                                      key={selectedUid}
+                                      className="bg-[#020617] text-white"
+                                      value={selectedUid}
+                                    >
+                                      {selectedUser?.name ||
+                                        selectedUser?.nickname ||
+                                        "Rivalo Player"}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <button
@@ -3235,10 +3341,7 @@ function TeamCard({
   validationLabel: string;
   valid: boolean;
 }) {
-  const captain =
-    team.players.find((player) => player.uid === team.captainId) ||
-    team.players.find((player) => player.uid === team.createdBy);
-
+  const captain = getResolvedCaptain(team);
   const captainName = team.captainName || captain?.name || "Rivalo Player";
 
   return (
@@ -3289,8 +3392,7 @@ function TeamCard({
               </div>
             </div>
 
-            {(player.uid === team.captainId ||
-              (!team.captainId && player.uid === team.createdBy)) && (
+            {player.uid === captain?.uid && (
               <span className="shrink-0 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-yellow-100">
                 Capitano
               </span>

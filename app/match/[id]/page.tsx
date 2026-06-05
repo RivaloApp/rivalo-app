@@ -317,15 +317,15 @@ function getUserConfirmationTeam(match: MatchDoc, uid: string): "home" | "away" 
 
 function getPermissionLabel(match: MatchDoc) {
   return hasCaptainRules(match)
-    ? "Solo i capitani possono proporre, confermare o contestare."
-    : "Match vecchio: conferma consentita ai partecipanti della squadra avversaria.";
+    ? "Solo i capitani possono gestire risultato e FairPlay."
+    : "Solo i partecipanti coinvolti possono gestire il risultato.";
 }
 
 function getOpponentCaptainLabel(match: MatchDoc, team: "home" | "away" | "") {
   if (!hasCaptainRules(match)) return getTeamName(match, team);
 
-  if (team === "home") return `capitano ${match.homeTeam || "Squadra 1"}`;
-  if (team === "away") return `capitano ${match.awayTeam || "Squadra 2"}`;
+  if (team === "home") return `capitano di ${match.homeTeam || "Squadra 1"}`;
+  if (team === "away") return `capitano di ${match.awayTeam || "Squadra 2"}`;
 
   return "capitano avversario";
 }
@@ -924,8 +924,8 @@ export default function MatchDetailsPage() {
       if (!proposerTeam) {
         setMessage(
           hasCaptainRules(match)
-            ? "Solo il capitano di Squadra 1 o Squadra 2 può proporre il risultato."
-            : "Per proporre il risultato devi essere assegnato a Squadra 1 o Squadra 2."
+            ? "Solo il capitano può proporre il risultato."
+            : "Per proporre il risultato devi essere tra i player del match."
         );
         setSaving(false);
         return;
