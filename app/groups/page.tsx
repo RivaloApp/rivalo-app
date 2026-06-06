@@ -30,6 +30,9 @@ type RivaloGroup = {
   name: string;
   city: string;
   sport: string;
+  activeSport?: string;
+  creatorSport?: string;
+  sportProfileId?: string;
   mode: string;
   privacy: string;
   members?: string[];
@@ -39,6 +42,7 @@ type RivaloGroup = {
 };
 
 type UserProfile = {
+  activeSport?: string;
   mainSport?: string;
   sport?: string;
   city?: string;
@@ -106,7 +110,7 @@ export default function GroupsPage() {
         : null;
 
       const currentUserSport = normalizeSport(
-        profile?.mainSport || profile?.sport || "calcetto"
+        profile?.activeSport || profile?.mainSport || profile?.sport || "calcetto"
       );
 
       const currentUserCity =
@@ -138,7 +142,8 @@ export default function GroupsPage() {
         }))
         .filter(
           (group) =>
-            !group.sport || normalizeSport(group.sport) === normalizeSport(currentUserSport)
+            !(group.activeSport || group.sport) ||
+            normalizeSport(group.activeSport || group.sport) === normalizeSport(currentUserSport)
         );
 
       setGroups(list);
@@ -181,10 +186,28 @@ export default function GroupsPage() {
         return;
       }
 
+      const freshProfileSport = normalizeSport(
+        freshProfile?.activeSport ||
+          freshProfile?.mainSport ||
+          freshProfile?.sport ||
+          lockedSport
+      );
+
+      if (freshProfileSport !== lockedSport) {
+        setUserSport(freshProfileSport);
+        setSport(freshProfileSport);
+        setMessage("Lo sport attivo del profilo è cambiato. Riprova con lo sport corretto.");
+        setSaving(false);
+        return;
+      }
+
       await addDoc(collection(db, "groups"), {
         name: groupName,
         city,
-        sport: userSport,
+        sport: lockedSport,
+        activeSport: lockedSport,
+        creatorSport: lockedSport,
+        sportProfileId: `${user.uid}_${lockedSport}`,
         mode,
         privacy,
         ownerId: user.uid,
@@ -199,12 +222,12 @@ export default function GroupsPage() {
 
       setGroupName("");
       setCity(userCity);
-      setSport(userSport);
+      setSport(lockedSport);
       setMode("amichevole");
       setPrivacy("privato");
       setMessage("Gruppo creato e salvato.");
 
-      await loadGroups(user.uid, userSport);
+      await loadGroups(user.uid, lockedSport);
     } catch {
       setMessage("Errore durante la creazione del gruppo.");
     } finally {
@@ -402,7 +425,7 @@ function GroupCard({ group }: { group: RivaloGroup }) {
       <div className="relative">
         <div className="mb-5 flex items-center justify-between gap-3">
           <div className="min-w-0 truncate rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-cyan-200">
-            {group.sport}
+            {sportLabel(group.activeSport || group.sport)}
           </div>
 
           <div className="shrink-0 rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300">
