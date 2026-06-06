@@ -231,17 +231,24 @@ export default function PublicProfilePage() {
       ? "SILVER"
       : "BRONZE";
 
-  const badges =
-    getPlayerBadges(user);
+  const badges = isRemoved ? [] : getPlayerBadges(user);
+
+  const publicDisplayName = isRemoved
+    ? "Utente rimosso"
+    : user.name || user.nickname || "Player";
+
+  const publicNickname = isRemoved
+    ? "Profilo non attivo"
+    : user.nickname || "";
 
   const mainSport = user.mainSport || user.sport || "calcetto";
   const goalkeeperProfile = isGoalkeeperProfile(user);
   const publicStats = getPublicStats(user, goalkeeperProfile);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#020617] px-4 py-7 text-white sm:px-5 sm:py-8">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] px-3 py-7 text-white sm:px-5 sm:py-8">
 
-      <div className="mx-auto w-full max-w-5xl">
+      <div className="mx-auto w-full max-w-5xl min-w-0 overflow-hidden">
 
         <Link
           href={backHref}
@@ -251,7 +258,7 @@ export default function PublicProfilePage() {
           {backLabel}
         </Link>
 
-        <div className="mt-7 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] sm:mt-8 sm:rounded-[2.5rem]">
+        <div className="mt-7 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] sm:mt-8 sm:rounded-[2.5rem]">
 
           <div className="relative bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.25),transparent_60%)] px-4 py-8 sm:px-8 sm:py-14">
 
@@ -260,8 +267,8 @@ export default function PublicProfilePage() {
               <div className="relative flex w-full justify-center overflow-visible">
                 <div className="w-full max-w-[258px] sm:max-w-[330px]">
                   <PlayerCard
-                    name={isRemoved ? "Utente rimosso" : user.name || "Player"}
-                    nickname={isRemoved ? "Profilo non attivo" : user.nickname || ""}
+                    name={publicDisplayName}
+                    nickname={publicNickname}
                     rivalScore={user.rivalScore || 1000}
                     mainSport={mainSport}
                     photo={photo}
@@ -281,23 +288,23 @@ export default function PublicProfilePage() {
                 </div>
               </div>
 
-              <div className="mt-6 flex max-w-[340px] flex-wrap items-center justify-center gap-2 sm:mt-8 sm:max-w-none sm:gap-3">
-
-                {badges.map((badge) => (
-                  <div
-                    key={badge.id}
-                    title={badge.description}
-                    className="rounded-full border border-yellow-300/30 bg-yellow-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-200 sm:px-4 sm:text-xs sm:tracking-[0.15em]"
-                  >
-                    {badge.name}
-                  </div>
-                ))}
-
-              </div>
+              {!isRemoved && badges.length > 0 && (
+                <div className="mt-6 flex max-w-[340px] flex-wrap items-center justify-center gap-2 sm:mt-8 sm:max-w-none sm:gap-3">
+                  {badges.map((badge) => (
+                    <div
+                      key={badge.id}
+                      title={badge.description}
+                      className="rounded-full border border-yellow-300/30 bg-yellow-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-yellow-200 sm:px-4 sm:text-xs sm:tracking-[0.15em]"
+                    >
+                      {badge.name}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {isRemoved && (
                 <div className="mt-4 rounded-2xl border border-slate-400/20 bg-slate-400/10 px-5 py-3 text-sm font-bold text-slate-200">
-                  Profilo non attivo. Le statistiche storiche restano visibili per non alterare ranking e match già giocati.
+                  Profilo non attivo. Lo storico sportivo resta consultabile.
                 </div>
               )}
 
@@ -326,7 +333,7 @@ export default function PublicProfilePage() {
 
           <div className="p-4 sm:p-8">
 
-            <div className="rounded-[1.6rem] border border-cyan-400/20 bg-cyan-400/10 p-5 sm:rounded-[2rem] sm:p-6">
+            <div className="min-w-0 overflow-hidden rounded-[1.6rem] border border-cyan-400/20 bg-cyan-400/10 p-5 sm:rounded-[2rem] sm:p-6">
 
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
@@ -344,7 +351,7 @@ export default function PublicProfilePage() {
 
                 <div className="text-left sm:text-right">
 
-                  <div className="text-3xl font-black text-cyan-300 sm:text-4xl">
+                  <div className="break-words text-3xl font-black text-cyan-300 sm:text-4xl">
                     {xp} XP
                   </div>
 
@@ -528,14 +535,14 @@ function StatCard({
   color?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-center sm:p-5">
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-4 text-center sm:p-5">
 
-      <div className="truncate text-xs uppercase tracking-[0.14em] text-slate-400 sm:text-sm sm:normal-case sm:tracking-normal">
+      <div className="break-words text-xs uppercase tracking-[0.14em] text-slate-400 sm:text-sm sm:normal-case sm:tracking-normal">
         {label}
       </div>
 
       <div
-        className={`mt-2 text-3xl font-black sm:text-4xl ${
+        className={`mt-2 break-words text-3xl font-black sm:text-4xl ${
           color || "text-white"
         }`}
       >
