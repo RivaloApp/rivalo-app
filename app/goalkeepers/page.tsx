@@ -408,6 +408,7 @@ function GoalkeeperRowCard({
   user: GoalkeeperRow;
   index: number;
 }) {
+  const removed = isRemovedUser(user);
   const photo = getDisplayPhoto(user);
   const displayName = getDisplayName(user);
   const matches = Number(user.matchesPlayed || 0);
@@ -415,13 +416,12 @@ function GoalkeeperRowCard({
   const average = formatGoalsConcededAverage(user);
   const isActive = isActiveGoalkeeper(user);
 
-  return (
-    <Link
-      href={`/public/${user.id}`}
-      className={`relative min-w-0 overflow-hidden rounded-[1.55rem] border bg-gradient-to-br from-[#0f172a] to-[#111827] p-4 shadow-xl transition hover:border-lime-300/40 sm:rounded-[1.8rem] sm:p-5 ${
-        isActive ? "border-lime-300/20" : "border-white/10 opacity-70"
-      }`}
-    >
+  const cardClassName = `relative min-w-0 overflow-hidden rounded-[1.55rem] border bg-gradient-to-br from-[#0f172a] to-[#111827] p-4 shadow-xl transition sm:rounded-[1.8rem] sm:p-5 ${
+    isActive ? "border-lime-300/20" : "border-white/10 opacity-70"
+  } ${removed ? "cursor-default" : "hover:border-lime-300/40"}`;
+
+  const content = (
+    <>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(132,204,22,.12),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,.10),transparent_45%)]" />
 
       <div className="relative flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
@@ -446,7 +446,7 @@ function GoalkeeperRowCard({
             </div>
 
             <div className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-lime-200">
-              {isActive ? "Portiere attivo" : "0 partite"}
+              {removed ? "Profilo non attivo" : isActive ? "Portiere attivo" : "0 partite"}
             </div>
           </div>
         </div>
@@ -463,6 +463,16 @@ function GoalkeeperRowCard({
           <MiniStat label="RIV" value={user.rivalScore || 1000} color="text-cyan-200" />
         </div>
       </div>
+    </>
+  );
+
+  if (removed) {
+    return <div className={cardClassName}>{content}</div>;
+  }
+
+  return (
+    <Link href={`/public/${user.id}`} className={cardClassName}>
+      {content}
     </Link>
   );
 }
