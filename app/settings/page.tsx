@@ -24,6 +24,12 @@ type UserProfile = {
   nickname?: string;
   mainSport?: string;
   sport?: string;
+  activeSport?: string;
+  sports?: string[];
+  sportProfileId?: string;
+  sportLockedAt?: any;
+  statsBySport?: Record<string, any>;
+  sportProfiles?: Record<string, any>;
   city?: string;
   rivalScore?: number;
   level?: number;
@@ -53,6 +59,10 @@ function sportLabel(value?: string) {
   if (sport === "padel") return "Padel";
   if (sport === "tennis") return "Tennis";
   return "Calcetto";
+}
+
+function getSportLockText(value?: string) {
+  return `Profilo ${sportLabel(value)} attivo`;
 }
 
 function isDeletionActive(profile?: UserProfile | null) {
@@ -128,7 +138,7 @@ export default function SettingsPage() {
     cleanProfileName !== (profile?.name || "").trim() ||
     cleanProfileNickname !== (profile?.nickname || "").trim();
 
-  const sport = profile?.mainSport || profile?.sport || "calcetto";
+  const sport = profile?.activeSport || profile?.mainSport || profile?.sport || "calcetto";
   const city = profile?.city || "Non impostata";
   const email = user?.email || "Email non disponibile";
   const rivalScore = profile?.rivalScore ?? 1000;
@@ -261,7 +271,7 @@ export default function SettingsPage() {
 
             <div className="rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 px-6 py-4">
               <div className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
-                Profilo attivo
+                Sport attivo
               </div>
 
               <div className="mt-1 text-2xl font-black text-cyan-100">
@@ -361,15 +371,16 @@ export default function SettingsPage() {
             <SettingsCard
               icon={<Trophy />}
               title="Sport e statistiche"
-              text="Statistiche e ranking restano ordinati in base allo sport scelto."
+              text="Il profilo usa uno sport attivo alla volta per mantenere ranking e statistiche coerenti."
             >
-              <InfoRow label="Sport principale" value={sportLabel(sport)} />
+              <InfoRow label="Sport attivo" value={sportLabel(sport)} />
+              <InfoRow label="Stato sport" value={getSportLockText(sport)} />
               <InfoRow label="RivalScore" value={String(rivalScore)} />
               <InfoRow label="Livello" value={String(level)} />
               <InfoRow label="Partite" value={String(matchesPlayed)} />
 
-              <div className="mt-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm leading-6 text-yellow-100">
-                Il profilo sportivo mantiene card, ranking e statistiche sempre coerenti.
+              <div className="mt-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                Lo sport non si cambia da qui. Per usare un altro sport servirà un profilo sportivo separato.
               </div>
             </SettingsCard>
 
