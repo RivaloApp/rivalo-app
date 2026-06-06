@@ -44,12 +44,48 @@ type Activity = {
 };
 
 type UserProfile = {
+  name?: string;
+  nickname?: string;
   city?: string;
   mainSport?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 function normalize(value?: string) {
   return (value || "").toLowerCase().trim();
+}
+
+function isRemovedProfile(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted" ||
+      profile?.deletionRequested
+  );
+}
+
+function getActivityOwnerId(activity: Activity) {
+  return (
+    activity.uid ||
+    activity.userId ||
+    activity.createdBy ||
+    activity.playerId ||
+    activity.authorId ||
+    ""
+  );
+}
+
+function sanitizeRemovedText(value?: string, profile?: UserProfile | null) {
+  if (!value || !isRemovedProfile(profile)) return value || "";
+
+  const names = [profile?.name, profile?.nickname]
+    .filter(Boolean)
+    .map((item) => String(item));
+
+  return names.reduce((current, name) => {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return current.replace(new RegExp(escaped, "gi"), "Utente rimosso");
+  }, value);
 }
 
 function includesCurrentUser(activity: Activity, uid: string) {
@@ -136,7 +172,29 @@ export default function FeedPage() {
         includesCurrentUser(activity, uid)
       );
 
-      setActivities(personalActivities);
+      const enrichedActivities = await Promise.all(
+        personalActivities.map(async (activity) => {
+          const ownerId = getActivityOwnerId(activity) || uid;
+
+          try {
+            const ownerSnap = await getDoc(doc(db, "users", ownerId));
+            const ownerProfile = ownerSnap.exists()
+              ? (ownerSnap.data() as UserProfile)
+              : userProfile;
+
+            return {
+              ...activity,
+              title: sanitizeRemovedText(activity.title, ownerProfile),
+              text: sanitizeRemovedText(activity.text, ownerProfile),
+              description: sanitizeRemovedText(activity.description, ownerProfile),
+            };
+          } catch {
+            return activity;
+          }
+        })
+      );
+
+      setActivities(enrichedActivities);
     } finally {
       setLoading(false);
     }
@@ -174,6 +232,7 @@ export default function FeedPage() {
                 <div className="mt-5 flex flex-wrap gap-2">
                   <Badge>{profile.mainSport || "Sport"}</Badge>
                   <Badge>{profile.city || "Zona non inserita"}</Badge>
+                  {isRemovedProfile(profile) && <Badge>Profilo non attivo</Badge>}
                 </div>
               )}
             </div>

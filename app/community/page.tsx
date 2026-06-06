@@ -41,6 +41,9 @@ type Post = {
   sport?: string;
   authorId?: string;
   authorName?: string;
+  authorPhotoUrl?: string;
+  authorAccountStatus?: string;
+  authorDeletionRequested?: boolean;
 };
 
 type ActivityItem = {
@@ -68,10 +71,34 @@ type UserProfile = {
   nickname?: string;
   city?: string;
   mainSport?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 function normalize(value?: string) {
   return (value || "").toLowerCase().trim();
+}
+
+function isRemovedProfile(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted" ||
+      profile?.deletionRequested
+  );
+}
+
+function isRemovedPostAuthor(post: Post) {
+  return Boolean(
+    post.authorAccountStatus === "deletion_requested" ||
+      post.authorAccountStatus === "deleted" ||
+      post.authorDeletionRequested
+  );
+}
+
+function getPostAuthorName(post: Post) {
+  if (isRemovedPostAuthor(post)) return "Utente rimosso";
+
+  return post.authorName || "Rivalo Player";
 }
 
 function includesCurrentUser(activity: ActivityItem, uid: string) {
@@ -136,6 +163,8 @@ export default function CommunityPage() {
 
   const [loading, setLoading] = useState(true);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
+  const [accountLocked, setAccountLocked] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (currentUser) => {
@@ -148,6 +177,7 @@ export default function CommunityPage() {
 
       const loadedProfile = await loadUserProfile(currentUser.uid);
       setProfile(loadedProfile);
+      setAccountLocked(isRemovedProfile(loadedProfile));
       setCity(loadedProfile?.city || "");
       setSport(loadedProfile?.mainSport || "calcetto");
 
@@ -180,10 +210,48 @@ export default function CommunityPage() {
 
       const snap = await getDocs(q);
 
-      const allPosts = snap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<Post, "id">),
-      }));
+      const allPosts = await Promise.all(
+        snap.docs.map(async (d) => {
+          const post = {
+            id: d.id,
+            ...(d.data() as Omit<Post, "id">),
+          };
+
+          if (!post.authorId) return post;
+
+          try {
+            const authorSnap = await getDoc(doc(db, "users", post.authorId));
+
+            if (!authorSnap.exists()) return post;
+
+            const authorData = authorSnap.data() as UserProfile & {
+              photoUrl?: string;
+              photoURL?: string;
+            };
+
+            const removedAuthor = isRemovedProfile(authorData);
+
+            return {
+              ...post,
+              authorName: removedAuthor
+                ? "Utente rimosso"
+                : authorData.nickname ||
+                  authorData.name ||
+                  post.authorName ||
+                  "Rivalo Player",
+              authorPhotoUrl: removedAuthor
+                ? ""
+                : authorData.photoUrl || authorData.photoURL || post.authorPhotoUrl || "",
+              authorAccountStatus: authorData.accountStatus || post.authorAccountStatus || "",
+              authorDeletionRequested: Boolean(
+                authorData.deletionRequested || post.authorDeletionRequested
+              ),
+            };
+          } catch {
+            return post;
+          }
+        })
+      );
 
       setPosts(
         allPosts.filter((post) =>
@@ -227,6 +295,19 @@ export default function CommunityPage() {
 
     if (!user || !text.trim()) return;
 
+    if (accountLocked) {
+      setMessage("Profilo non attivo: pubblicazione bloccata.");
+      return;
+    }
+
+    const freshProfile = await loadUserProfile(user.uid);
+
+    if (isRemovedProfile(freshProfile)) {
+      setAccountLocked(true);
+      setMessage("Profilo non attivo: pubblicazione bloccata.");
+      return;
+    }
+
     await addDoc(collection(db, "communityPosts"), {
       text,
       city,
@@ -234,10 +315,12 @@ export default function CommunityPage() {
       type,
       authorId: user.uid,
       authorName:
-        profile?.nickname ||
-        profile?.name ||
+        freshProfile?.nickname ||
+        freshProfile?.name ||
         user.displayName ||
         "Rivalo Player",
+      authorAccountStatus: freshProfile?.accountStatus || "active",
+      authorDeletionRequested: Boolean(freshProfile?.deletionRequested),
       reactions: 0,
       comments: 0,
       createdAt: serverTimestamp(),
@@ -283,6 +366,19 @@ export default function CommunityPage() {
             </div>
 
             <div className="space-y-4">
+              {accountLocked && (
+                <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+                  Profilo non attivo: puoi leggere la community, ma non pubblicare nuovi post.
+                </div>
+              )}
+
+              {message && (
+                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold leading-6 text-cyan-100">
+                  {message}
+                </div>
+              )}
+
+              <fieldset disabled={accountLocked} className="space-y-4 disabled:opacity-60">
               <Field label="Tipo richiesta">
                 <select
                   value={type}
@@ -349,11 +445,13 @@ export default function CommunityPage() {
 
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black"
+                disabled={accountLocked}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
               >
                 Pubblica
                 <Send size={18} />
               </button>
+              </fieldset>
             </div>
           </form>
 
@@ -444,7 +542,7 @@ export default function CommunityPage() {
 
                       <div className="mt-4 flex items-center gap-3 text-sm text-slate-400">
                         <Users size={16} />
-                        {post.authorName || "Rivalo Player"}
+                        {getPostAuthorName(post)}
                       </div>
                     </div>
                   ))}
