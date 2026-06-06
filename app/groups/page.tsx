@@ -72,6 +72,10 @@ function isProfileDeletionRequested(profile?: UserProfile | null) {
   );
 }
 
+function getAccountLockedMessage() {
+  return "Profilo non attivo: puoi consultare i gruppi, ma non puoi crearne di nuovi.";
+}
+
 export default function GroupsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [userSport, setUserSport] = useState("calcetto");
@@ -151,7 +155,7 @@ export default function GroupsPage() {
     if (!user) return;
 
     if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi creare nuovi gruppi.");
+      setMessage("Profilo non attivo: creazione gruppo bloccata.");
       return;
     }
 
@@ -165,6 +169,18 @@ export default function GroupsPage() {
     setMessage("");
 
     try {
+      const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+      const freshProfile = freshProfileSnap.exists()
+        ? (freshProfileSnap.data() as UserProfile)
+        : null;
+
+      if (isProfileDeletionRequested(freshProfile)) {
+        setAccountLocked(true);
+        setMessage("Profilo non attivo: creazione gruppo bloccata.");
+        setSaving(false);
+        return;
+      }
+
       await addDoc(collection(db, "groups"), {
         name: groupName,
         city,
@@ -243,7 +259,7 @@ export default function GroupsPage() {
             <div className="space-y-4">
               {accountLocked && (
                 <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-                  Profilo segnato per rimozione: la creazione di nuovi gruppi è bloccata.
+                  {getAccountLockedMessage()}
                 </div>
               )}
 

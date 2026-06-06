@@ -47,6 +47,8 @@ type MemberProfile = {
   nickname?: string;
   email?: string;
   photoUrl?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
   rivalScore?: number;
   wins?: number;
   mvp?: number;
@@ -119,7 +121,7 @@ function sportLabel(value?: string) {
   return "Calcetto";
 }
 
-function isProfileDeletionRequested(profile?: UserProfile | null) {
+function isProfileDeletionRequested(profile?: UserProfile | MemberProfile | null) {
   return Boolean(
     profile?.accountStatus === "deletion_requested" ||
       profile?.accountStatus === "deleted" ||
@@ -127,8 +129,26 @@ function isProfileDeletionRequested(profile?: UserProfile | null) {
   );
 }
 
+function getAccountLockedMessage() {
+  return "Profilo non attivo: puoi consultare il gruppo, ma non puoi eseguire nuove azioni.";
+}
+
 function getProfileName(profile?: MemberProfile) {
+  if (isProfileDeletionRequested(profile)) return "Utente rimosso";
+
   return profile?.name || profile?.nickname || "Rivalo Player";
+}
+
+function getProfileSubtitle(profile?: MemberProfile) {
+  if (isProfileDeletionRequested(profile)) return "Profilo non attivo";
+
+  return profile?.nickname || profile?.email || "Membro gruppo";
+}
+
+function getProfilePhoto(profile?: MemberProfile) {
+  if (isProfileDeletionRequested(profile)) return "";
+
+  return profile?.photoUrl || "";
 }
 
 function canManageTeam({
@@ -265,6 +285,8 @@ const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
             nickname: userData.nickname || "",
             email: userData.email || "",
             photoUrl: userData.photoUrl || userData.photoURL || "",
+            accountStatus: userData.accountStatus || "",
+            deletionRequested: Boolean(userData.deletionRequested),
             rivalScore: Number(userData.rivalScore || 1000),
             wins: Number(userData.wins || 0),
             mvp: Number(userData.mvp || 0),
@@ -346,7 +368,7 @@ setJoinRequests(requestsResult);
     if (!user || !group) return;
 
     if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi aggiungere membri al gruppo.");
+      setMessage("Profilo non attivo: aggiunta membri bloccata.");
       return;
     }
 
@@ -361,6 +383,18 @@ setJoinRequests(requestsResult);
     setMessage("");
 
     try {
+      const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+      const freshProfile = freshProfileSnap.exists()
+        ? (freshProfileSnap.data() as UserProfile)
+        : null;
+
+      if (isProfileDeletionRequested(freshProfile)) {
+        setAccountLocked(true);
+        setMessage("Profilo non attivo: aggiunta membri bloccata.");
+        setAddingMember(false);
+        return;
+      }
+
       const usersRef = collection(db, "users");
       const searchLower = search.toLowerCase();
 
@@ -400,6 +434,11 @@ setJoinRequests(requestsResult);
       const foundUserData = foundUserSnap.exists()
         ? (foundUserSnap.data() as UserProfile)
         : null;
+
+      if (isProfileDeletionRequested(foundUserData)) {
+        setMessage("Utente non disponibile.");
+        return;
+      }
 
       const foundUserSport = normalizeSport(
         foundUserData?.mainSport || foundUserData?.sport || "calcetto"
@@ -454,7 +493,7 @@ setJoinRequests(requestsResult);
     if (!user || !group) return;
 
     if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi creare squadre gruppo.");
+      setMessage("Profilo non attivo: creazione squadra bloccata.");
       return;
     }
 
@@ -474,6 +513,18 @@ setJoinRequests(requestsResult);
     setMessage("");
 
     try {
+      const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+      const freshProfile = freshProfileSnap.exists()
+        ? (freshProfileSnap.data() as UserProfile)
+        : null;
+
+      if (isProfileDeletionRequested(freshProfile)) {
+        setAccountLocked(true);
+        setMessage("Profilo non attivo: creazione squadra bloccata.");
+        setCreatingTeam(false);
+        return;
+      }
+
       const creatorProfile = memberProfiles.find(
         (member) => member.uid === user.uid
       );
@@ -513,7 +564,7 @@ setJoinRequests(requestsResult);
     if (!user || !group) return;
 
     if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi modificare squadre gruppo.");
+      setMessage("Profilo non attivo: modifica squadra bloccata.");
       return;
     }
 
@@ -530,6 +581,17 @@ setJoinRequests(requestsResult);
     setMessage("");
 
     try {
+      const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+      const freshProfile = freshProfileSnap.exists()
+        ? (freshProfileSnap.data() as UserProfile)
+        : null;
+
+      if (isProfileDeletionRequested(freshProfile)) {
+        setAccountLocked(true);
+        setMessage("Profilo non attivo: modifica squadra bloccata.");
+        return;
+      }
+
       const teamRef = doc(db, "groupTeams", teamId);
       const selectedTeam = groupTeams.find((team) => team.id === teamId);
 
@@ -540,6 +602,13 @@ setJoinRequests(requestsResult);
 
       if (!canManageTeam({ userId: user.uid, group, team: selectedTeam })) {
         setMessage("Solo capitano, owner o admin gruppo possono modificare questa squadra.");
+        return;
+      }
+
+      const selectedMember = memberProfiles.find((member) => member.uid === memberUid);
+
+      if (selectedMember && isProfileDeletionRequested(selectedMember)) {
+        setMessage("Utente non disponibile.");
         return;
       }
 
@@ -582,7 +651,7 @@ setJoinRequests(requestsResult);
 
   async function acceptJoinRequest(request: JoinRequest) {
   if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi gestire richieste ingresso.");
+    setMessage("Profilo non attivo: gestione richieste bloccata.");
     return;
   }
 
@@ -594,10 +663,29 @@ setJoinRequests(requestsResult);
   setMessage("");
 
   try {
+    const freshProfileSnap = user?.uid
+      ? await getDoc(doc(db, "users", user.uid))
+      : null;
+
+    const freshProfile = freshProfileSnap?.exists()
+      ? (freshProfileSnap.data() as UserProfile)
+      : null;
+
+    if (isProfileDeletionRequested(freshProfile)) {
+      setAccountLocked(true);
+      setMessage("Profilo non attivo: gestione richieste bloccata.");
+      return;
+    }
+
     const requestUserSnap = await getDoc(doc(db, "users", request.fromUid));
     const requestUserData = requestUserSnap.exists()
       ? (requestUserSnap.data() as UserProfile)
       : null;
+
+    if (isProfileDeletionRequested(requestUserData)) {
+      setMessage("Utente non disponibile.");
+      return;
+    }
 
     const requestUserSport = normalizeSport(
       requestUserData?.mainSport || requestUserData?.sport || "calcetto"
@@ -648,7 +736,7 @@ setJoinRequests(requestsResult);
 
 async function rejectJoinRequest(request: JoinRequest) {
   if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi gestire richieste ingresso.");
+    setMessage("Profilo non attivo: gestione richieste bloccata.");
     return;
   }
 
@@ -660,6 +748,20 @@ async function rejectJoinRequest(request: JoinRequest) {
   setMessage("");
 
   try {
+    const freshProfileSnap = user?.uid
+      ? await getDoc(doc(db, "users", user.uid))
+      : null;
+
+    const freshProfile = freshProfileSnap?.exists()
+      ? (freshProfileSnap.data() as UserProfile)
+      : null;
+
+    if (isProfileDeletionRequested(freshProfile)) {
+      setAccountLocked(true);
+      setMessage("Profilo non attivo: gestione richieste bloccata.");
+      return;
+    }
+
     await updateDoc(doc(db, "groupJoinRequests", request.id), {
       status: "rejected",
       rejectedAt: serverTimestamp(),
@@ -792,10 +894,10 @@ async function rejectJoinRequest(request: JoinRequest) {
   (user?.uid === group.ownerId || Boolean(group.admins?.includes(user?.uid || "")));
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <Background />
 
-      <section className="relative z-10 mx-auto max-w-7xl px-5 py-8">
+      <section className="relative z-10 mx-auto w-full max-w-7xl min-w-0 px-3 py-8 sm:px-5">
         <Link
           href="/groups"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -815,7 +917,7 @@ async function rejectJoinRequest(request: JoinRequest) {
                   {sportLabel(group.sport)}
                 </div>
 
-                <h1 className="mt-5 text-5xl font-black tracking-tight md:text-6xl">
+                <h1 className="mt-5 break-words text-4xl font-black tracking-tight sm:text-5xl md:text-6xl">
                   {group.name}
                 </h1>
 
@@ -835,7 +937,7 @@ async function rejectJoinRequest(request: JoinRequest) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-4">
                 <Stat value={String(group.members?.length || 0)} label="Membri" />
                 <Stat value={String(groupMatches.length)} label="Partite" />
                 <Stat value={String(officialGroupMatches)} label="Ufficiali" />
@@ -847,7 +949,7 @@ async function rejectJoinRequest(request: JoinRequest) {
 
         {accountLocked && (
           <div className="mt-6 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-            Profilo segnato per rimozione: creazione match, inviti, richieste, squadre e modifiche gruppo sono bloccati.
+            {getAccountLockedMessage()}
           </div>
         )}
 
@@ -856,7 +958,7 @@ async function rejectJoinRequest(request: JoinRequest) {
             href={accountLocked ? undefined : `/match?groupId=${groupId}`}
             icon={<CalendarDays />}
             title="Crea partita"
-            text={accountLocked ? "Azione bloccata per profilo in rimozione." : "Organizza match del gruppo."}
+            text={accountLocked ? "Azione non disponibile per profilo non attivo." : "Organizza match del gruppo."}
           />
 
           <ActionCard
@@ -904,9 +1006,9 @@ async function rejectJoinRequest(request: JoinRequest) {
                         </div>
 
                         <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-cyan-400/10">
-                          {member.photoUrl ? (
+                          {getProfilePhoto(member) ? (
                             <img
-                              src={member.photoUrl}
+                              src={getProfilePhoto(member)}
                               alt="Membro"
                               className="h-full w-full object-cover"
                             />
@@ -917,11 +1019,11 @@ async function rejectJoinRequest(request: JoinRequest) {
 
                         <div className="min-w-0">
                           <div className="truncate font-black">
-                            {member.name || "Rivalo Player"}
+                            {getProfileName(member)}
                           </div>
 
                           <div className="truncate text-xs text-slate-400">
-                            {member.nickname || member.email || "Membro gruppo"}
+                            {getProfileSubtitle(member)}
                           </div>
                         </div>
                       </div>
@@ -1147,7 +1249,9 @@ async function rejectJoinRequest(request: JoinRequest) {
                     });
 
                   const availableTeamMembers = memberProfiles.filter(
-                    (member) => !team.members?.includes(member.uid)
+                    (member) =>
+                      !team.members?.includes(member.uid) &&
+                      !isProfileDeletionRequested(member)
                   );
 
                   const points =
@@ -1214,7 +1318,7 @@ async function rejectJoinRequest(request: JoinRequest) {
                               key={member.uid}
                               className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-bold"
                             >
-                              <span>{member.name || member.nickname || "Rivalo Player"}</span>
+                              <span>{getProfileName(member)}</span>
 
                               {member.uid === team.captainId && (
                                 <span className="rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-yellow-100">
@@ -1257,7 +1361,7 @@ async function rejectJoinRequest(request: JoinRequest) {
             value={member.uid}
             className="bg-[#020617] text-white"
           >
-            {member.name || member.nickname || "Rivalo Player"}
+            {getProfileName(member)}
           </option>
         ))}
       </select>
