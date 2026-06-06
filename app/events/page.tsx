@@ -35,6 +35,9 @@ type EventItem = {
   id: string;
   title?: string;
   sport?: string;
+  activeSport?: string;
+  creatorSport?: string;
+  sportProfileId?: string;
   city?: string;
   field?: string;
   date?: string;
@@ -53,6 +56,7 @@ type EventItem = {
 };
 
 type UserProfile = {
+  activeSport?: string;
   mainSport?: string;
   sport?: string;
   city?: string;
@@ -173,7 +177,7 @@ function isPublicEvent(event: EventItem) {
 }
 
 function isSameSport(event: EventItem, userSport: string) {
-  return normalizeSport(event.sport) === normalizeSport(userSport);
+  return normalizeSport(event.activeSport || event.sport) === normalizeSport(userSport);
 }
 
 function isCancelledEvent(event: EventItem) {
@@ -249,7 +253,7 @@ export default function EventsPage() {
         : null;
 
       const currentUserSport = normalizeSport(
-        profile?.mainSport || profile?.sport || "calcetto"
+        profile?.activeSport || profile?.mainSport || profile?.sport || "calcetto"
       );
 
       const currentUserCity =
@@ -354,6 +358,9 @@ export default function EventsPage() {
       handleSportChange(lockedSport);
     }
 
+    const safeCompetitionFormat =
+      lockedSport === "calcetto" ? "squadre" : competitionFormat;
+
     setSaving(true);
     setMessage("");
 
@@ -370,15 +377,37 @@ export default function EventsPage() {
         return;
       }
 
-      const creatorName = user.displayName || "Rivalo Player";
+      const freshProfileSport = normalizeSport(
+        freshProfile?.activeSport ||
+          freshProfile?.mainSport ||
+          freshProfile?.sport ||
+          lockedSport
+      );
+
+      if (freshProfileSport !== lockedSport) {
+        handleSportChange(freshProfileSport);
+        setUserSport(freshProfileSport);
+        setMessage("Lo sport attivo del profilo è cambiato. Riprova con lo sport corretto.");
+        setSaving(false);
+        return;
+      }
+
+      const creatorName =
+        (freshProfile as any)?.name ||
+        (freshProfile as any)?.nickname ||
+        user.displayName ||
+        "Rivalo Player";
 
       await addDoc(collection(db, "events"), {
         title,
         sport: lockedSport,
+        activeSport: lockedSport,
+        creatorSport: lockedSport,
+        sportProfileId: `${user.uid}_${lockedSport}`,
         scoreMode: isRacketSport(lockedSport) ? "racket" : "football",
         sportStatsMode: isRacketSport(lockedSport) ? "racket" : "football",
         type,
-        competitionFormat,
+        competitionFormat: safeCompetitionFormat,
         city,
         field,
         date,
@@ -394,7 +423,11 @@ export default function EventsPage() {
           {
             uid: user.uid,
             name: creatorName,
-            photoUrl: user.photoURL || "",
+            photoUrl:
+              (freshProfile as any)?.photoUrl ||
+              (freshProfile as any)?.photoURL ||
+              user.photoURL ||
+              "",
           },
         ],
 
@@ -759,9 +792,9 @@ function EventCard({ event }: { event: EventItem }) {
   const isCancelled = isCancelledEvent(event);
 
   const sportLabel =
-    event.sport === "padel"
+    normalizeSport(event.activeSport || event.sport) === "padel"
       ? "Padel"
-      : event.sport === "tennis"
+      : normalizeSport(event.activeSport || event.sport) === "tennis"
       ? "Tennis"
       : "Calcetto";
 
@@ -783,7 +816,7 @@ function EventCard({ event }: { event: EventItem }) {
 
   const participantsCount = event.participants?.length || 0;
   const teamsCount = event.teams?.length || 0;
-  const scoreModeLabel = isRacketSport(event.sport) ? "no gol/assist" : "gol/assist";
+  const scoreModeLabel = isRacketSport(event.activeSport || event.sport) ? "no gol/assist" : "gol/assist";
 
   return (
     <Link
