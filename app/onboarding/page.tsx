@@ -26,6 +26,33 @@ type CalcettoRole =
   | "attaccante"
   | "jolly";
 
+type SportProfile = {
+  sport: Sport;
+  role: string;
+  playStyle: string;
+  city: string;
+  availability: string;
+  createdAt?: Timestamp;
+  updatedAt?: any;
+};
+
+type SportStats = {
+  rivalScore: number;
+  xp: number;
+  level: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  matchesPlayed: number;
+  goals: number;
+  assists: number;
+  mvp: number;
+  winStreak: number;
+  goalsConceded: number;
+  cleanSheets: number;
+  penaltiesSaved: number;
+};
+
 const CALCETTO_ROLES: {
   value: CalcettoRole;
   label: string;
@@ -103,6 +130,36 @@ function getSportStylePlaceholder(value: Sport) {
   if (value === "tennis") return "Es. aggressivo, regolare, potente, tecnico...";
 
   return "Es. competitivo, tecnico, veloce...";
+}
+
+function buildInitialSportStats(
+  oldData: any,
+  sport: Sport,
+  nextXp: number,
+  nextLevel: number
+): SportStats {
+  const currentSport = normalizeSport(oldData.mainSport || oldData.sport || sport);
+  const sameSport = currentSport === sport;
+
+  return {
+    rivalScore: Number(oldData.rivalScore || 1000),
+    xp: nextXp,
+    level: nextLevel,
+    wins: sameSport ? Number(oldData.wins || 0) : 0,
+    losses: sameSport ? Number(oldData.losses || 0) : 0,
+    draws: sameSport ? Number(oldData.draws || 0) : 0,
+    matchesPlayed: sameSport ? Number(oldData.matchesPlayed || 0) : 0,
+    goals: sport === "calcetto" && sameSport ? Number(oldData.goals || 0) : 0,
+    assists: sport === "calcetto" && sameSport ? Number(oldData.assists || 0) : 0,
+    mvp: sameSport ? Number(oldData.mvp || 0) : 0,
+    winStreak: sameSport ? Number(oldData.winStreak || 0) : 0,
+    goalsConceded:
+      sport === "calcetto" && sameSport ? Number(oldData.goalsConceded || 0) : 0,
+    cleanSheets:
+      sport === "calcetto" && sameSport ? Number(oldData.cleanSheets || 0) : 0,
+    penaltiesSaved:
+      sport === "calcetto" && sameSport ? Number(oldData.penaltiesSaved || 0) : 0,
+  };
 }
 
 export default function OnboardingPage() {
@@ -220,6 +277,23 @@ export default function OnboardingPage() {
       const nextXp = oldXp + profileBonusXp;
       const nextLevel = Math.floor(nextXp / 1000) + 1;
 
+      const activeSportProfile: SportProfile = {
+        sport: lockedSport,
+        role: lockedRole,
+        playStyle: playStyle.trim(),
+        city: city.trim(),
+        availability: availability.trim(),
+        createdAt: oldData.sportProfiles?.[lockedSport]?.createdAt || Timestamp.now(),
+        updatedAt: serverTimestamp(),
+      };
+
+      const activeSportStats = buildInitialSportStats(
+        oldData,
+        lockedSport,
+        nextXp,
+        nextLevel
+      );
+
       await setDoc(
         userRef,
         {
@@ -230,28 +304,46 @@ export default function OnboardingPage() {
           nickname: nickname.trim(),
           mainSport: lockedSport,
           sport: lockedSport,
+          activeSport: lockedSport,
+          sports: Array.from(new Set([...(oldData.sports || []), lockedSport])),
+          sportProfileId: `${user.uid}_${lockedSport}`,
+          sportLockedAt: oldData.sportLockedAt || serverTimestamp(),
+          sportProfiles: {
+            ...(oldData.sportProfiles || {}),
+            [lockedSport]: activeSportProfile,
+          },
+          statsBySport: {
+            ...(oldData.statsBySport || {}),
+            [lockedSport]: activeSportStats,
+          },
           city: city.trim(),
           role: lockedRole,
           playStyle: playStyle.trim(),
           availability: availability.trim(),
           photoUrl: photoUrl.trim(),
 
-          rivalScore: oldRivalScore,
-          xp: nextXp,
-          level: nextLevel,
+          rivalScore: activeSportStats.rivalScore,
+          xp: activeSportStats.xp,
+          level: activeSportStats.level,
 
-          wins: Number(oldData.wins || 0),
-          losses: Number(oldData.losses || 0),
-          draws: Number(oldData.draws || 0),
-          matchesPlayed: Number(oldData.matchesPlayed || 0),
-          goals: Number(oldData.goals || 0),
-          assists: Number(oldData.assists || 0),
-          mvp: Number(oldData.mvp || 0),
+          wins: activeSportStats.wins,
+          losses: activeSportStats.losses,
+          draws: activeSportStats.draws,
+          matchesPlayed: activeSportStats.matchesPlayed,
+          goals: activeSportStats.goals,
+          assists: activeSportStats.assists,
+          mvp: activeSportStats.mvp,
+          winStreak: activeSportStats.winStreak,
+          goalsConceded: activeSportStats.goalsConceded,
+          cleanSheets: activeSportStats.cleanSheets,
+          penaltiesSaved: activeSportStats.penaltiesSaved,
 
           onboardingCompleted: true,
           profileCompleted: true,
           profileBonusClaimed: true,
           profileBonusXp,
+          accountStatus: oldData.accountStatus || "active",
+          deletionRequested: Boolean(oldData.deletionRequested || false),
 
           updatedAt: serverTimestamp(),
           createdAt: oldData.createdAt || Timestamp.now(),
