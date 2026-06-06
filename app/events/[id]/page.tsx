@@ -79,6 +79,8 @@ type ParticipantInfo = {
   uid: string;
   name?: string;
   photoUrl?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 type TeamInfo = {
@@ -96,6 +98,8 @@ type UserOption = {
   nickname?: string;
   photoUrl?: string;
   photoURL?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 type EventStat = {
@@ -104,6 +108,8 @@ type EventStat = {
   uid: string;
   playerName?: string;
   sport?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
   points?: number;
   matchesPlayed?: number;
   wins?: number;
@@ -238,7 +244,7 @@ function getEventCopy(value?: string) {
   };
 }
 
-function isProfileDeletionRequested(profile?: UserProfile | null) {
+function isProfileDeletionRequested(profile?: UserProfile | ParticipantInfo | UserOption | EventStat | null) {
   return Boolean(
     profile?.accountStatus === "deletion_requested" ||
       profile?.accountStatus === "deleted" ||
@@ -258,8 +264,63 @@ function isUserCandidateActive(data: any) {
   );
 }
 
-function getParticipantName(participant?: ParticipantInfo) {
-  return participant?.name || "Rivalo Player";
+function getParticipantName(
+  participant?: ParticipantInfo | UserOption | EventStat | null
+) {
+  if (isProfileDeletionRequested(participant)) return "Utente rimosso";
+
+  return (
+    ("name" in (participant || {}) ? (participant as ParticipantInfo | UserOption).name : "") ||
+    ("playerName" in (participant || {}) ? (participant as EventStat).playerName : "") ||
+    ("nickname" in (participant || {}) ? (participant as UserOption).nickname : "") ||
+    "Rivalo Player"
+  );
+}
+
+function getParticipantPhoto(
+  participant?: ParticipantInfo | UserOption | EventStat | null
+) {
+  if (isProfileDeletionRequested(participant)) return "";
+
+  return (
+    ("photoUrl" in (participant || {}) ? participant?.photoUrl : "") ||
+    ("photoURL" in (participant || {}) ? (participant as UserOption).photoURL : "") ||
+    ""
+  );
+}
+
+function getParticipantStatus(participant?: ParticipantInfo | UserOption | EventStat | null) {
+  return isProfileDeletionRequested(participant) ? "Profilo non attivo" : "Iscritto";
+}
+
+function maskTeamForRemovedPlayers(
+  team: TeamInfo,
+  participants: ParticipantInfo[],
+  format: CompetitionFormat
+) {
+  const players = (team.players || []).map((player) => {
+    const freshPlayer = participants.find((participant) => participant.uid === player.uid);
+
+    return freshPlayer
+      ? {
+          ...player,
+          name: getParticipantName(freshPlayer),
+          photoUrl: getParticipantPhoto(freshPlayer),
+          accountStatus: freshPlayer.accountStatus,
+          deletionRequested: freshPlayer.deletionRequested,
+        }
+      : player;
+  });
+
+  return {
+    ...team,
+    name: format === "squadre" ? team.name : buildAutoTeamName(players, format),
+    captainName:
+      players.find((player) => player.uid === team.captainId)?.name ||
+      team.captainName ||
+      "Rivalo Player",
+    players,
+  };
 }
 
 function getResolvedCaptain(team: TeamInfo) {
@@ -578,7 +639,6 @@ export default function EventDetailPage() {
       setUserSport(currentUserSport);
       setAccountLocked(isProfileDeletionRequested(profile));
       setCancellationReason(eventData.cancellationReason || "");
-      setEvent(eventData);
 
       if (normalizeSport(eventData.sport) !== currentUserSport) {
         setSportMismatch(true);
@@ -612,6 +672,17 @@ for (const uid of participants) {
     if (userSnap.exists()) {
       const userData = userSnap.data();
 
+      if (isProfileDeletionRequested(userData as UserProfile)) {
+        participantsResult.push({
+          uid,
+          name: "Utente rimosso",
+          photoUrl: "",
+          accountStatus: userData.accountStatus || "",
+          deletionRequested: Boolean(userData.deletionRequested),
+        });
+        continue;
+      }
+
       userName =
         userData.name ||
         userData.nickname ||
@@ -635,15 +706,55 @@ for (const uid of participants) {
   });
 }
 
+const eventCompetitionFormat =
+  eventData.competitionFormat ||
+  (normalizeSport(eventData.sport) === "calcetto" ? "squadre" : "singolo");
+
+const maskedTeams = Array.isArray(eventData.teams)
+  ? eventData.teams.map((team) =>
+      maskTeamForRemovedPlayers(team, participantsResult, eventCompetitionFormat)
+    )
+  : [];
+
+const teamNameById = new Map(maskedTeams.map((team) => [team.id, team.name]));
+
+const maskedBracket = Array.isArray(eventData.bracket)
+  ? eventData.bracket.map((match) => ({
+      ...match,
+      homeName: teamNameById.get(match.homeTeamId || "") || match.homeName,
+      awayName: match.awayTeamId
+        ? teamNameById.get(match.awayTeamId || "") || match.awayName
+        : match.awayName,
+    }))
+  : eventData.bracket;
+
+const maskedLeagueFixtures = Array.isArray(eventData.leagueFixtures)
+  ? eventData.leagueFixtures.map((fixture) => ({
+      ...fixture,
+      homeName: teamNameById.get(fixture.homeTeamId || "") || fixture.homeName,
+      awayName: teamNameById.get(fixture.awayTeamId || "") || fixture.awayName,
+    }))
+  : eventData.leagueFixtures;
+
+setEvent({
+  ...eventData,
+  teams: maskedTeams,
+  bracket: maskedBracket,
+  leagueFixtures: maskedLeagueFixtures,
+  participantsInfo: participantsResult,
+});
+
 setParticipantsInfo(participantsResult);
 
 setAvailableUsers(
   participantsResult.map((participant) => ({
     uid: participant.uid,
-    name: participant.name || "Rivalo Player",
+    name: getParticipantName(participant),
     nickname: "",
-    photoUrl: participant.photoUrl || "",
-    photoURL: participant.photoUrl || "",
+    photoUrl: getParticipantPhoto(participant),
+    photoURL: getParticipantPhoto(participant),
+    accountStatus: participant.accountStatus,
+    deletionRequested: participant.deletionRequested,
   }))
 );
 
@@ -690,8 +801,10 @@ setCandidateUsers(
         return {
           id: docSnap.id,
           ...data,
-          playerName: data.playerName || participant?.name || "Rivalo Player",
-          photoUrl: participant?.photoUrl || "",
+          playerName: getParticipantName(participant || { uid: data.uid, name: data.playerName }),
+          photoUrl: getParticipantPhoto(participant || { uid: data.uid, photoUrl: data.photoUrl || "" }),
+          accountStatus: participant?.accountStatus || "",
+          deletionRequested: Boolean(participant?.deletionRequested),
           points: Number(data.points || 0),
           matchesPlayed: Number(data.matchesPlayed || 0),
           wins: Number(data.wins || 0),
@@ -818,6 +931,8 @@ if (competitionStarted) {
         uid: user.uid,
         name: participantName,
         photoUrl: participantPhoto,
+        accountStatus: "",
+        deletionRequested: false,
       };
 
       const newParticipantsCount = participants.length + 1;
@@ -955,8 +1070,10 @@ async function addUserToEvent() {
 
   const newParticipant: ParticipantInfo = {
     uid: selectedUser.uid,
-    name: selectedUser.name || selectedUser.nickname || "Rivalo Player",
-    photoUrl: selectedUser.photoUrl || selectedUser.photoURL || "",
+    name: getParticipantName(selectedUser),
+    photoUrl: getParticipantPhoto(selectedUser),
+    accountStatus: selectedUser.accountStatus || "",
+    deletionRequested: Boolean(selectedUser.deletionRequested),
   };
 
   const newParticipantsCount = participants.length + 1;
@@ -1119,8 +1236,10 @@ async function addUserToEvent() {
 
     return {
       uid,
-      name: selectedUser?.name || selectedUser?.nickname || "Rivalo Player",
-      photoUrl: selectedUser?.photoUrl || selectedUser?.photoURL || "",
+      name: getParticipantName(selectedUser),
+      photoUrl: getParticipantPhoto(selectedUser),
+      accountStatus: selectedUser?.accountStatus || "",
+      deletionRequested: Boolean(selectedUser?.deletionRequested),
     };
   });
 
@@ -1729,7 +1848,7 @@ setMessage("");
       players = [
         ...homeTeam.players.map((player) => ({
           uid: player.uid,
-          name: player.name || "Rivalo Player",
+          name: getParticipantName(player),
           team: "home" as const,
           goals: 0,
           assists: 0,
@@ -1737,7 +1856,7 @@ setMessage("");
         })),
         ...awayTeam.players.map((player) => ({
           uid: player.uid,
-          name: player.name || "Rivalo Player",
+          name: getParticipantName(player),
           team: "away" as const,
           goals: 0,
           assists: 0,
@@ -1812,7 +1931,7 @@ setMessage("");
       players = [
         ...homeTeam.players.map((player) => ({
           uid: player.uid,
-          name: player.name || "Rivalo Player",
+          name: getParticipantName(player),
           team: "home" as const,
           goals: 0,
           assists: 0,
@@ -1820,7 +1939,7 @@ setMessage("");
         })),
         ...awayTeam.players.map((player) => ({
           uid: player.uid,
-          name: player.name || "Rivalo Player",
+          name: getParticipantName(player),
           team: "away" as const,
           goals: 0,
           assists: 0,
@@ -2329,8 +2448,10 @@ const visibleTournamentBracket =
           id: participant.uid,
           eventId: event.id,
           uid: participant.uid,
-          playerName: participant.name || "Rivalo Player",
-          photoUrl: participant.photoUrl || "",
+          playerName: getParticipantName(participant),
+          photoUrl: getParticipantPhoto(participant),
+          accountStatus: participant.accountStatus || "",
+          deletionRequested: Boolean(participant.deletionRequested),
           points: 0,
           matchesPlayed: 0,
           wins: 0,
@@ -3420,7 +3541,7 @@ function TeamCard({
   valid: boolean;
 }) {
   const captain = getResolvedCaptain(team);
-  const captainName = team.captainName || captain?.name || "Rivalo Player";
+  const captainName = getParticipantName(captain || { uid: team.captainId || "", name: team.captainName });
 
   return (
     <div className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] p-3 sm:p-4">
@@ -3454,9 +3575,9 @@ function TeamCard({
           >
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black/30">
-                {player.photoUrl ? (
+                {getParticipantPhoto(player) ? (
                   <img
-                    src={player.photoUrl}
+                    src={getParticipantPhoto(player)}
                     alt="Player"
                     className="h-full w-full object-cover"
                   />
@@ -3466,7 +3587,7 @@ function TeamCard({
               </div>
 
               <div className="truncate font-bold">
-                {player.name || "Rivalo Player"}
+                {getParticipantName(player)}
               </div>
             </div>
 
@@ -3553,20 +3674,19 @@ function EventRankRow({
     Number(stat.goalDifference || 0) ||
     Number(stat.goalsFor || 0) - Number(stat.goalsAgainst || 0);
 
-  return (
-    <Link
-      href={`/public/${stat.uid}`}
-      className="block w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] p-3 transition hover:border-cyan-400/30 sm:p-4"
-    >
+  const removed = isProfileDeletionRequested(stat);
+
+  const content = (
+    <>
       <div className="grid min-w-0 grid-cols-[40px_40px_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[48px_44px_minmax(0,1fr)] sm:gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-black/30 sm:h-12 sm:w-12">
           {icon}
         </div>
 
         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/30 sm:h-11 sm:w-11">
-          {stat.photoUrl ? (
+          {getParticipantPhoto(stat) ? (
             <img
-              src={stat.photoUrl}
+              src={getParticipantPhoto(stat)}
               alt="Player"
               className="h-full w-full object-cover"
             />
@@ -3577,11 +3697,11 @@ function EventRankRow({
 
         <div className="min-w-0">
           <div className="max-w-full break-all text-sm font-black uppercase leading-tight sm:text-lg">
-            {stat.playerName || "Rivalo Player"}
+            {getParticipantName({ uid: stat.uid, name: stat.playerName, accountStatus: stat.accountStatus, deletionRequested: stat.deletionRequested })}
           </div>
 
           <div className="mt-1 text-xs text-slate-400">
-            {stat.matchesPlayed || 0} match evento
+            {isProfileDeletionRequested(stat) ? "Profilo non attivo" : `${stat.matchesPlayed || 0} match evento`}
           </div>
         </div>
       </div>
@@ -3592,6 +3712,23 @@ function EventRankRow({
         <RankStat label="MVP" value={stat.mvp || 0} />
         <RankStat label={eventCopy.scoreDiff} value={goalDifference} />
       </div>
+    </>
+  );
+
+  if (removed) {
+    return (
+      <div className="block w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] p-3 sm:p-4">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/public/${stat.uid}`}
+      className="block w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[.03] p-3 transition hover:border-cyan-400/30 sm:p-4"
+    >
+      {content}
     </Link>
   );
 }
@@ -3621,15 +3758,14 @@ function ParticipantRow({
 }: {
   participant: ParticipantInfo;
 }) {
-  return (
-    <Link
-      href={`/public/${participant.uid}`}
-      className="flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-3 transition hover:border-cyan-400/30"
-    >
+  const removed = isProfileDeletionRequested(participant);
+
+  const content = (
+    <>
       <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/30">
-        {participant.photoUrl ? (
+        {getParticipantPhoto(participant) ? (
           <img
-            src={participant.photoUrl}
+            src={getParticipantPhoto(participant)}
             alt="Partecipante"
             className="h-full w-full object-cover"
           />
@@ -3640,13 +3776,30 @@ function ParticipantRow({
 
       <div className="min-w-0">
         <div className="break-all font-black">
-          {participant.name || "Rivalo Player"}
+          {getParticipantName(participant)}
         </div>
 
         <div className="text-xs text-slate-400">
-          Iscritto
+          {getParticipantStatus(participant)}
         </div>
       </div>
+    </>
+  );
+
+  if (removed) {
+    return (
+      <div className="flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-3">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/public/${participant.uid}`}
+      className="flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-3 transition hover:border-cyan-400/30"
+    >
+      {content}
     </Link>
   );
 }

@@ -34,6 +34,8 @@ type MatchPlayer = {
   uid: string;
   name: string;
   team?: "home" | "away";
+  accountStatus?: string;
+  deletionRequested?: boolean;
   goals?: number;
   assists?: number;
   isMvp?: boolean;
@@ -247,12 +249,23 @@ function isSameUserSport(match: MatchDoc, userSport: string) {
   return normalizeSport(match.sport) === normalizeSport(userSport);
 }
 
-function isProfileDeletionRequested(profile?: UserProfile | null) {
+function isProfileDeletionRequested(profile?: UserProfile | MatchPlayer | null) {
   return Boolean(
     profile?.accountStatus === "deletion_requested" ||
       profile?.accountStatus === "deleted" ||
       profile?.deletionRequested
   );
+}
+
+function getPlayerDisplayName(player?: MatchPlayer | null) {
+  if (!player) return "Rivalo Player";
+  if (isProfileDeletionRequested(player)) return "Utente rimosso";
+
+  return player.name || "Rivalo Player";
+}
+
+function getPlayerStatusLabel(player?: MatchPlayer | null) {
+  return isProfileDeletionRequested(player) ? "Profilo non attivo" : "";
 }
 
 function getAccountLockedMessage() {
@@ -562,8 +575,15 @@ export default function MatchDetailsPage() {
 
               const playerData = playerSnap.data();
 
+              const removed = isProfileDeletionRequested(playerData as UserProfile);
+
               return {
                 ...player,
+                name: removed
+                  ? "Utente rimosso"
+                  : playerData.name || playerData.nickname || player.name || "Rivalo Player",
+                accountStatus: playerData.accountStatus || "",
+                deletionRequested: Boolean(playerData.deletionRequested),
                 role: player.role || playerData.role || "",
                 goalsConceded: Number(player.goalsConceded || 0),
                 cleanSheet: Boolean(player.cleanSheet),
@@ -1264,7 +1284,7 @@ if (!freshAutoConfirmAllowed && freshMatch.resultProposedBy === user.uid) {
       if (matchPlayers.length > 0) {
         const cleanPlayers = matchPlayers.map((player) => ({
           uid: player.uid,
-          name: player.name || "Rivalo Player",
+          name: getPlayerDisplayName(player),
           team: player.team,
           goals: isRacketSport(safeMatch.sport) ? 0 : Number(player.goals || 0),
           assists: isRacketSport(safeMatch.sport) ? 0 : Number(player.assists || 0),
@@ -1283,7 +1303,7 @@ if (!freshAutoConfirmAllowed && freshMatch.resultProposedBy === user.uid) {
               : 0,
           isMvp:
             Boolean(player.isMvp) ||
-            player.name?.toLowerCase().trim() === mvpName.toLowerCase().trim(),
+            getPlayerDisplayName(player).toLowerCase().trim() === mvpName.toLowerCase().trim(),
         }));
 
         await updatePlayerStats({
@@ -2291,11 +2311,11 @@ function PlayerStatsGroup({
             }`}
           >
             <div>
-              <div className="font-black">{player.name || "Rivalo Player"}</div>
+              <div className="break-words font-black">{getPlayerDisplayName(player)}</div>
 
               <div className="text-xs uppercase text-slate-400">
-                {teamName || title}
-                {calcettoMatch && player.role ? ` · ${normalizeCalcettoRole(player.role)}` : ""}
+                {getPlayerStatusLabel(player) || teamName || title}
+                {!getPlayerStatusLabel(player) && calcettoMatch && player.role ? ` · ${normalizeCalcettoRole(player.role)}` : ""}
               </div>
             </div>
 
@@ -2416,7 +2436,7 @@ function PlayerStatsGroup({
                   updatePlayerField(player.uid, "isMvp", e.target.checked);
 
                   if (e.target.checked) {
-                    setMvpName(player.name || "Rivalo Player");
+                    setMvpName(getPlayerDisplayName(player));
                   }
                 }}
               />
