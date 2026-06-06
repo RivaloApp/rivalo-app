@@ -188,6 +188,10 @@ function isProfileDeletionRequested(profile?: UserProfile | null) {
   );
 }
 
+function getAccountLockedMessage() {
+  return "Profilo non attivo: puoi consultare gli eventi, ma non puoi crearne di nuovi.";
+}
+
 function isSameCityOrCompatible(event: EventItem, userCity: string) {
   const normalizedUserCity = normalizeText(userCity);
   const normalizedEventCity = normalizeText(event.city);
@@ -340,7 +344,7 @@ export default function EventsPage() {
     if (!user || !title.trim()) return;
 
     if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi creare nuovi eventi.");
+      setMessage(getAccountLockedMessage());
       return;
     }
 
@@ -354,6 +358,18 @@ export default function EventsPage() {
     setMessage("");
 
     try {
+      const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+      const freshProfile = freshProfileSnap.exists()
+        ? (freshProfileSnap.data() as UserProfile)
+        : null;
+
+      if (isProfileDeletionRequested(freshProfile)) {
+        setAccountLocked(true);
+        setMessage(getAccountLockedMessage());
+        setSaving(false);
+        return;
+      }
+
       const creatorName = user.displayName || "Rivalo Player";
 
       await addDoc(collection(db, "events"), {
@@ -479,7 +495,7 @@ export default function EventsPage() {
             <div className="space-y-4">
               {accountLocked && (
                 <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-                  Profilo segnato per rimozione: la creazione di nuovi eventi è bloccata.
+                  {getAccountLockedMessage()}
                 </div>
               )}
 

@@ -246,6 +246,10 @@ function isProfileDeletionRequested(profile?: UserProfile | null) {
   );
 }
 
+function getAccountLockedMessage() {
+  return "Profilo non attivo: puoi consultare l’evento, ma non puoi eseguire nuove azioni.";
+}
+
 function isUserCandidateActive(data: any) {
   return !(
     data?.accountStatus === "deletion_requested" ||
@@ -732,11 +736,28 @@ setTeamStats(teamStatsResult);
     }
   }
 
+  async function isCurrentAccountLocked() {
+    if (!user) return true;
+
+    const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+    const freshProfile = freshProfileSnap.exists()
+      ? (freshProfileSnap.data() as UserProfile)
+      : null;
+
+    const locked = isProfileDeletionRequested(freshProfile);
+
+    if (locked) {
+      setAccountLocked(true);
+    }
+
+    return locked;
+  }
+
   async function joinEvent() {
     if (!user || !event) return;
 
-    if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi iscriverti agli eventi.");
+    if (accountLocked || await isCurrentAccountLocked()) {
+      setMessage(getAccountLockedMessage());
       return;
     }
 
@@ -870,8 +891,8 @@ if (competitionStarted) {
 async function addUserToEvent() {
   if (!user || !event) return;
 
-  if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi aggiungere utenti.");
+  if (accountLocked || await isCurrentAccountLocked()) {
+    setMessage(getAccountLockedMessage());
     return;
   }
 
@@ -1004,8 +1025,8 @@ async function addUserToEvent() {
  async function createTeam() {
   if (!user || !event) return;
 
-  if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi creare squadre o coppie.");
+  if (accountLocked || await isCurrentAccountLocked()) {
+    setMessage(getAccountLockedMessage());
     return;
   }
 
@@ -1323,8 +1344,8 @@ function isTeamValid(team: TeamInfo) {
 async function generateTournamentBracket() {
   if (!user || !event) return;
 
-  if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi generare tabelloni.");
+  if (accountLocked || await isCurrentAccountLocked()) {
+    setMessage(getAccountLockedMessage());
     return;
   }
 
@@ -1421,8 +1442,8 @@ setMessage("Tabellone generato.");
 async function generateLeagueSchedule() {
   if (!user || !event) return;
 
-  if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi generare calendari.");
+  if (accountLocked || await isCurrentAccountLocked()) {
+    setMessage(getAccountLockedMessage());
     return;
   }
 
@@ -1594,8 +1615,8 @@ setMessage("Calendario campionato generato.");
 async function createMatchFromEvent() {
   if (!user || !event) return;
 
-  if (accountLocked) {
-    setMessage("Profilo segnato per rimozione: non puoi creare match evento.");
+  if (accountLocked || await isCurrentAccountLocked()) {
+    setMessage(getAccountLockedMessage());
     return;
   }
 
@@ -1949,8 +1970,8 @@ await Promise.all(
 async function cancelEvent() {
   if (!user || !event) return;
 
-  if (accountLocked) {
-    setMessage("Profilo non attivo: azione bloccata.");
+  if (accountLocked || await isCurrentAccountLocked()) {
+    setMessage(getAccountLockedMessage());
     return;
   }
 
@@ -2379,7 +2400,7 @@ const visibleTournamentBracket =
 
           {accountLocked && (
             <div className="border-b border-yellow-300/20 bg-yellow-400/10 px-6 py-4 text-sm font-bold text-yellow-100">
-              Profilo segnato per rimozione: iscrizioni, squadre, tabelloni, calendari, match e annullamento evento sono bloccati.
+              {getAccountLockedMessage()}
             </div>
           )}
 
@@ -2768,7 +2789,7 @@ const visibleTournamentBracket =
 
                   {isCreator && accountLocked && (
   <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold text-yellow-100">
-    Profilo segnato per rimozione: gestione squadre/coppie bloccata.
+    Profilo non attivo: gestione squadre/coppie bloccata.
   </div>
 )}
 
