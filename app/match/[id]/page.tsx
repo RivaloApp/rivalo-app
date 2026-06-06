@@ -255,6 +255,10 @@ function isProfileDeletionRequested(profile?: UserProfile | null) {
   );
 }
 
+function getAccountLockedMessage() {
+  return "Profilo non attivo: puoi consultare lo storico, ma non puoi eseguire nuove azioni.";
+}
+
 function canUseMatch(match: MatchDoc, uid: string, userSport: string) {
   return canAccessMatch(match, uid) && isSameUserSport(match, userSport);
 }
@@ -949,7 +953,7 @@ export default function MatchDetailsPage() {
     if (!user || !match) return;
 
     if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi proporre risultati.");
+      setMessage("Profilo non attivo: proposta risultato bloccata.");
       return;
     }
 
@@ -1023,6 +1027,17 @@ export default function MatchDetailsPage() {
         new Date(Date.now() + 24 * 60 * 60 * 1000)
       );
 
+      const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+      const freshProfile = freshProfileSnap.exists()
+        ? (freshProfileSnap.data() as UserProfile)
+        : null;
+
+      if (isProfileDeletionRequested(freshProfile)) {
+        setMessage("Profilo non attivo: azione bloccata.");
+        setSaving(false);
+        return;
+      }
+
       await updateDoc(doc(db, "matches", matchId), {
         homeTeam,
         awayTeam,
@@ -1078,7 +1093,7 @@ setMessage(
     if (!user || !match) return;
 
     if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi confermare risultati.");
+      setMessage("Profilo non attivo: conferma risultato bloccata.");
       return;
     }
 
@@ -1159,7 +1174,12 @@ setMessage(
         const freshMatch = freshSnap.data() as MatchDoc;
         matchForStats = freshMatch;
 
-        if (accountLocked) {
+        const freshProfileSnap = await transaction.get(doc(db, "users", user.uid));
+        const freshProfile = freshProfileSnap.exists()
+          ? (freshProfileSnap.data() as UserProfile)
+          : null;
+
+        if (accountLocked || isProfileDeletionRequested(freshProfile)) {
           throw new Error("ACCOUNT_LOCKED");
         }
 
@@ -1344,7 +1364,7 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
       } else if (error?.message === "MATCH_CANCELLED") {
         setMessage("Match annullato. Statistiche non applicate.");
       } else if (error?.message === "ACCOUNT_LOCKED") {
-        setMessage("Profilo segnato per rimozione: azione bloccata.");
+        setMessage("Profilo non attivo: azione bloccata.");
       } else {
         await updateDoc(matchRef, {
           statsApplying: false,
@@ -1363,7 +1383,7 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
     if (!user || !match) return;
 
     if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi contestare risultati.");
+      setMessage("Profilo non attivo: contestazione bloccata.");
       return;
     }
 
@@ -1406,6 +1426,17 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
     setMessage("");
 
     try {
+      const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+      const freshProfile = freshProfileSnap.exists()
+        ? (freshProfileSnap.data() as UserProfile)
+        : null;
+
+      if (isProfileDeletionRequested(freshProfile)) {
+        setMessage("Profilo non attivo: azione bloccata.");
+        setSaving(false);
+        return;
+      }
+
       await updateDoc(doc(db, "matches", matchId), {
         disputedBy: arrayUnion(user.uid),
         disputedTeam: getUserConfirmationTeam(match, user.uid),
@@ -1436,7 +1467,7 @@ setMessage("Risultato contestato. Servirà revisione.");
     if (!user || !match) return;
 
     if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi annullare match.");
+      setMessage("Profilo non attivo: annullamento match bloccato.");
       return;
     }
 
@@ -1490,6 +1521,15 @@ setMessage("Risultato contestato. Servirà revisione.");
         const freshMatch = freshSnap.data() as MatchDoc;
         cancelledMatch = freshMatch;
 
+        const freshProfileSnap = await transaction.get(doc(db, "users", user.uid));
+        const freshProfile = freshProfileSnap.exists()
+          ? (freshProfileSnap.data() as UserProfile)
+          : null;
+
+        if (accountLocked || isProfileDeletionRequested(freshProfile)) {
+          throw new Error("ACCOUNT_LOCKED");
+        }
+
         if (!canAccessMatch(freshMatch, user.uid)) {
           throw new Error("UNAUTHORIZED");
         }
@@ -1535,7 +1575,9 @@ setMessage("Risultato contestato. Servirà revisione.");
     } catch (error: any) {
       console.error(error);
 
-      if (error?.message === "SPORT_MISMATCH") {
+      if (error?.message === "ACCOUNT_LOCKED") {
+        setMessage("Profilo non attivo: azione bloccata.");
+      } else if (error?.message === "SPORT_MISMATCH") {
         setMessage("Questo match appartiene a un altro sport. Usa un profilo sport compatibile.");
       } else if (error?.message === "CANCEL_NOT_ALLOWED") {
         setMessage("Solo creator o capitani possono annullare questo match.");
@@ -1989,8 +2031,8 @@ setMessage("Risultato contestato. Servirà revisione.");
               )}
 
               {accountLocked && (
-                <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-3 text-sm font-bold text-yellow-100">
-                  Profilo segnato per rimozione: proposta, conferma, contestazione e annullamento sono bloccati.
+                <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-3 text-sm font-bold leading-6 text-yellow-100">
+                  {getAccountLockedMessage()}
                 </div>
               )}
 
