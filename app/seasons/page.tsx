@@ -136,8 +136,8 @@ export default function SeasonsPage() {
   }, [rows]);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-7 text-white sm:px-5 sm:py-8">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] px-3 py-7 text-white sm:px-5 sm:py-8">
+      <div className="mx-auto w-full max-w-7xl min-w-0 overflow-hidden">
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -147,7 +147,7 @@ export default function SeasonsPage() {
         </Link>
 
         <section className="mt-7 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl sm:rounded-[2.5rem]">
-          <div className="relative border-b border-white/10 px-6 py-8 sm:px-8 sm:py-10">
+          <div className="relative border-b border-white/10 px-4 py-8 sm:px-8 sm:py-10">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_60%)]" />
 
             <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -177,7 +177,7 @@ export default function SeasonsPage() {
             </div>
           </div>
 
-          <div className="p-6 sm:p-8">
+          <div className="p-4 sm:p-8">
             {loading ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-slate-300">
                 Caricamento stagione...
@@ -188,7 +188,7 @@ export default function SeasonsPage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="grid min-w-0 grid-cols-3 gap-2 sm:gap-4">
                   <SeasonHighlight
                     title="Leader"
                     value={rows[0]?.points || 0}
@@ -214,7 +214,7 @@ export default function SeasonsPage() {
                 <div className="mt-9">
                   <div className="mb-5 flex items-center gap-3">
                     <Trophy size={24} className="shrink-0 text-cyan-300" />
-                    <h2 className="text-[34px] font-black leading-none sm:text-4xl">
+                    <h2 className="min-w-0 break-words text-[30px] font-black leading-none sm:text-4xl">
                       Classifica Stagionale
                     </h2>
                   </div>
@@ -265,7 +265,7 @@ function SeasonHighlight({
         {value}
       </div>
 
-      <div className="mt-2 whitespace-nowrap text-[10px] font-black uppercase leading-none text-cyan-300 sm:text-sm">
+      <div className="mt-2 min-w-0 truncate text-[9px] font-black uppercase leading-none text-cyan-300 sm:text-sm">
         {label}
       </div>
     </div>
@@ -295,13 +295,13 @@ function SeasonRankRow({
       href={row.uid ? `/public/${row.uid}` : "/leaderboard"}
       className="block rounded-[1.8rem] border border-white/10 bg-black/20 p-4 transition hover:border-cyan-400/30 hover:bg-cyan-400/[0.03] sm:p-5"
     >
-      <div className="flex items-start gap-3 sm:gap-4">
+      <div className="flex min-w-0 items-start gap-3 sm:gap-4">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/[0.04] text-xl">
           {medal}
         </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="text-[22px] font-black uppercase leading-tight sm:text-3xl">
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="truncate text-[19px] font-black uppercase leading-tight sm:text-3xl">
             {row.playerName || "Player"}
           </div>
 
@@ -310,17 +310,17 @@ function SeasonRankRow({
           </div>
         </div>
 
-        <div className="shrink-0 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-center">
-          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-200">
+        <div className="shrink-0 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-2 py-2 text-center sm:px-3">
+          <div className="text-[9px] font-black uppercase tracking-[0.1em] text-cyan-200 sm:text-[10px] sm:tracking-[0.14em]">
             Pos
           </div>
-          <div className="text-xl font-black text-cyan-200">
+          <div className="text-lg font-black text-cyan-200 sm:text-xl">
             #{index + 1}
           </div>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-4 gap-2">
+      <div className="mt-4 grid min-w-0 grid-cols-4 gap-2">
         <MiniStat label="Punti" value={row.points || 0} color="text-cyan-300" />
         <MiniStat label="Win" value={row.wins || 0} color="text-lime-300" />
         <MiniStat label="Gol" value={row.goals || 0} color="text-yellow-300" />
@@ -340,8 +340,8 @@ function MiniStat({
   color: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-2 py-3 text-center">
-      <div className={`text-[24px] font-black leading-none ${color}`}>
+    <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] px-1 py-3 text-center sm:px-2">
+      <div className={`truncate text-[21px] font-black leading-none sm:text-[24px] ${color}`}>
         {value}
       </div>
 

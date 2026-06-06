@@ -146,10 +146,10 @@ export default function RivalryDetailPage() {
     matchesPlayed >= 10 ? "Leggendaria" : matchesPlayed >= 5 ? "Calda" : "Nuova";
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#020617] px-4 py-8 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] px-3 py-8 text-white sm:px-4">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_34%),radial-gradient(circle_at_top_right,rgba(244,63,94,0.16),transparent_34%),linear-gradient(180deg,#020617_0%,#050816_55%,#020617_100%)]" />
 
-      <div className="relative mx-auto max-w-5xl">
+      <div className="relative mx-auto w-full max-w-5xl min-w-0 overflow-hidden">
         <Link
           href="/rivalries"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -158,8 +158,8 @@ export default function RivalryDetailPage() {
           Torna alle rivalità
         </Link>
 
-        <section className="mt-8 overflow-hidden rounded-[2.2rem] border border-white/10 bg-white/[.04] shadow-2xl sm:rounded-[2.5rem]">
-          <div className="relative border-b border-white/10 px-5 py-7 sm:px-8 sm:py-10">
+        <section className="mt-8 min-w-0 overflow-hidden rounded-[2.2rem] border border-white/10 bg-white/[.04] shadow-2xl sm:rounded-[2.5rem]">
+          <div className="relative border-b border-white/10 px-4 py-7 sm:px-8 sm:py-10">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(248,113,113,0.24),transparent_62%)]" />
 
             <div className="relative mx-auto max-w-3xl text-center">
@@ -171,7 +171,7 @@ export default function RivalryDetailPage() {
                 Rivalo Rivalry
               </div>
 
-              <h1 className="mx-auto mt-4 max-w-2xl text-center text-[2.25rem] font-black uppercase leading-[0.98] sm:text-6xl">
+              <h1 className="mx-auto mt-4 max-w-2xl min-w-0 text-center text-[1.85rem] font-black uppercase leading-[1.02] sm:text-6xl">
                 <span className="block break-words">{firstName}</span>
                 <span className="block text-red-200">VS</span>
                 <span className="block break-words">{secondName}</span>
@@ -184,7 +184,7 @@ export default function RivalryDetailPage() {
             </div>
           </div>
 
-          <div className="px-5 py-7 sm:px-8">
+          <div className="px-4 py-7 sm:px-8">
             <div className="mx-auto max-w-3xl rounded-[2rem] border border-red-300/25 bg-red-500/10 px-6 py-5 text-center shadow-[0_0_45px_rgba(248,113,113,0.10)]">
               <div className="text-xs font-black uppercase tracking-[0.32em] text-red-300">
                 Score
@@ -195,7 +195,7 @@ export default function RivalryDetailPage() {
               </div>
             </div>
 
-            <div className="mt-7 grid gap-4 md:grid-cols-2">
+            <div className="mt-7 grid min-w-0 gap-4 md:grid-cols-2">
               <PlayerPanel
                 user={firstUser}
                 name={firstName}
@@ -211,7 +211,7 @@ export default function RivalryDetailPage() {
               />
             </div>
 
-            <div className="mt-7 grid grid-cols-2 gap-4">
+            <div className="mt-7 grid min-w-0 grid-cols-2 gap-3 sm:gap-4">
               <InfoBox
                 icon={<Trophy size={25} />}
                 label="Match"
@@ -261,8 +261,8 @@ function PlayerPanel({
   const photo = user?.photoURL || user?.photoUrl || "";
 
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-black/20 p-4 sm:p-5">
-      <div className="flex items-center gap-4">
+    <div className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-black/20 p-4 sm:p-5">
+      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[1.3rem] border border-white/10 bg-black/30 sm:h-20 sm:w-20 sm:rounded-[1.5rem]">
           {photo ? (
             <img
@@ -277,8 +277,8 @@ function PlayerPanel({
           )}
         </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="break-words text-[1.6rem] font-black uppercase leading-none sm:text-3xl">
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="truncate text-[1.25rem] font-black uppercase leading-none sm:text-3xl">
             {name}
           </div>
 
@@ -294,7 +294,7 @@ function PlayerPanel({
             ? `/public/${user.id}?from=rivalry&rivalryId=${rivalryId}`
             : "/rivalries"
         }
-        className="mt-5 flex w-full items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-5 py-3 text-center text-sm font-black uppercase tracking-[0.18em] text-cyan-200 transition hover:border-cyan-300/70 hover:bg-cyan-400/20"
+        className="mt-5 flex w-full min-w-0 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-cyan-200 transition hover:border-cyan-300/70 hover:bg-cyan-400/20 sm:px-5 sm:text-sm sm:tracking-[0.18em]"
       >
         Apri profilo
       </Link>
@@ -314,10 +314,10 @@ function InfoBox({
   color: string;
 }) {
   return (
-    <div className="min-h-[7.5rem] rounded-[1.6rem] border border-white/10 bg-black/20 p-4 text-center sm:min-h-[8.5rem] sm:rounded-[1.75rem]">
+    <div className="min-w-0 overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-3 text-center sm:min-h-[8.5rem] sm:rounded-[1.75rem] sm:p-4">
       <div className={`flex justify-center ${color}`}>{icon}</div>
 
-      <div className="mx-auto mt-3 max-w-full break-words text-xl font-black leading-tight sm:text-3xl">
+      <div className="mx-auto mt-3 max-w-full break-words text-lg font-black leading-tight sm:text-3xl">
         {value}
       </div>
 
