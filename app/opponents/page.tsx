@@ -6,6 +6,8 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import {
   addDoc,
   collection,
+  doc,
+  getDoc,
   getDocs,
   query,
   serverTimestamp,
@@ -28,6 +30,9 @@ type OpponentGroup = {
   name?: string;
   city?: string;
   sport?: string;
+  activeSport?: string;
+  creatorSport?: string;
+  sportProfileId?: string;
   mode?: string;
   privacy?: string;
   members?: string[];
@@ -43,12 +48,52 @@ type JoinRequest = {
   status?: string;
 };
 
+type UserProfile = {
+  activeSport?: string;
+  mainSport?: string;
+  sport?: string;
+  name?: string;
+  nickname?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
+};
+
+function normalizeSport(value?: string) {
+  const sport = (value || "").toLowerCase().trim();
+
+  if (sport === "padel") return "padel";
+  if (sport === "tennis") return "tennis";
+  return "calcetto";
+}
+
+function sportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Padel";
+  if (sport === "tennis") return "Tennis";
+  return "Calcetto";
+}
+
+function getGroupSport(group?: OpponentGroup) {
+  return normalizeSport(group?.activeSport || group?.sport || "calcetto");
+}
+
+function isProfileDeletionRequested(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted" ||
+      profile?.deletionRequested
+  );
+}
+
 export default function OpponentsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [groups, setGroups] = useState<OpponentGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userSport, setUserSport] = useState("calcetto");
+  const [accountLocked, setAccountLocked] = useState(false);
 
-  const [sportFilter, setSportFilter] = useState("tutti");
+  const [sportFilter, setSportFilter] = useState("calcetto");
   const [cityFilter, setCityFilter] = useState("");
   const [message, setMessage] = useState("");
 const [requestingGroupId, setRequestingGroupId] = useState("");
@@ -62,14 +107,28 @@ const [sentRequests, setSentRequests] = useState<JoinRequest[]>([]);
       }
 
       setUser(currentUser);
-await loadPublicGroups();
-await loadSentRequests(currentUser.uid);
+
+      const profileSnap = await getDoc(doc(db, "users", currentUser.uid));
+      const profile = profileSnap.exists()
+        ? (profileSnap.data() as UserProfile)
+        : null;
+
+      const currentUserSport = normalizeSport(
+        profile?.activeSport || profile?.mainSport || profile?.sport || "calcetto"
+      );
+
+      setUserSport(currentUserSport);
+      setSportFilter(currentUserSport);
+      setAccountLocked(isProfileDeletionRequested(profile));
+
+      await loadPublicGroups(currentUserSport);
+      await loadSentRequests(currentUser.uid);
     });
 
     return () => unsubscribe();
   }, []);
 
-  async function loadPublicGroups() {
+  async function loadPublicGroups(currentUserSport = userSport) {
     setLoading(true);
 
     try {
@@ -80,10 +139,12 @@ await loadSentRequests(currentUser.uid);
 
       const snap = await getDocs(publicGroupsQuery);
 
-      const result = snap.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...(docSnap.data() as Omit<OpponentGroup, "id">),
-      }));
+      const result = snap.docs
+        .map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<OpponentGroup, "id">),
+        }))
+        .filter((group) => getGroupSport(group) === normalizeSport(currentUserSport));
 
       setGroups(result);
     } catch (error) {
@@ -119,6 +180,19 @@ await loadSentRequests(currentUser.uid);
   async function requestJoinGroup(group: OpponentGroup) {
   if (!user) return;
 
+  if (accountLocked) {
+    setMessage("Profilo non attivo: richiesta ingresso bloccata.");
+    return;
+  }
+
+  const lockedSport = normalizeSport(userSport);
+  const groupSport = getGroupSport(group);
+
+  if (groupSport !== lockedSport) {
+    setMessage("Puoi richiedere ingresso solo nei gruppi del tuo sport attivo.");
+    return;
+  }
+
   const alreadyRequested = sentRequests.some(
   (request) => request.groupId === group.id
 );
@@ -132,12 +206,48 @@ if (alreadyRequested) {
   setMessage("");
 
   try {
+    const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+    const freshProfile = freshProfileSnap.exists()
+      ? (freshProfileSnap.data() as UserProfile)
+      : null;
+
+    if (isProfileDeletionRequested(freshProfile)) {
+      setAccountLocked(true);
+      setMessage("Profilo non attivo: richiesta ingresso bloccata.");
+      setRequestingGroupId("");
+      return;
+    }
+
+    const freshProfileSport = normalizeSport(
+      freshProfile?.activeSport ||
+        freshProfile?.mainSport ||
+        freshProfile?.sport ||
+        lockedSport
+    );
+
+    if (freshProfileSport !== lockedSport || groupSport !== freshProfileSport) {
+      setUserSport(freshProfileSport);
+      setSportFilter(freshProfileSport);
+      setMessage("Lo sport attivo del profilo è cambiato. Riprova con lo sport corretto.");
+      setRequestingGroupId("");
+      return;
+    }
+
+    const requesterName =
+      freshProfile?.name ||
+      freshProfile?.nickname ||
+      user.displayName ||
+      "Rivalo Player";
+
     const requestRef = await addDoc(collection(db, "groupJoinRequests"), {
       groupId: group.id,
       groupName: group.name || "Gruppo Rivalo",
       groupOwnerId: group.ownerId || "",
       fromUid: user.uid,
-      fromName: user.displayName || "Rivalo Player",
+      fromName: requesterName,
+      activeSport: freshProfileSport,
+      requesterSport: freshProfileSport,
+      sportProfileId: `${user.uid}_${freshProfileSport}`,
       status: "pending",
       createdAt: serverTimestamp(),
     });
@@ -152,9 +262,7 @@ if (alreadyRequested) {
           uid,
           type: "group_request",
           title: "Nuova richiesta ingresso gruppo",
-          message: `${
-            user.displayName || "Un Rivalo Player"
-          } vuole entrare nel gruppo ${group.name || "Rivalo"}.`,
+          message: `${requesterName} vuole entrare nel gruppo ${group.name || "Rivalo"}.`,
           link: "/groups/" + group.id,
           createdBy: user.uid,
           metadata: {
@@ -162,7 +270,10 @@ if (alreadyRequested) {
             groupName: group.name || "Gruppo Rivalo",
             requestId: requestRef.id,
             fromUid: user.uid,
-            fromName: user.displayName || "Rivalo Player",
+            fromName: requesterName,
+            activeSport: freshProfileSport,
+            requesterSport: freshProfileSport,
+            sportProfileId: `${user.uid}_${freshProfileSport}`,
           },
         })
       )
@@ -179,10 +290,10 @@ if (alreadyRequested) {
 }
   const filteredGroups = useMemo(() => {
     const cleanCity = cityFilter.trim().toLowerCase();
+    const lockedSport = normalizeSport(userSport);
 
     return groups.filter((group) => {
-      const sportOk =
-        sportFilter === "tutti" || group.sport === sportFilter;
+      const sportOk = getGroupSport(group) === lockedSport;
 
       const cityOk =
         !cleanCity || (group.city || "").toLowerCase().includes(cleanCity);
@@ -191,13 +302,13 @@ if (alreadyRequested) {
 
       return sportOk && cityOk && notMine;
     });
-  }, [groups, sportFilter, cityFilter, user]);
+  }, [groups, cityFilter, user, userSport]);
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_6%,rgba(34,211,238,.17),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(217,70,239,.15),transparent_32%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
 
-      <section className="relative z-10 mx-auto max-w-7xl px-5 py-8">
+      <section className="relative z-10 mx-auto w-full max-w-7xl min-w-0 px-3 py-8 sm:px-5">
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -206,7 +317,7 @@ if (alreadyRequested) {
           Torna alla dashboard
         </Link>
 
-        <section className="mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[.04] p-8 shadow-2xl backdrop-blur">
+        <section className="mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[.04] p-5 shadow-2xl backdrop-blur sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[.22em] text-cyan-200">
@@ -214,20 +325,19 @@ if (alreadyRequested) {
                 Rivalo Opponents
               </div>
 
-              <h1 className="mt-5 text-5xl font-black tracking-tight md:text-6xl">
+              <h1 className="mt-5 break-words text-4xl font-black tracking-tight md:text-6xl">
                 Cerca avversari
               </h1>
 
               <p className="mt-4 max-w-3xl leading-7 text-slate-300">
-                Trova gruppi pubblici Rivalo nella tua zona per calcetto, padel
-                e tennis.
+                Trova gruppi pubblici Rivalo compatibili con il tuo sport attivo.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Stat value={String(groups.length)} label="Gruppi pubblici" />
               <Stat value={String(filteredGroups.length)} label="Risultati" />
-              <Stat value={sportFilter} label="Filtro sport" />
+              <Stat value={sportLabel(userSport)} label="Sport attivo" />
             </div>
           </div>
         </section>
@@ -250,36 +360,33 @@ if (alreadyRequested) {
 
             <div className="rounded-2xl border border-white/10 bg-[#061126]/80 px-4 py-4">
               <div className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
-                Sport
+                Sport attivo
               </div>
 
-              <select
-                value={sportFilter}
-                onChange={(e) => setSportFilter(e.target.value)}
-                className="w-full bg-[#061126] text-white outline-none"
-              >
-                <option value="tutti" className="bg-[#020617] text-white">
-                  Tutti
-                </option>
-                <option value="calcetto" className="bg-[#020617] text-white">
-                  Calcetto
-                </option>
-                <option value="padel" className="bg-[#020617] text-white">
-                  Padel
-                </option>
-                <option value="tennis" className="bg-[#020617] text-white">
-                  Tennis
-                </option>
-              </select>
+              <div className="flex items-center justify-between gap-3">
+                <div className="font-black text-cyan-200">
+                  {sportLabel(userSport)}
+                </div>
+
+                <span className="rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200">
+                  Bloccato
+                </span>
+              </div>
             </div>
           </div>
         </section>
 
+        {accountLocked && (
+          <div className="mt-6 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+            Profilo non attivo: puoi consultare i gruppi pubblici, ma non puoi inviare richieste.
+          </div>
+        )}
+
         {message && (
-  <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200">
-    {message}
-  </div>
-)}
+          <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-200">
+            {message}
+          </div>
+        )}
 
         <section className="mt-8">
           {loading ? (
@@ -297,6 +404,7 @@ if (alreadyRequested) {
   alreadyRequested={sentRequests.some(
     (request) => request.groupId === group.id
   )}
+  accountLocked={accountLocked}
 />
               ))}
             </div>
@@ -312,18 +420,20 @@ function OpponentCard({
   onRequestJoin,
   requesting,
   alreadyRequested,
+  accountLocked,
 }: {
   group: OpponentGroup;
   onRequestJoin: (group: OpponentGroup) => void;
   requesting: boolean;
   alreadyRequested: boolean;
+  accountLocked: boolean;
 }) {
 
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-[#061126]/80 p-6 shadow-2xl transition hover:-translate-y-1 hover:border-cyan-400/30">
+    <div className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-[#061126]/80 p-5 shadow-2xl transition hover:-translate-y-1 hover:border-cyan-400/30 sm:p-6">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-cyan-200">
-          {group.sport || "sport"}
+          {sportLabel(group.activeSport || group.sport)}
         </div>
 
         <div className="rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300">
@@ -331,7 +441,7 @@ function OpponentCard({
         </div>
       </div>
 
-      <h2 className="text-3xl font-black">{group.name || "Gruppo Rivalo"}</h2>
+      <h2 className="break-words text-2xl font-black sm:text-3xl">{group.name || "Gruppo Rivalo"}</h2>
 
       <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-300">
         <MapPin size={17} className="text-fuchsia-300" />
@@ -355,10 +465,12 @@ function OpponentCard({
         <button
   type="button"
   onClick={() => onRequestJoin(group)}
- disabled={requesting || alreadyRequested}
+ disabled={requesting || alreadyRequested || accountLocked}
   className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-3 font-black text-white disabled:opacity-60"
 >
- {alreadyRequested
+ {accountLocked
+  ? "Richiesta bloccata"
+  : alreadyRequested
   ? "Richiesta già inviata"
   : requesting
   ? "Invio richiesta..."
