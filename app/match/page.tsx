@@ -48,6 +48,14 @@ function sportLabel(value?: string) {
   return "Calcetto";
 }
 
+function getProfileActiveSport(profile?: UserProfile | null): Sport {
+  return normalizeSport(profile?.activeSport || profile?.mainSport || profile?.sport || "calcetto");
+}
+
+function getSportProfileId(uid: string, sport: string) {
+  return `${uid}_${normalizeSport(sport)}`;
+}
+
 function getMatchCopy(value?: string) {
   const sport = normalizeSport(value);
 
@@ -121,6 +129,8 @@ type UserProfile = {
   nickname?: string;
   mainSport?: string;
   sport?: string;
+  activeSport?: string;
+  sportProfileId?: string;
   city?: string;
   cityZone?: string;
   zone?: string;
@@ -288,9 +298,7 @@ const [awayTeamId, setAwayTeamId] = useState("");
         ? (profileSnap.data() as UserProfile)
         : null;
 
-      const profileSport = normalizeSport(
-        profileData?.mainSport || profileData?.sport || "calcetto"
-      );
+      const profileSport = getProfileActiveSport(profileData);
 
       const profileCity =
         profileData?.city || profileData?.cityZone || profileData?.zone || "";
@@ -385,12 +393,14 @@ const [awayTeamId, setAwayTeamId] = useState("");
         });
       });
 
-      const sortedMatches = Array.from(matchesMap.values()).sort((a, b) => {
-        const dateA = `${a.date || ""} ${a.time || ""}`;
-        const dateB = `${b.date || ""} ${b.time || ""}`;
+      const sortedMatches = Array.from(matchesMap.values())
+        .filter((match) => normalizeSport(match.sport) === profileSport)
+        .sort((a, b) => {
+          const dateA = `${a.date || ""} ${a.time || ""}`;
+          const dateB = `${b.date || ""} ${b.time || ""}`;
 
-        return dateB.localeCompare(dateA);
-      });
+          return dateB.localeCompare(dateA);
+        });
 
       setMatches(sortedMatches);
     } catch {
@@ -440,24 +450,26 @@ const [awayTeamId, setAwayTeamId] = useState("");
         ? groupData.members
         : [];
 
+      const groupSport = normalizeSport(groupData.sport || userSport);
       const usersResult: UserOption[] = [];
 
       for (const uid of memberIds) {
         const userSnap = await getDoc(doc(db, "users", uid));
 
         if (userSnap.exists()) {
-          const data = userSnap.data();
+          const data = userSnap.data() as UserProfile & {
+            photoUrl?: string;
+            photoURL?: string;
+          };
+
+          if (isProfileDeletionRequested(data)) continue;
+          if (getProfileActiveSport(data) !== groupSport) continue;
 
           usersResult.push({
             uid,
             name: data.name || data.nickname || "Rivalo Player",
             nickname: data.nickname || "",
             photoUrl: data.photoUrl || data.photoURL || "",
-          });
-        } else {
-          usersResult.push({
-            uid,
-            name: "Rivalo Player",
           });
         }
       }
@@ -502,11 +514,14 @@ async function loadGroupTeams(nextGroupId: string) {
 
   function handleSportChange(nextSport: string) {
     const normalizedSport = normalizeSport(nextSport);
-    setSport(normalizedSport);
-    applySportDefaults(normalizedSport, setCompetitionFormat, setSlots);
+    const lockedSport = normalizeSport(userSport);
+    const safeSport = normalizedSport === lockedSport ? normalizedSport : lockedSport;
 
-    if (normalizedSport === "padel" || normalizedSport === "tennis") {
-      const defaultFormat = normalizedSport === "padel" ? "doppio" : "singolo";
+    setSport(safeSport);
+    applySportDefaults(safeSport, setCompetitionFormat, setSlots);
+
+    if (safeSport === "padel" || safeSport === "tennis") {
+      const defaultFormat = safeSport === "padel" ? "doppio" : "singolo";
       const sideSize = getRacketSideSize(defaultFormat);
       const selectedIds = availableUsers.map((availableUser) => availableUser.uid);
 
@@ -613,18 +628,40 @@ async function loadGroupTeams(nextGroupId: string) {
     if (!user) return;
 
     if (accountLocked) {
-      setMessage("Profilo segnato per rimozione: non puoi creare nuovi match.");
+      setMessage("Profilo non attivo: creazione match bloccata.");
       return;
     }
 
-    const activeSport = normalizeSport(sport);
+    const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+    const freshProfile = freshProfileSnap.exists()
+      ? (freshProfileSnap.data() as UserProfile)
+      : null;
+
+    if (isProfileDeletionRequested(freshProfile)) {
+      setAccountLocked(true);
+      setMessage("Profilo non attivo: creazione match bloccata.");
+      return;
+    }
+
+    const activeSport = getProfileActiveSport(freshProfile);
     const matchCopy = getMatchCopy(activeSport);
 
-    if (activeSport !== userSport) {
-      setMessage("Puoi creare match solo per lo sport del profilo attivo.");
-      handleSportChange(userSport);
+    if (normalizeSport(sport) !== activeSport || activeSport !== normalizeSport(userSport)) {
+      setUserSport(activeSport);
+      handleSportChange(activeSport);
+      setMessage("Il match usa solo lo sport attivo del profilo.");
       return;
     }
+
+   const selectedGroup = groups.find((group) => group.id === groupId);
+
+if (
+  selectedGroup?.sport &&
+  normalizeSport(selectedGroup.sport) !== activeSport
+) {
+  setMessage("Questo gruppo non appartiene allo sport attivo del profilo.");
+  return;
+}
 
    const selectedHomeTeam = groupTeams.find((team) => team.id === homeTeamId);
 const selectedAwayTeam = groupTeams.find((team) => team.id === awayTeamId);
@@ -783,10 +820,17 @@ sourceType = "groupTeams";
       await addDoc(collection(db, "matches"), {
         groupId: groupId || "nessun-gruppo",
         createdBy: user.uid,
-        createdByName: user.displayName || "Rivalo Player",
+        createdByName:
+          freshProfile?.name ||
+          freshProfile?.nickname ||
+          user.displayName ||
+          "Rivalo Player",
 
         name: matchName,
         sport: activeSport,
+        activeSport,
+        creatorSport: activeSport,
+        sportProfileId: getSportProfileId(user.uid, activeSport),
         competitionFormat,
         scoreMode: matchCopy.scoreMode,
         sportStatsMode: matchCopy.scoreMode,
@@ -926,7 +970,7 @@ awayScore: null,
             <form onSubmit={createMatch} className="space-y-4 sm:space-y-5">
               {accountLocked && (
                 <div className="rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-                  Profilo segnato per rimozione: la creazione di nuovi match è bloccata.
+                  Profilo non attivo: la creazione di nuovi match è bloccata.
                 </div>
               )}
 
