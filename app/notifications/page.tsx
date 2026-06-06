@@ -7,6 +7,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   serverTimestamp,
@@ -35,6 +36,34 @@ type NotificationItem = {
   createdAt?: any;
   link?: string;
 };
+
+type UserProfile = {
+  accountStatus?: string;
+  deletionRequested?: boolean;
+};
+
+function isProfileDeletionRequested(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted" ||
+      profile?.deletionRequested
+  );
+}
+
+function isOperationalNotification(type?: string) {
+  return (
+    type === "team_invite" ||
+    type === "group_request" ||
+    type === "group_request_accepted" ||
+    type === "group_request_rejected" ||
+    type === "result_proposed" ||
+    type === "result_disputed" ||
+    type === "new_match" ||
+    type === "event_full" ||
+    type === "tournament_ready" ||
+    type === "league_ready"
+  );
+}
 
 function getNotificationIcon(type?: string) {
   if (
@@ -89,6 +118,7 @@ export default function NotificationsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accountLocked, setAccountLocked] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -99,6 +129,14 @@ export default function NotificationsPage() {
       }
 
       setUser(currentUser);
+
+      const profileSnap = await getDoc(doc(db, "users", currentUser.uid));
+      const profile = profileSnap.exists()
+        ? (profileSnap.data() as UserProfile)
+        : null;
+
+      setAccountLocked(isProfileDeletionRequested(profile));
+
       await loadNotifications(currentUser.uid);
     });
 
@@ -157,6 +195,12 @@ export default function NotificationsPage() {
   async function openNotification(notification: NotificationItem) {
     if (!notification.link) return;
 
+    if (accountLocked && isOperationalNotification(notification.type)) {
+      setMessage("Profilo non attivo: questa azione non è disponibile.");
+      await markAsRead(notification.id);
+      return;
+    }
+
     try {
       if (!notification.read) {
         await updateDoc(doc(db, "notifications", notification.id), {
@@ -212,8 +256,8 @@ export default function NotificationsPage() {
     .length;
 
   return (
-    <main className="min-h-screen bg-[#020617] px-5 py-8 text-white">
-      <div className="mx-auto max-w-5xl">
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] px-3 py-8 text-white sm:px-5">
+      <div className="mx-auto w-full max-w-5xl min-w-0 overflow-hidden">
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -233,7 +277,7 @@ export default function NotificationsPage() {
                   Centro notifiche
                 </div>
 
-                <h1 className="mt-5 text-5xl font-black">Notifiche</h1>
+                <h1 className="mt-5 break-words text-4xl font-black sm:text-5xl">Notifiche</h1>
 
                 <p className="mt-3 max-w-2xl text-slate-300">
                   Qui trovi inviti, richieste, risultati, eventi e aggiornamenti
@@ -257,6 +301,12 @@ export default function NotificationsPage() {
             {message && (
               <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold text-cyan-100">
                 {message}
+              </div>
+            )}
+
+            {accountLocked && (
+              <div className="mb-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-3 text-sm font-bold leading-6 text-yellow-100">
+                Profilo non attivo: puoi leggere lo storico notifiche, ma le azioni operative sono bloccate.
               </div>
             )}
 
@@ -353,7 +403,9 @@ export default function NotificationsPage() {
 
                             {notification.link && (
                               <span className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200">
-                                Apri
+                                {accountLocked && isOperationalNotification(notification.type)
+                                  ? "Solo storico"
+                                  : "Apri"}
                               </span>
                             )}
                           </div>
