@@ -66,6 +66,8 @@ type UserProfile = {
   photoUrl?: string;
   onboardingCompleted?: boolean;
   profileCompleted?: boolean;
+  accountStatus?: string;
+  deletionRequested?: boolean;
 };
 
 type NavItem = {
@@ -176,6 +178,29 @@ function sportLabel(value?: string) {
   if (sport === "padel") return "Padel";
   if (sport === "tennis") return "Tennis";
   return "Calcetto";
+}
+
+function isProfileDeletionRequested(profile?: UserProfile | null) {
+  return Boolean(
+    profile?.accountStatus === "deletion_requested" ||
+      profile?.accountStatus === "deleted" ||
+      profile?.deletionRequested
+  );
+}
+
+function isOperationalHref(href: string) {
+  return (
+    href === "/match" ||
+    href === "/groups" ||
+    href === "/opponents" ||
+    href === "/events"
+  );
+}
+
+function getPublicUserName(profile?: UserProfile | null) {
+  if (isProfileDeletionRequested(profile)) return "Utente rimosso";
+
+  return profile?.name || profile?.nickname || "Player";
 }
 
 function normalizeCalcettoRole(value?: string) {
@@ -364,8 +389,12 @@ export default function DashboardPage() {
     return () => unsubscribe();
   }, []);
 
-  const displayName = profile?.name || user?.displayName || "Player";
-  const nickname = profile?.nickname || "Rivalo Player";
+  const displayName = isProfileDeletionRequested(profile)
+    ? "Profilo non attivo"
+    : profile?.name || user?.displayName || "Player";
+  const nickname = isProfileDeletionRequested(profile)
+    ? "Storico consultabile"
+    : profile?.nickname || "Rivalo Player";
   const rivalScore = profile?.rivalScore ?? 1000;
   const level = profile?.level ?? 1;
   const xp = profile?.xp ?? 100;
@@ -382,8 +411,11 @@ export default function DashboardPage() {
   const cleanSheets = profile?.cleanSheets ?? 0;
   const penaltiesSaved = profile?.penaltiesSaved ?? 0;
   const mainSport = profile?.mainSport || profile?.sport || "calcetto";
-  const photo = profile?.photoURL || profile?.photoUrl || "";
+  const photo = isProfileDeletionRequested(profile)
+    ? ""
+    : profile?.photoURL || profile?.photoUrl || "";
   const goalkeeperProfile = isGoalkeeperProfile(mainSport, role);
+  const accountLocked = isProfileDeletionRequested(profile);
 
   const sportCopy = getSportDashboardCopy(mainSport, role);
   const dashboardMetrics = getDashboardMetrics({
@@ -415,10 +447,11 @@ export default function DashboardPage() {
       <Background />
 
       <section className="relative z-10 flex min-h-screen">
-        <Sidebar />
+        <Sidebar accountLocked={accountLocked} />
 
         <MobileMenu
           open={mobileMenuOpen}
+          accountLocked={accountLocked}
           onClose={() => setMobileMenuOpen(false)}
         />
 
@@ -541,6 +574,12 @@ export default function DashboardPage() {
               Azioni rapide
             </h2>
 
+            {accountLocked && (
+              <div className="mt-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-3 text-sm font-bold leading-6 text-yellow-100">
+                Profilo non attivo: puoi consultare storico, ranking, profilo e notifiche. Le nuove azioni sono bloccate.
+              </div>
+            )}
+
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
               <QuickAction
                 href="/leaderboard"
@@ -571,7 +610,8 @@ export default function DashboardPage() {
                 tone="green"
                 icon={<Users />}
                 title="Gruppi"
-                text="Amici e classifiche gruppo"
+                text={accountLocked ? "Azione bloccata" : "Amici e classifiche gruppo"}
+                disabled={accountLocked}
               />
 
               <QuickAction
@@ -579,7 +619,8 @@ export default function DashboardPage() {
                 tone="green"
                 icon={<Search />}
                 title="Richiedi ingresso"
-                text="Trova gruppi pubblici e chiedi di entrare"
+                text={accountLocked ? "Azione bloccata" : "Trova gruppi pubblici e chiedi di entrare"}
+                disabled={accountLocked}
               />
 
               <QuickAction
@@ -587,7 +628,8 @@ export default function DashboardPage() {
                 tone="purple"
                 icon={<CalendarDays />}
                 title="Eventi"
-                text="Tornei e classifiche evento"
+                text={accountLocked ? "Azione bloccata" : "Tornei e classifiche evento"}
+                disabled={accountLocked}
               />
 
               <QuickAction
@@ -603,7 +645,8 @@ export default function DashboardPage() {
                 tone="cyan"
                 icon={<CircleDot />}
                 title="Match"
-                text={sportCopy.quickLabel}
+                text={accountLocked ? "Azione bloccata" : sportCopy.quickLabel}
+                disabled={accountLocked}
               />
 
               <QuickAction
@@ -668,9 +711,11 @@ export default function DashboardPage() {
 
 function MobileMenu({
   open,
+  accountLocked,
   onClose,
 }: {
   open: boolean;
+  accountLocked: boolean;
   onClose: () => void;
 }) {
   async function handleLogout() {
@@ -710,30 +755,49 @@ function MobileMenu({
         </div>
 
         <nav className="mt-4 grid min-w-0 gap-3 overflow-y-auto pr-1">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className="flex min-w-0 items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-4 transition hover:border-cyan-400/30 hover:bg-cyan-400/10"
-            >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-200 [&>svg]:h-5 [&>svg]:w-5">
-                {item.icon}
-              </span>
+          {NAV_ITEMS.map((item) => {
+            const locked = accountLocked && isOperationalHref(item.href);
 
-              <span className="min-w-0 overflow-hidden">
-                <span className="block truncate text-base font-black text-white">
-                  {item.text}
+            const content = (
+              <>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-200 [&>svg]:h-5 [&>svg]:w-5">
+                  {item.icon}
                 </span>
 
-                {item.subtitle && (
-                  <span className="mt-0.5 block truncate text-xs font-medium text-slate-400">
-                    {item.subtitle}
+                <span className="min-w-0 overflow-hidden">
+                  <span className="block truncate text-base font-black text-white">
+                    {item.text}
                   </span>
-                )}
-              </span>
-            </Link>
-          ))}
+
+                  <span className="mt-0.5 block truncate text-xs font-medium text-slate-400">
+                    {locked ? "Azione bloccata" : item.subtitle}
+                  </span>
+                </span>
+              </>
+            );
+
+            if (locked) {
+              return (
+                <div
+                  key={item.href}
+                  className="flex min-w-0 cursor-not-allowed items-center gap-4 rounded-2xl border border-white/10 bg-white/[.025] p-4 opacity-55"
+                >
+                  {content}
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className="flex min-w-0 items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-4 transition hover:border-cyan-400/30 hover:bg-cyan-400/10"
+              >
+                {content}
+              </Link>
+            );
+          })}
         </nav>
 
         <button
@@ -749,7 +813,7 @@ function MobileMenu({
   );
 }
 
-function Sidebar() {
+function Sidebar({ accountLocked }: { accountLocked: boolean }) {
   return (
     <aside className="hidden w-[270px] shrink-0 border-r border-white/10 bg-[#020617]/82 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
       <Link href="/dashboard" className="mb-9 block px-2">
@@ -761,10 +825,10 @@ function Sidebar() {
         <SideLink href="/leaderboard" icon={<Globe2 />} text="Globale" />
         <SideLink href="/goalkeepers" icon={<ShieldCheck />} text="Portieri" />
         <SideLink href="/seasons" icon={<Medal />} text="Stagione" />
-        <SideLink href="/groups" icon={<Users />} text="Gruppi" />
-        <SideLink href="/match" icon={<CircleDot />} text="Match" />
+        <SideLink href="/groups" icon={<Users />} text="Gruppi" locked={accountLocked} />
+        <SideLink href="/match" icon={<CircleDot />} text="Match" locked={accountLocked} />
         <SideLink href="/community" icon={<MessageCircle />} text="Community" />
-        <SideLink href="/events" icon={<CalendarDays />} text="Eventi" />
+        <SideLink href="/events" icon={<CalendarDays />} text="Eventi" locked={accountLocked} />
         <SideLink href="/rivalries" icon={<Swords />} text="Rivalità" />
         <SideLink href="/profile" icon={<UserRound />} text="Profilo" />
         <SideLink href="/settings" icon={<Settings />} text="Impostazioni" />
@@ -789,21 +853,33 @@ function SideLink({
   icon,
   text,
   active,
+  locked,
 }: {
   href: string;
   icon: React.ReactNode;
   text: string;
   active?: boolean;
+  locked?: boolean;
 }) {
+  const className = `flex items-center gap-4 rounded-2xl px-4 py-4 text-base font-semibold transition ${
+    active
+      ? "bg-gradient-to-r from-blue-600 to-purple-700 text-white shadow-[0_0_25px_rgba(79,70,229,.35)]"
+      : locked
+      ? "cursor-not-allowed text-slate-500 opacity-55"
+      : "text-slate-300 hover:bg-white/[.05] hover:text-white"
+  }`;
+
+  if (locked) {
+    return (
+      <div className={className} title="Profilo non attivo">
+        {icon}
+        {text}
+      </div>
+    );
+  }
+
   return (
-    <Link
-      href={href}
-      className={`flex items-center gap-4 rounded-2xl px-4 py-4 text-base font-semibold transition ${
-        active
-          ? "bg-gradient-to-r from-blue-600 to-purple-700 text-white shadow-[0_0_25px_rgba(79,70,229,.35)]"
-          : "text-slate-300 hover:bg-white/[.05] hover:text-white"
-      }`}
-    >
+    <Link href={href} className={className}>
       {icon}
       {text}
     </Link>
@@ -994,12 +1070,14 @@ function QuickAction({
   icon,
   title,
   text,
+  disabled,
 }: {
   href: string;
   tone: "green" | "cyan" | "purple" | "orange" | "blue";
   icon: React.ReactNode;
   title: string;
   text: string;
+  disabled?: boolean;
 }) {
   const colors = {
     green: "border-green-400/50 from-green-500/20 text-green-300",
@@ -1009,11 +1087,12 @@ function QuickAction({
     blue: "border-blue-400/50 from-blue-500/20 text-cyan-300",
   }[tone];
 
-  return (
-    <Link
-      href={href}
-      className={`group relative min-h-[190px] overflow-hidden rounded-[1.6rem] border bg-gradient-to-br ${colors} to-transparent p-5 transition hover:-translate-y-1`}
-    >
+  const className = `group relative min-h-[190px] overflow-hidden rounded-[1.6rem] border bg-gradient-to-br ${colors} to-transparent p-5 transition ${
+    disabled ? "cursor-not-allowed opacity-55" : "hover:-translate-y-1"
+  }`;
+
+  const content = (
+    <>
       <div className="relative flex h-15 w-15 items-center justify-center rounded-3xl border border-current/35 bg-black/20 p-4">
         {icon}
       </div>
@@ -1029,6 +1108,16 @@ function QuickAction({
       <div className="relative mt-5 flex h-11 w-11 items-center justify-center rounded-2xl border border-current/35 bg-black/20 transition group-hover:translate-x-1">
         <ArrowRight size={22} />
       </div>
+    </>
+  );
+
+  if (disabled) {
+    return <div className={className}>{content}</div>;
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {content}
     </Link>
   );
 }
@@ -1092,7 +1181,7 @@ function Leaderboard({
 
             <div className="min-w-0">
               <div className="truncate text-lg font-bold">
-                {row.name || row.nickname || "Player"}
+                {getPublicUserName(row)}
               </div>
 
               <div className="text-sm text-slate-400">
