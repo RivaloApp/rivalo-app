@@ -70,6 +70,7 @@ type MatchmakingRequest = {
   status?: string;
   createdBy?: string;
   createdByName?: string;
+  completedAt?: any;
 };
 
 type MatchmakingApplication = {
@@ -182,6 +183,17 @@ function clampMissingPlayers(value: string, sport?: string, format?: string) {
   const numericValue = Math.max(1, Number(value || 1));
 
   return String(Math.min(max, numericValue));
+}
+
+function getAcceptedApplicationsCount(applications: MatchmakingApplication[]) {
+  return applications.filter((application) => application.status === "accepted").length;
+}
+
+function getRemainingSpots(request: MatchmakingRequest, applications: MatchmakingApplication[]) {
+  const totalSpots = Math.max(1, Number(request.missingPlayers || 1));
+  const acceptedCount = getAcceptedApplicationsCount(applications);
+
+  return Math.max(0, totalSpots - acceptedCount);
 }
 
 const TIME_OPTIONS = [
@@ -736,6 +748,15 @@ if (alreadyRequested) {
       return;
     }
 
+    const requestApplications = matchmakingApplications.filter(
+      (application) => application.requestId === request.id
+    );
+
+    if (getRemainingSpots(request, requestApplications) <= 0 || request.status === "completed") {
+      setMessage("Annuncio già completo.");
+      return;
+    }
+
     if (request.createdBy === user.uid) {
       setMessage("Questo annuncio è tuo.");
       return;
@@ -850,6 +871,26 @@ if (alreadyRequested) {
         updatedAt: serverTimestamp(),
       });
 
+      if (status === "accepted") {
+        const nextAcceptedCount =
+          matchmakingApplications.filter(
+            (item) =>
+              item.requestId === request.id &&
+              item.status === "accepted" &&
+              item.id !== application.id
+          ).length + 1;
+
+        const requiredSpots = Math.max(1, Number(request.missingPlayers || 1));
+
+        if (nextAcceptedCount >= requiredSpots) {
+          await updateDoc(doc(db, "matchmakingRequests", request.id), {
+            status: "completed",
+            completedAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
+      }
+
       if (application.fromUid) {
         await createNotification({
           uid: application.fromUid,
@@ -874,8 +915,28 @@ if (alreadyRequested) {
         });
       }
 
-      setMessage(
+      const acceptedAfterDecision =
         status === "accepted"
+          ? matchmakingApplications.filter(
+              (item) =>
+                item.requestId === request.id &&
+                item.status === "accepted" &&
+                item.id !== application.id
+            ).length + 1
+          : matchmakingApplications.filter(
+              (item) =>
+                item.requestId === request.id &&
+                item.status === "accepted"
+            ).length;
+
+      const requestCompleted =
+        status === "accepted" &&
+        acceptedAfterDecision >= Math.max(1, Number(request.missingPlayers || 1));
+
+      setMessage(
+        requestCompleted
+          ? "Candidatura accettata. Annuncio completato."
+          : status === "accepted"
           ? "Candidatura accettata."
           : "Candidatura rifiutata."
       );
@@ -1368,6 +1429,9 @@ function MatchmakingRequestCard({
   }) => void;
 }) {
   const isOwner = request.createdBy === currentUid;
+  const acceptedCount = getAcceptedApplicationsCount(applications);
+const remainingSpots = getRemainingSpots(request, applications);
+const isCompleted = remainingSpots <= 0 || request.status === "completed";
   return (
     <div
       className={`min-w-0 overflow-hidden rounded-[2rem] border bg-[#061126]/80 p-5 shadow-2xl sm:p-6 ${
@@ -1380,7 +1444,7 @@ function MatchmakingRequestCard({
         </span>
 
         <span className="rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300">
-          {sportLabel(request.activeSport)}
+          {isCompleted ? "Completo" : sportLabel(request.activeSport)}
         </span>
       </div>
 
@@ -1398,7 +1462,11 @@ function MatchmakingRequestCard({
         </div>
 
         <div>
-          Livello: {request.levelWanted || "qualsiasi"} · Posti: {request.missingPlayers || 1}
+          Livello: {request.levelWanted || "qualsiasi"} · Posti liberi: {remainingSpots}
+        </div>
+
+        <div>
+          Accettati: {acceptedCount}/{request.missingPlayers || 1}
         </div>
 
         {(request.date || request.time) && (
@@ -1419,6 +1487,12 @@ function MatchmakingRequestCard({
           <div className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">
             Candidature
           </div>
+
+          {isCompleted && (
+            <div className="mt-3 rounded-xl border border-green-300/20 bg-green-400/10 px-3 py-2 text-xs font-black uppercase text-green-100">
+              Annuncio completo
+            </div>
+          )}
 
           {applications.length === 0 ? (
             <div className="mt-2 text-sm font-semibold text-slate-300">
@@ -1498,10 +1572,12 @@ function MatchmakingRequestCard({
         <button
           type="button"
           onClick={() => onApply(request)}
-          disabled={applying || alreadyApplied}
+          disabled={applying || alreadyApplied || isCompleted}
           className="mt-5 w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-3 font-black text-white disabled:opacity-60"
         >
-          {alreadyApplied
+          {isCompleted
+            ? "Annuncio completo"
+            : alreadyApplied
             ? "Candidatura inviata"
             : applying
             ? "Invio candidatura..."
