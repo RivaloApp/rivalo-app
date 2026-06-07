@@ -11,6 +11,7 @@ import {
   getDocs,
   query,
   serverTimestamp,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
@@ -79,6 +80,8 @@ type MatchmakingApplication = {
   fromName?: string;
   activeSport?: string;
   status?: string;
+  selectedBy?: string;
+  decidedAt?: any;
 };
 
 type UserProfile = {
@@ -823,6 +826,67 @@ if (alreadyRequested) {
     }
   }
 
+  async function decideMatchmakingApplication({
+    request,
+    application,
+    status,
+  }: {
+    request: MatchmakingRequest;
+    application: MatchmakingApplication;
+    status: "accepted" | "rejected";
+  }) {
+    if (!user) return;
+
+    if (request.createdBy !== user.uid) {
+      setMessage("Solo il creator dell'annuncio può gestire le candidature.");
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, "matchmakingApplications", application.id), {
+        status,
+        selectedBy: user.uid,
+        decidedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      if (application.fromUid) {
+        await createNotification({
+          uid: application.fromUid,
+          type: "generic",
+          title:
+            status === "accepted"
+              ? "Candidatura accettata"
+              : "Candidatura non selezionata",
+          message:
+            status === "accepted"
+              ? "La tua candidatura matchmaking è stata accettata."
+              : "La tua candidatura matchmaking non è stata selezionata.",
+          link: `/opponents?tab=${getTabFromRequestType(request.type)}&requestId=${request.id}`,
+          createdBy: user.uid,
+          metadata: {
+            requestId: request.id,
+            applicationId: application.id,
+            requestType: request.type || "match",
+            activeSport: request.activeSport || userSport,
+            status,
+          },
+        });
+      }
+
+      setMessage(
+        status === "accepted"
+          ? "Candidatura accettata."
+          : "Candidatura rifiutata."
+      );
+
+      await loadMatchmakingRequests(userSport);
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante la gestione della candidatura.");
+    }
+  }
+
   const filteredGroups = useMemo(() => {
     const cleanCity = cityFilter.trim().toLowerCase();
     const lockedSport = normalizeSport(userSport);
@@ -1050,6 +1114,7 @@ if (alreadyRequested) {
                           (application) => application.requestId === request.id
                         )}
                         onApply={applyToMatchmakingRequest}
+                        onDecideApplication={decideMatchmakingApplication}
                       />
                     ))}
                 </div>
@@ -1287,6 +1352,7 @@ function MatchmakingRequestCard({
   alreadyApplied,
   applications,
   onApply,
+  onDecideApplication,
 }: {
   request: MatchmakingRequest;
   currentUid: string;
@@ -1295,12 +1361,13 @@ function MatchmakingRequestCard({
   alreadyApplied: boolean;
   applications: MatchmakingApplication[];
   onApply: (request: MatchmakingRequest) => void;
+  onDecideApplication: (input: {
+    request: MatchmakingRequest;
+    application: MatchmakingApplication;
+    status: "accepted" | "rejected";
+  }) => void;
 }) {
   const isOwner = request.createdBy === currentUid;
-  const pendingApplications = applications.filter(
-    (application) => application.status === "pending"
-  );
-
   return (
     <div
       className={`min-w-0 overflow-hidden rounded-[2rem] border bg-[#061126]/80 p-5 shadow-2xl sm:p-6 ${
@@ -1353,26 +1420,77 @@ function MatchmakingRequestCard({
             Candidature
           </div>
 
-          {pendingApplications.length === 0 ? (
+          {applications.length === 0 ? (
             <div className="mt-2 text-sm font-semibold text-slate-300">
               Nessuna candidatura ancora.
             </div>
           ) : (
-            <div className="mt-3 grid gap-2">
-              {pendingApplications.map((application) => (
-                <div
-                  key={application.id}
-                  className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2"
-                >
-                  <span className="min-w-0 truncate text-sm font-black text-white">
-                    {application.fromName || "Rivalo Player"}
-                  </span>
+            <div className="mt-3 grid gap-3">
+              {applications.map((application) => {
+                const applicationStatus = application.status || "pending";
+                const decided = applicationStatus !== "pending";
 
-                  <span className="shrink-0 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-[10px] font-black uppercase text-yellow-100">
-                    Da valutare
-                  </span>
-                </div>
-              ))}
+                return (
+                  <div
+                    key={application.id}
+                    className="min-w-0 rounded-xl border border-white/10 bg-black/20 px-3 py-3"
+                  >
+                    <div className="flex min-w-0 items-center justify-between gap-3">
+                      <span className="min-w-0 truncate text-sm font-black text-white">
+                        {application.fromName || "Rivalo Player"}
+                      </span>
+
+                      <span
+                        className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-black uppercase ${
+                          applicationStatus === "accepted"
+                            ? "border-green-300/20 bg-green-400/10 text-green-100"
+                            : applicationStatus === "rejected"
+                            ? "border-red-300/20 bg-red-400/10 text-red-100"
+                            : "border-yellow-300/20 bg-yellow-400/10 text-yellow-100"
+                        }`}
+                      >
+                        {applicationStatus === "accepted"
+                          ? "Accettata"
+                          : applicationStatus === "rejected"
+                          ? "Rifiutata"
+                          : "Da valutare"}
+                      </span>
+                    </div>
+
+                    {!decided && (
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onDecideApplication({
+                              request,
+                              application,
+                              status: "accepted",
+                            })
+                          }
+                          className="rounded-xl border border-green-300/20 bg-green-400/10 px-3 py-2 text-xs font-black uppercase text-green-100"
+                        >
+                          Accetta
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onDecideApplication({
+                              request,
+                              application,
+                              status: "rejected",
+                            })
+                          }
+                          className="rounded-xl border border-red-300/20 bg-red-400/10 px-3 py-2 text-xs font-black uppercase text-red-100"
+                        >
+                          Rifiuta
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
