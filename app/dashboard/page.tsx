@@ -111,8 +111,8 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: "/opponents",
     icon: <Search />,
-    text: "Trova gruppi",
-    subtitle: "Richiedi ingresso",
+    text: "Matchmaking",
+    subtitle: "Trova match, player e avversari",
   },
   {
     href: "/events",
@@ -618,8 +618,8 @@ export default function DashboardPage() {
                 href="/opponents"
                 tone="green"
                 icon={<Search />}
-                title="Richiedi ingresso"
-                text={accountLocked ? "Azione bloccata" : "Trova gruppi pubblici e chiedi di entrare"}
+                title="Matchmaking"
+                text={accountLocked ? "Azione bloccata" : "Trova match, player e avversari"}
                 disabled={accountLocked}
               />
 
@@ -826,6 +826,7 @@ function Sidebar({ accountLocked }: { accountLocked: boolean }) {
         <SideLink href="/goalkeepers" icon={<ShieldCheck />} text="Portieri" />
         <SideLink href="/seasons" icon={<Medal />} text="Stagione" />
         <SideLink href="/groups" icon={<Users />} text="Gruppi" locked={accountLocked} />
+        <SideLink href="/opponents" icon={<Search />} text="Matchmaking" locked={accountLocked} />
         <SideLink href="/match" icon={<CircleDot />} text="Match" locked={accountLocked} />
         <SideLink href="/community" icon={<MessageCircle />} text="Community" />
         <SideLink href="/events" icon={<CalendarDays />} text="Eventi" locked={accountLocked} />
