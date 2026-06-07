@@ -6,6 +6,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -71,6 +72,7 @@ type MatchmakingRequest = {
   createdBy?: string;
   createdByName?: string;
   completedAt?: any;
+  closedAt?: any;
 };
 
 type MatchmakingApplication = {
@@ -494,12 +496,10 @@ const [notes, setNotes] = useState("");
 
       const snap = await getDocs(requestsQuery);
 
-      const result = snap.docs
-        .map((docSnap) => ({
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<MatchmakingRequest, "id">),
-        }))
-        .filter((request) => (request.status || "open") === "open");
+      const result = snap.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<MatchmakingRequest, "id">),
+      }));
 
       setMatchmakingRequests(result);
 
@@ -752,6 +752,11 @@ if (alreadyRequested) {
       (application) => application.requestId === request.id
     );
 
+    if (request.status === "closed") {
+      setMessage("Annuncio chiuso.");
+      return;
+    }
+
     if (getRemainingSpots(request, requestApplications) <= 0 || request.status === "completed") {
       setMessage("Annuncio già completo.");
       return;
@@ -948,6 +953,72 @@ if (alreadyRequested) {
     }
   }
 
+  async function updateMatchmakingRequestStatus({
+    request,
+    status,
+  }: {
+    request: MatchmakingRequest;
+    status: "open" | "closed";
+  }) {
+    if (!user) return;
+
+    if (request.createdBy !== user.uid) {
+      setMessage("Solo il creator può gestire questo annuncio.");
+      return;
+    }
+
+    const requestApplications = matchmakingApplications.filter(
+      (application) => application.requestId === request.id
+    );
+
+    if (status === "open" && getRemainingSpots(request, requestApplications) <= 0) {
+      setMessage("Annuncio già completo: non può essere riaperto.");
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, "matchmakingRequests", request.id), {
+        status,
+        closedAt: status === "closed" ? serverTimestamp() : null,
+        updatedAt: serverTimestamp(),
+      });
+
+      setMessage(status === "closed" ? "Annuncio chiuso." : "Annuncio riaperto.");
+      await loadMatchmakingRequests(userSport);
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante la gestione dell'annuncio.");
+    }
+  }
+
+  async function deleteMatchmakingRequest(request: MatchmakingRequest) {
+    if (!user) return;
+
+    if (request.createdBy !== user.uid) {
+      setMessage("Solo il creator può eliminare questo annuncio.");
+      return;
+    }
+
+    const requestApplications = matchmakingApplications.filter(
+      (application) => application.requestId === request.id
+    );
+
+    if (requestApplications.length > 0) {
+      setMessage("Puoi eliminare solo annunci senza candidature.");
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, "matchmakingRequests", request.id));
+
+      setMessage("Annuncio eliminato.");
+      await loadMatchmakingRequests(userSport);
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante l'eliminazione dell'annuncio.");
+    }
+  }
+
   const filteredGroups = useMemo(() => {
     const cleanCity = cityFilter.trim().toLowerCase();
     const lockedSport = normalizeSport(userSport);
@@ -973,9 +1044,15 @@ if (alreadyRequested) {
       const cityOk =
         !cleanCity || (request.city || "").toLowerCase().includes(cleanCity);
 
-      return typeOk && cityOk;
+      const requestStatus = request.status || "open";
+      const visibleStatus =
+        requestStatus === "open" ||
+        request.id === selectedRequestId ||
+        request.createdBy === user?.uid;
+
+      return typeOk && cityOk && visibleStatus;
     });
-  }, [matchmakingRequests, activeTab, cityFilter]);
+  }, [matchmakingRequests, activeTab, cityFilter, selectedRequestId, user?.uid]);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
@@ -1176,6 +1253,8 @@ if (alreadyRequested) {
                         )}
                         onApply={applyToMatchmakingRequest}
                         onDecideApplication={decideMatchmakingApplication}
+                        onUpdateRequestStatus={updateMatchmakingRequestStatus}
+                        onDeleteRequest={deleteMatchmakingRequest}
                       />
                     ))}
                 </div>
@@ -1414,6 +1493,8 @@ function MatchmakingRequestCard({
   applications,
   onApply,
   onDecideApplication,
+  onUpdateRequestStatus,
+  onDeleteRequest,
 }: {
   request: MatchmakingRequest;
   currentUid: string;
@@ -1427,11 +1508,18 @@ function MatchmakingRequestCard({
     application: MatchmakingApplication;
     status: "accepted" | "rejected";
   }) => void;
+  onUpdateRequestStatus: (input: {
+    request: MatchmakingRequest;
+    status: "open" | "closed";
+  }) => void;
+  onDeleteRequest: (request: MatchmakingRequest) => void;
 }) {
   const isOwner = request.createdBy === currentUid;
   const acceptedCount = getAcceptedApplicationsCount(applications);
-const remainingSpots = getRemainingSpots(request, applications);
-const isCompleted = remainingSpots <= 0 || request.status === "completed";
+  const remainingSpots = getRemainingSpots(request, applications);
+  const isClosed = request.status === "closed";
+  const isCompleted = remainingSpots <= 0 || request.status === "completed";
+
   return (
     <div
       className={`min-w-0 overflow-hidden rounded-[2rem] border bg-[#061126]/80 p-5 shadow-2xl sm:p-6 ${
@@ -1444,7 +1532,7 @@ const isCompleted = remainingSpots <= 0 || request.status === "completed";
         </span>
 
         <span className="rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300">
-          {isCompleted ? "Completo" : sportLabel(request.activeSport)}
+          {isClosed ? "Chiuso" : isCompleted ? "Completo" : sportLabel(request.activeSport)}
         </span>
       </div>
 
@@ -1484,6 +1572,53 @@ const isCompleted = remainingSpots <= 0 || request.status === "completed";
 
       {isOwner ? (
         <div className="mt-5 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-4">
+          <div className="mb-4 grid gap-2 sm:grid-cols-2">
+            {isClosed ? (
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateRequestStatus({
+                    request,
+                    status: "open",
+                  })
+                }
+                disabled={isCompleted}
+                className="rounded-xl border border-green-300/20 bg-green-400/10 px-3 py-2 text-xs font-black uppercase text-green-100 disabled:opacity-50"
+              >
+                Riapri annuncio
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateRequestStatus({
+                    request,
+                    status: "closed",
+                  })
+                }
+                disabled={isCompleted}
+                className="rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-3 py-2 text-xs font-black uppercase text-yellow-100 disabled:opacity-50"
+              >
+                Chiudi annuncio
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => onDeleteRequest(request)}
+              disabled={applications.length > 0}
+              className="rounded-xl border border-red-300/20 bg-red-400/10 px-3 py-2 text-xs font-black uppercase text-red-100 disabled:opacity-50"
+            >
+              Elimina annuncio
+            </button>
+          </div>
+
+          {isClosed && (
+            <div className="mb-4 rounded-xl border border-yellow-300/20 bg-yellow-400/10 px-3 py-2 text-xs font-black uppercase text-yellow-100">
+              Annuncio chiuso
+            </div>
+          )}
+
           <div className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">
             Candidature
           </div>
@@ -1572,10 +1707,12 @@ const isCompleted = remainingSpots <= 0 || request.status === "completed";
         <button
           type="button"
           onClick={() => onApply(request)}
-          disabled={applying || alreadyApplied || isCompleted}
+          disabled={applying || alreadyApplied || isCompleted || isClosed}
           className="mt-5 w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-3 font-black text-white disabled:opacity-60"
         >
-          {isCompleted
+          {isClosed
+            ? "Annuncio chiuso"
+            : isCompleted
             ? "Annuncio completo"
             : alreadyApplied
             ? "Candidatura inviata"
