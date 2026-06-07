@@ -72,9 +72,13 @@ type MatchmakingRequest = {
 };
 
 type UserProfile = {
+  uid?: string;
   activeSport?: string;
   mainSport?: string;
   sport?: string;
+  city?: string;
+  level?: number;
+  skillLevel?: string;
   name?: string;
   nickname?: string;
   accountStatus?: string;
@@ -160,6 +164,134 @@ const TIME_OPTIONS = [
   "22:30",
   "23:00",
 ];
+
+const LEVEL_ORDER = [
+  "principiante",
+  "amatoriale",
+  "intermedio",
+  "avanzato",
+  "competitivo",
+];
+
+function normalizeLevel(value?: string) {
+  const level = (value || "").toLowerCase().trim();
+
+  if (level.includes("princip")) return "principiante";
+  if (level.includes("amat")) return "amatoriale";
+  if (level.includes("inter")) return "intermedio";
+  if (level.includes("avanz")) return "avanzato";
+  if (level.includes("compet")) return "competitivo";
+  return "qualsiasi";
+}
+
+function getProfileLevel(profile?: UserProfile) {
+  const explicitLevel = normalizeLevel(profile?.skillLevel);
+
+  if (explicitLevel !== "qualsiasi") return explicitLevel;
+
+  const numericLevel = Number(profile?.level || 1);
+
+  if (numericLevel >= 20) return "competitivo";
+  if (numericLevel >= 12) return "avanzato";
+  if (numericLevel >= 6) return "intermedio";
+  if (numericLevel >= 2) return "amatoriale";
+  return "principiante";
+}
+
+function isLevelCompatible(profile?: UserProfile, wantedLevel?: string) {
+  const wanted = normalizeLevel(wantedLevel);
+
+  if (!wanted || wanted === "qualsiasi") return true;
+
+  const profileLevel = getProfileLevel(profile);
+  const wantedIndex = LEVEL_ORDER.indexOf(wanted);
+  const profileIndex = LEVEL_ORDER.indexOf(profileLevel);
+
+  if (wantedIndex < 0 || profileIndex < 0) return true;
+
+  return Math.abs(profileIndex - wantedIndex) <= 1;
+}
+
+function isCityCompatible(profileCity?: string, requestCity?: string) {
+  const cleanProfileCity = (profileCity || "").toLowerCase().trim();
+  const cleanRequestCity = (requestCity || "").toLowerCase().trim();
+
+  if (!cleanRequestCity) return true;
+  if (!cleanProfileCity) return false;
+
+  return (
+    cleanProfileCity.includes(cleanRequestCity) ||
+    cleanRequestCity.includes(cleanProfileCity)
+  );
+}
+
+async function notifyCompatibleMatchmakingUsers({
+  creatorUid,
+  creatorName,
+  requestId,
+  requestType,
+  sport,
+  city,
+  zone,
+  levelWanted,
+}: {
+  creatorUid: string;
+  creatorName: string;
+  requestId: string;
+  requestType: MatchmakingRequestType;
+  sport: string;
+  city: string;
+  zone: string;
+  levelWanted: string;
+}) {
+  try {
+    const usersSnap = await getDocs(collection(db, "users"));
+
+    const compatibleUsers = usersSnap.docs
+      .map((userDoc) => ({
+        uid: userDoc.id,
+        ...(userDoc.data() as UserProfile),
+      }))
+      .filter((profile) => {
+        if (!profile.uid || profile.uid === creatorUid) return false;
+        if (isProfileDeletionRequested(profile)) return false;
+
+        const profileSport = normalizeSport(
+          profile.activeSport || profile.mainSport || profile.sport || "calcetto"
+        );
+
+        return (
+          profileSport === sport &&
+          isCityCompatible(profile.city, city) &&
+          isLevelCompatible(profile, levelWanted)
+        );
+      })
+      .slice(0, 20);
+
+    await Promise.all(
+      compatibleUsers.map((profile) =>
+        createNotification({
+          uid: profile.uid || "",
+          type: "generic",
+          title: "Nuovo annuncio matchmaking",
+          message: `${creatorName} ha pubblicato: ${getRequestTitle(requestType)}${city ? ` · ${city}` : ""}${zone ? ` · ${zone}` : ""}.`,
+          link: "/opponents",
+          createdBy: creatorUid,
+          metadata: {
+            requestId,
+            requestType,
+            activeSport: sport,
+            city,
+            zone,
+            levelWanted,
+          },
+        })
+      )
+    );
+  } catch (error) {
+    console.error(error);
+  }
+}
 
 export default function OpponentsPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -345,13 +477,16 @@ const [notes, setNotes] = useState("");
         user.displayName ||
         "Rivalo Player";
 
-      await addDoc(collection(db, "matchmakingRequests"), {
+      const cleanCity = cityFilter.trim();
+      const cleanZone = zone.trim();
+
+      const requestRef = await addDoc(collection(db, "matchmakingRequests"), {
         type: requestType,
         activeSport: freshProfileSport,
         creatorSport: freshProfileSport,
         sportProfileId: `${user.uid}_${freshProfileSport}`,
-        city: cityFilter.trim(),
-        zone: zone.trim(),
+        city: cleanCity,
+        zone: cleanZone,
         radiusKm: Number(radiusKm || 0),
         levelWanted,
         format,
@@ -364,6 +499,17 @@ const [notes, setNotes] = useState("");
         createdByName: creatorName,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+      });
+
+      await notifyCompatibleMatchmakingUsers({
+        creatorUid: user.uid,
+        creatorName,
+        requestId: requestRef.id,
+        requestType,
+        sport: freshProfileSport,
+        city: cleanCity,
+        zone: cleanZone,
+        levelWanted,
       });
 
       setZone("");
