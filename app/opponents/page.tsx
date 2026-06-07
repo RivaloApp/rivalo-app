@@ -48,6 +48,8 @@ type JoinRequest = {
   status?: string;
 };
 
+type MatchmakingTab = "groups" | "matches" | "players" | "opponents";
+
 type UserProfile = {
   activeSport?: string;
   mainSport?: string;
@@ -98,6 +100,7 @@ export default function OpponentsPage() {
   const [message, setMessage] = useState("");
 const [requestingGroupId, setRequestingGroupId] = useState("");
 const [sentRequests, setSentRequests] = useState<JoinRequest[]>([]);
+const [activeTab, setActiveTab] = useState<MatchmakingTab>("groups");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -322,20 +325,20 @@ if (alreadyRequested) {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[.22em] text-cyan-200">
                 <Search size={16} />
-                Rivalo Opponents
+                Rivalo Matchmaking
               </div>
 
               <h1 className="mt-5 break-words text-4xl font-black tracking-tight md:text-6xl">
-                Cerca avversari
+                Matchmaking
               </h1>
 
               <p className="mt-4 max-w-3xl leading-7 text-slate-300">
-                Trova gruppi pubblici Rivalo compatibili con il tuo sport attivo.
+                Trova gruppi, match, player e avversari compatibili con il tuo sport attivo.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <Stat value={String(groups.length)} label="Gruppi pubblici" />
+              <Stat value={String(groups.length)} label="Gruppi" />
               <Stat value={String(filteredGroups.length)} label="Risultati" />
               <Stat value={sportLabel(userSport)} label="Sport attivo" />
             </div>
@@ -376,6 +379,38 @@ if (alreadyRequested) {
           </div>
         </section>
 
+        <section className="mt-6 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] p-3 shadow-2xl backdrop-blur sm:p-4">
+          <div className="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-4">
+            <TabButton
+              active={activeTab === "groups"}
+              onClick={() => setActiveTab("groups")}
+              title="Gruppi"
+              text="Community pubbliche"
+            />
+
+            <TabButton
+              active={activeTab === "matches"}
+              onClick={() => setActiveTab("matches")}
+              title="Match"
+              text="Partite amichevoli"
+            />
+
+            <TabButton
+              active={activeTab === "players"}
+              onClick={() => setActiveTab("players")}
+              title="Player"
+              text="Completa squadra"
+            />
+
+            <TabButton
+              active={activeTab === "opponents"}
+              onClick={() => setActiveTab("opponents")}
+              title="Avversari"
+              text="Sfida altra parte"
+            />
+          </div>
+        </section>
+
         {accountLocked && (
           <div className="mt-6 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
             Profilo non attivo: puoi consultare i gruppi pubblici, ma non puoi inviare richieste.
@@ -389,29 +424,167 @@ if (alreadyRequested) {
         )}
 
         <section className="mt-8">
-          {loading ? (
-            <EmptyBox text="Caricamento avversari..." />
-          ) : filteredGroups.length === 0 ? (
-            <EmptyBox text="Nessun gruppo pubblico trovato con questi filtri." />
+          {activeTab === "groups" ? (
+            loading ? (
+              <EmptyBox text="Caricamento gruppi..." />
+            ) : filteredGroups.length === 0 ? (
+              <EmptyBox text="Nessun gruppo pubblico trovato con questi filtri." />
+            ) : (
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {filteredGroups.map((group) => (
+                  <OpponentCard
+                    key={group.id}
+                    group={group}
+                    onRequestJoin={requestJoinGroup}
+                    requesting={requestingGroupId === group.id}
+                    alreadyRequested={sentRequests.some(
+                      (request) => request.groupId === group.id
+                    )}
+                    accountLocked={accountLocked}
+                  />
+                ))}
+              </div>
+            )
           ) : (
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {filteredGroups.map((group) => (
-                <OpponentCard
-  key={group.id}
-  group={group}
-  onRequestJoin={requestJoinGroup}
-  requesting={requestingGroupId === group.id}
-  alreadyRequested={sentRequests.some(
-    (request) => request.groupId === group.id
-  )}
-  accountLocked={accountLocked}
-/>
-              ))}
+              {activeTab === "matches" && (
+                <>
+                  <MatchmakingInfoCard
+                    icon={<Trophy />}
+                    title="Trova match"
+                    text="Per player, coppie o squadre che vogliono giocare un'amichevole non classificata."
+                    sport={sportLabel(userSport)}
+                    level="Livello ricercato"
+                  />
+
+                  <MatchmakingInfoCard
+                    icon={<MapPin />}
+                    title="Zona e distanza"
+                    text="La ricerca userà città, zona e raggio km per mostrare solo richieste compatibili."
+                    sport={cityFilter || "La tua zona"}
+                    level="Km"
+                  />
+                </>
+              )}
+
+              {activeTab === "players" && (
+                <>
+                  <MatchmakingInfoCard
+                    icon={<Users />}
+                    title="Trova player"
+                    text="Per completare una squadra, una coppia padel/tennis o trovare un avversario singolo."
+                    sport={sportLabel(userSport)}
+                    level="Posti mancanti"
+                  />
+
+                  <MatchmakingInfoCard
+                    icon={<ShieldCheck />}
+                    title="Livello cercato"
+                    text="Ogni annuncio potrà indicare il livello desiderato per evitare match troppo sbilanciati."
+                    sport="Principiante → Competitivo"
+                    level="Filtro livello"
+                  />
+                </>
+              )}
+
+              {activeTab === "opponents" && (
+                <>
+                  <MatchmakingInfoCard
+                    icon={<Trophy />}
+                    title="Trova avversari"
+                    text="Per squadre o coppie già complete che cercano l'altra parte per una partita amichevole."
+                    sport={sportLabel(userSport)}
+                    level="Avversari"
+                  />
+
+                  <MatchmakingInfoCard
+                    icon={<Search />}
+                    title="Annunci compatibili"
+                    text="Gli annunci saranno filtrati per sport attivo, zona, formato, disponibilità e livello."
+                    sport="Matchmaking"
+                    level="Prossimo step"
+                  />
+                </>
+              )}
+
+              <EmptyBox text="Questa sezione è pronta per gli annunci matchmaking reali nel prossimo step." />
             </div>
           )}
         </section>
       </section>
     </main>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  title,
+  text,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title: string;
+  text: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-w-0 rounded-2xl border px-3 py-4 text-left transition ${
+        active
+          ? "border-cyan-300/40 bg-cyan-400/15 text-cyan-100"
+          : "border-white/10 bg-black/20 text-slate-300 hover:border-cyan-400/25 hover:bg-cyan-400/10"
+      }`}
+    >
+      <div className="truncate text-sm font-black uppercase tracking-[0.12em]">
+        {title}
+      </div>
+
+      <div className="mt-1 truncate text-xs font-bold text-slate-400">
+        {text}
+      </div>
+    </button>
+  );
+}
+
+function MatchmakingInfoCard({
+  icon,
+  title,
+  text,
+  sport,
+  level,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+  sport: string;
+  level: string;
+}) {
+  return (
+    <div className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-[#061126]/80 p-5 shadow-2xl sm:p-6">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-200">
+          {icon}
+        </div>
+
+        <span className="min-w-0 truncate rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-cyan-200">
+          {sport}
+        </span>
+      </div>
+
+      <h2 className="break-words text-2xl font-black sm:text-3xl">
+        {title}
+      </h2>
+
+      <p className="mt-3 break-words text-sm font-semibold leading-6 text-slate-300">
+        {text}
+      </p>
+
+      <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-black text-slate-200">
+        {level}
+      </div>
+    </div>
   );
 }
 
@@ -483,9 +656,9 @@ function OpponentCard({
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-white/[.04] p-5 text-center">
-      <div className="text-2xl font-black text-cyan-300">{value}</div>
-      <div className="mt-2 text-xs font-black uppercase tracking-[.18em] text-slate-400">
+    <div className="min-w-0 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[.04] p-4 text-center sm:p-5">
+      <div className="truncate text-2xl font-black text-cyan-300">{value}</div>
+      <div className="mt-2 truncate text-[10px] font-black uppercase tracking-[.12em] text-slate-400 sm:text-xs sm:tracking-[.18em]">
         {label}
       </div>
     </div>
