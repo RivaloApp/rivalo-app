@@ -49,6 +49,27 @@ type JoinRequest = {
 };
 
 type MatchmakingTab = "groups" | "matches" | "players" | "opponents";
+type MatchmakingRequestType = "match" | "player" | "opponent";
+
+type MatchmakingRequest = {
+  id: string;
+  type?: MatchmakingRequestType;
+  activeSport?: string;
+  creatorSport?: string;
+  sportProfileId?: string;
+  city?: string;
+  zone?: string;
+  radiusKm?: number;
+  levelWanted?: string;
+  format?: string;
+  missingPlayers?: number;
+  date?: string;
+  time?: string;
+  notes?: string;
+  status?: string;
+  createdBy?: string;
+  createdByName?: string;
+};
 
 type UserProfile = {
   activeSport?: string;
@@ -88,6 +109,24 @@ function isProfileDeletionRequested(profile?: UserProfile | null) {
   );
 }
 
+function getRequestTypeFromTab(tab: MatchmakingTab): MatchmakingRequestType {
+  if (tab === "players") return "player";
+  if (tab === "opponents") return "opponent";
+  return "match";
+}
+
+function getRequestTitle(type?: MatchmakingRequestType) {
+  if (type === "player") return "Trova player";
+  if (type === "opponent") return "Trova avversari";
+  return "Trova match";
+}
+
+function getRequestActionLabel(type?: MatchmakingRequestType) {
+  if (type === "player") return "Crea annuncio player";
+  if (type === "opponent") return "Crea annuncio avversari";
+  return "Crea annuncio match";
+}
+
 export default function OpponentsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [groups, setGroups] = useState<OpponentGroup[]>([]);
@@ -101,6 +140,18 @@ export default function OpponentsPage() {
 const [requestingGroupId, setRequestingGroupId] = useState("");
 const [sentRequests, setSentRequests] = useState<JoinRequest[]>([]);
 const [activeTab, setActiveTab] = useState<MatchmakingTab>("groups");
+
+const [matchmakingRequests, setMatchmakingRequests] = useState<MatchmakingRequest[]>([]);
+const [loadingRequests, setLoadingRequests] = useState(false);
+const [savingRequest, setSavingRequest] = useState(false);
+const [zone, setZone] = useState("");
+const [radiusKm, setRadiusKm] = useState("10");
+const [levelWanted, setLevelWanted] = useState("qualsiasi");
+const [format, setFormat] = useState("amichevole");
+const [missingPlayers, setMissingPlayers] = useState("1");
+const [requestDate, setRequestDate] = useState("");
+const [requestTime, setRequestTime] = useState("");
+const [notes, setNotes] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -126,6 +177,7 @@ const [activeTab, setActiveTab] = useState<MatchmakingTab>("groups");
 
       await loadPublicGroups(currentUserSport);
       await loadSentRequests(currentUser.uid);
+      await loadMatchmakingRequests(currentUserSport);
     });
 
     return () => unsubscribe();
@@ -179,6 +231,125 @@ const [activeTab, setActiveTab] = useState<MatchmakingTab>("groups");
     setSentRequests([]);
   }
 }
+
+  async function loadMatchmakingRequests(currentUserSport = userSport) {
+    setLoadingRequests(true);
+
+    try {
+      const requestsQuery = query(
+        collection(db, "matchmakingRequests"),
+        where("activeSport", "==", normalizeSport(currentUserSport))
+      );
+
+      const snap = await getDocs(requestsQuery);
+
+      const result = snap.docs
+        .map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<MatchmakingRequest, "id">),
+        }))
+        .filter((request) => (request.status || "open") === "open");
+
+      setMatchmakingRequests(result);
+    } catch (error) {
+      console.error(error);
+      setMatchmakingRequests([]);
+    } finally {
+      setLoadingRequests(false);
+    }
+  }
+
+  async function createMatchmakingRequest(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!user) return;
+
+    if (accountLocked) {
+      setMessage("Profilo non attivo: annuncio matchmaking bloccato.");
+      return;
+    }
+
+    if (activeTab === "groups") return;
+
+    const lockedSport = normalizeSport(userSport);
+    const requestType = getRequestTypeFromTab(activeTab);
+
+    setSavingRequest(true);
+    setMessage("");
+
+    try {
+      const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+      const freshProfile = freshProfileSnap.exists()
+        ? (freshProfileSnap.data() as UserProfile)
+        : null;
+
+      if (isProfileDeletionRequested(freshProfile)) {
+        setAccountLocked(true);
+        setMessage("Profilo non attivo: annuncio matchmaking bloccato.");
+        setSavingRequest(false);
+        return;
+      }
+
+      const freshProfileSport = normalizeSport(
+        freshProfile?.activeSport ||
+          freshProfile?.mainSport ||
+          freshProfile?.sport ||
+          lockedSport
+      );
+
+      if (freshProfileSport !== lockedSport) {
+        setUserSport(freshProfileSport);
+        setSportFilter(freshProfileSport);
+        setMessage("Lo sport attivo del profilo è cambiato. Riprova con lo sport corretto.");
+        setSavingRequest(false);
+        return;
+      }
+
+      const creatorName =
+        freshProfile?.name ||
+        freshProfile?.nickname ||
+        user.displayName ||
+        "Rivalo Player";
+
+      await addDoc(collection(db, "matchmakingRequests"), {
+        type: requestType,
+        activeSport: freshProfileSport,
+        creatorSport: freshProfileSport,
+        sportProfileId: `${user.uid}_${freshProfileSport}`,
+        city: cityFilter.trim(),
+        zone: zone.trim(),
+        radiusKm: Number(radiusKm || 0),
+        levelWanted,
+        format,
+        missingPlayers: Number(missingPlayers || 0),
+        date: requestDate,
+        time: requestTime,
+        notes: notes.trim(),
+        status: "open",
+        createdBy: user.uid,
+        createdByName: creatorName,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      setZone("");
+      setRadiusKm("10");
+      setLevelWanted("qualsiasi");
+      setFormat("amichevole");
+      setMissingPlayers("1");
+      setRequestDate("");
+      setRequestTime("");
+      setNotes("");
+
+      setMessage("Annuncio matchmaking creato.");
+      await loadMatchmakingRequests(freshProfileSport);
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante la creazione dell'annuncio.");
+    } finally {
+      setSavingRequest(false);
+    }
+  }
 
   async function requestJoinGroup(group: OpponentGroup) {
   if (!user) return;
@@ -306,6 +477,19 @@ if (alreadyRequested) {
       return sportOk && cityOk && notMine;
     });
   }, [groups, cityFilter, user, userSport]);
+
+  const filteredMatchmakingRequests = useMemo(() => {
+    const cleanCity = cityFilter.trim().toLowerCase();
+    const requestType = getRequestTypeFromTab(activeTab);
+
+    return matchmakingRequests.filter((request) => {
+      const typeOk = request.type === requestType;
+      const cityOk =
+        !cleanCity || (request.city || "").toLowerCase().includes(cleanCity);
+
+      return typeOk && cityOk;
+    });
+  }, [matchmakingRequests, activeTab, cityFilter]);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
@@ -446,68 +630,46 @@ if (alreadyRequested) {
               </div>
             )
           ) : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {activeTab === "matches" && (
-                <>
-                  <MatchmakingInfoCard
-                    icon={<Trophy />}
-                    title="Trova match"
-                    text="Per player, coppie o squadre che vogliono giocare un'amichevole non classificata."
-                    sport={sportLabel(userSport)}
-                    level="Livello ricercato"
-                  />
+            <div className="space-y-5">
+              <MatchmakingRequestForm
+                activeTab={activeTab}
+                userSport={userSport}
+                cityFilter={cityFilter}
+                zone={zone}
+                radiusKm={radiusKm}
+                levelWanted={levelWanted}
+                format={format}
+                missingPlayers={missingPlayers}
+                requestDate={requestDate}
+                requestTime={requestTime}
+                notes={notes}
+                saving={savingRequest}
+                accountLocked={accountLocked}
+                onZoneChange={setZone}
+                onRadiusKmChange={setRadiusKm}
+                onLevelWantedChange={setLevelWanted}
+                onFormatChange={setFormat}
+                onMissingPlayersChange={setMissingPlayers}
+                onRequestDateChange={setRequestDate}
+                onRequestTimeChange={setRequestTime}
+                onNotesChange={setNotes}
+                onSubmit={createMatchmakingRequest}
+              />
 
-                  <MatchmakingInfoCard
-                    icon={<MapPin />}
-                    title="Zona e distanza"
-                    text="La ricerca userà città, zona e raggio km per mostrare solo richieste compatibili."
-                    sport={cityFilter || "La tua zona"}
-                    level="Km"
-                  />
-                </>
+              {loadingRequests ? (
+                <EmptyBox text="Caricamento annunci matchmaking..." />
+              ) : filteredMatchmakingRequests.length === 0 ? (
+                <EmptyBox text="Nessun annuncio matchmaking trovato con questi filtri." />
+              ) : (
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {filteredMatchmakingRequests.map((request) => (
+                    <MatchmakingRequestCard
+                      key={request.id}
+                      request={request}
+                    />
+                  ))}
+                </div>
               )}
-
-              {activeTab === "players" && (
-                <>
-                  <MatchmakingInfoCard
-                    icon={<Users />}
-                    title="Trova player"
-                    text="Per completare una squadra, una coppia padel/tennis o trovare un avversario singolo."
-                    sport={sportLabel(userSport)}
-                    level="Posti mancanti"
-                  />
-
-                  <MatchmakingInfoCard
-                    icon={<ShieldCheck />}
-                    title="Livello cercato"
-                    text="Ogni annuncio potrà indicare il livello desiderato per evitare match troppo sbilanciati."
-                    sport="Principiante → Competitivo"
-                    level="Filtro livello"
-                  />
-                </>
-              )}
-
-              {activeTab === "opponents" && (
-                <>
-                  <MatchmakingInfoCard
-                    icon={<Trophy />}
-                    title="Trova avversari"
-                    text="Per squadre o coppie già complete che cercano l'altra parte per una partita amichevole."
-                    sport={sportLabel(userSport)}
-                    level="Avversari"
-                  />
-
-                  <MatchmakingInfoCard
-                    icon={<Search />}
-                    title="Annunci compatibili"
-                    text="Gli annunci saranno filtrati per sport attivo, zona, formato, disponibilità e livello."
-                    sport="Matchmaking"
-                    level="Prossimo step"
-                  />
-                </>
-              )}
-
-              <EmptyBox text="Questa sezione è pronta per gli annunci matchmaking reali nel prossimo step." />
             </div>
           )}
         </section>
@@ -548,43 +710,239 @@ function TabButton({
   );
 }
 
-function MatchmakingInfoCard({
-  icon,
-  title,
-  text,
-  sport,
-  level,
+function MatchmakingRequestForm({
+  activeTab,
+  userSport,
+  cityFilter,
+  zone,
+  radiusKm,
+  levelWanted,
+  format,
+  missingPlayers,
+  requestDate,
+  requestTime,
+  notes,
+  saving,
+  accountLocked,
+  onZoneChange,
+  onRadiusKmChange,
+  onLevelWantedChange,
+  onFormatChange,
+  onMissingPlayersChange,
+  onRequestDateChange,
+  onRequestTimeChange,
+  onNotesChange,
+  onSubmit,
 }: {
-  icon: React.ReactNode;
-  title: string;
-  text: string;
-  sport: string;
-  level: string;
+  activeTab: MatchmakingTab;
+  userSport: string;
+  cityFilter: string;
+  zone: string;
+  radiusKm: string;
+  levelWanted: string;
+  format: string;
+  missingPlayers: string;
+  requestDate: string;
+  requestTime: string;
+  notes: string;
+  saving: boolean;
+  accountLocked: boolean;
+  onZoneChange: (value: string) => void;
+  onRadiusKmChange: (value: string) => void;
+  onLevelWantedChange: (value: string) => void;
+  onFormatChange: (value: string) => void;
+  onMissingPlayersChange: (value: string) => void;
+  onRequestDateChange: (value: string) => void;
+  onRequestTimeChange: (value: string) => void;
+  onNotesChange: (value: string) => void;
+  onSubmit: (event: React.FormEvent) => void;
 }) {
+  const requestType = getRequestTypeFromTab(activeTab);
+
   return (
-    <div className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-[#061126]/80 p-5 shadow-2xl sm:p-6">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-200">
-          {icon}
+    <form
+      onSubmit={onSubmit}
+      className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-[#061126]/80 p-5 shadow-2xl sm:p-6"
+    >
+      <div className="mb-5 flex min-w-0 items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
+            Nuovo annuncio
+          </div>
+
+          <h2 className="mt-2 break-words text-2xl font-black sm:text-3xl">
+            {getRequestTitle(requestType)}
+          </h2>
         </div>
 
-        <span className="min-w-0 truncate rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-cyan-200">
-          {sport}
+        <span className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs font-black uppercase text-cyan-200">
+          {sportLabel(userSport)}
         </span>
       </div>
 
-      <h2 className="break-words text-2xl font-black sm:text-3xl">
-        {title}
+      <fieldset disabled={saving || accountLocked} className="grid gap-4 disabled:opacity-60 md:grid-cols-2">
+        <SmallField label="Zona">
+          <input
+            value={zone}
+            onChange={(event) => onZoneChange(event.target.value)}
+            placeholder={cityFilter || "Zona / campo"}
+            className="w-full bg-transparent outline-none placeholder:text-slate-500"
+          />
+        </SmallField>
+
+        <SmallField label="Km">
+          <input
+            type="number"
+            min="1"
+            value={radiusKm}
+            onChange={(event) => onRadiusKmChange(event.target.value)}
+            className="w-full bg-transparent outline-none"
+          />
+        </SmallField>
+
+        <SmallField label="Livello cercato">
+          <select
+            value={levelWanted}
+            onChange={(event) => onLevelWantedChange(event.target.value)}
+            className="w-full bg-[#061126] text-white outline-none"
+          >
+            <option value="qualsiasi">Qualsiasi livello</option>
+            <option value="principiante">Principiante</option>
+            <option value="amatoriale">Amatoriale</option>
+            <option value="intermedio">Intermedio</option>
+            <option value="avanzato">Avanzato</option>
+            <option value="competitivo">Competitivo</option>
+          </select>
+        </SmallField>
+
+        <SmallField label="Formato">
+          <select
+            value={format}
+            onChange={(event) => onFormatChange(event.target.value)}
+            className="w-full bg-[#061126] text-white outline-none"
+          >
+            <option value="amichevole">Amichevole</option>
+            <option value="singolo">Singolo</option>
+            <option value="doppio">Doppio</option>
+            <option value="squadra">Squadra</option>
+          </select>
+        </SmallField>
+
+        <SmallField label="Posti mancanti">
+          <input
+            type="number"
+            min="1"
+            value={missingPlayers}
+            onChange={(event) => onMissingPlayersChange(event.target.value)}
+            className="w-full bg-transparent outline-none"
+          />
+        </SmallField>
+
+        <SmallField label="Data">
+          <input
+            type="date"
+            value={requestDate}
+            onChange={(event) => onRequestDateChange(event.target.value)}
+            className="w-full bg-transparent outline-none"
+          />
+        </SmallField>
+
+        <SmallField label="Ora">
+          <input
+            type="time"
+            value={requestTime}
+            onChange={(event) => onRequestTimeChange(event.target.value)}
+            className="w-full bg-transparent outline-none"
+          />
+        </SmallField>
+
+        <SmallField label="Note">
+          <input
+            value={notes}
+            onChange={(event) => onNotesChange(event.target.value)}
+            placeholder="Info brevi per chi vuole unirsi"
+            maxLength={90}
+            className="w-full bg-transparent outline-none placeholder:text-slate-500"
+          />
+        </SmallField>
+
+        <button
+          type="submit"
+          disabled={saving || accountLocked}
+          className="rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-4 font-black text-white disabled:opacity-60 md:col-span-2"
+        >
+          {accountLocked
+            ? "Creazione bloccata"
+            : saving
+            ? "Creazione..."
+            : getRequestActionLabel(requestType)}
+        </button>
+      </fieldset>
+    </form>
+  );
+}
+
+function MatchmakingRequestCard({ request }: { request: MatchmakingRequest }) {
+  return (
+    <div className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-[#061126]/80 p-5 shadow-2xl sm:p-6">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-cyan-200">
+          {getRequestTitle(request.type)}
+        </span>
+
+        <span className="rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300">
+          {sportLabel(request.activeSport)}
+        </span>
+      </div>
+
+      <h2 className="break-words text-2xl font-black">
+        {request.createdByName || "Rivalo Player"}
       </h2>
 
-      <p className="mt-3 break-words text-sm font-semibold leading-6 text-slate-300">
-        {text}
-      </p>
+      <div className="mt-3 grid gap-2 text-sm font-semibold text-slate-300">
+        <div className="break-words">
+          Zona: {request.city || "Città"} {request.zone ? `· ${request.zone}` : ""}
+        </div>
 
-      <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-black text-slate-200">
-        {level}
+        <div>
+          Entro {request.radiusKm || 0} km · {request.format || "amichevole"}
+        </div>
+
+        <div>
+          Livello: {request.levelWanted || "qualsiasi"} · Posti: {request.missingPlayers || 1}
+        </div>
+
+        {(request.date || request.time) && (
+          <div>
+            Quando: {request.date || "Data"} {request.time ? `· ${request.time}` : ""}
+          </div>
+        )}
       </div>
+
+      {request.notes && (
+        <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-bold leading-6 text-slate-200">
+          {request.notes}
+        </div>
+      )}
     </div>
+  );
+}
+
+function SmallField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block min-w-0 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+      <span className="mb-2 block truncate text-xs font-black uppercase tracking-[0.12em] text-slate-400">
+        {label}
+      </span>
+
+      {children}
+    </label>
   );
 }
 
