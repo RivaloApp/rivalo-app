@@ -71,6 +71,16 @@ type MatchmakingRequest = {
   createdByName?: string;
 };
 
+type MatchmakingApplication = {
+  id: string;
+  requestId?: string;
+  requestOwnerId?: string;
+  fromUid?: string;
+  fromName?: string;
+  activeSport?: string;
+  status?: string;
+};
+
 type UserProfile = {
   uid?: string;
   activeSport?: string;
@@ -129,6 +139,46 @@ function getRequestActionLabel(type?: MatchmakingRequestType) {
   if (type === "player") return "Crea annuncio player";
   if (type === "opponent") return "Crea annuncio avversari";
   return "Crea annuncio match";
+}
+
+function getTabFromRequestType(type?: string): MatchmakingTab {
+  if (type === "player") return "players";
+  if (type === "opponent") return "opponents";
+  return "matches";
+}
+
+function getFormatOptions(sport?: string) {
+  const normalizedSport = normalizeSport(sport);
+
+  if (normalizedSport === "padel" || normalizedSport === "tennis") {
+    return [
+      { value: "singolo", label: "Singolo" },
+      { value: "doppio", label: "Doppio" },
+    ];
+  }
+
+  return [
+    { value: "amichevole", label: "Amichevole" },
+    { value: "player", label: "Cerco player" },
+    { value: "squadra", label: "Cerco squadra avversaria" },
+  ];
+}
+
+function getMissingPlayersLimit(sport?: string, format?: string) {
+  const normalizedSport = normalizeSport(sport);
+
+  if (normalizedSport === "padel" || normalizedSport === "tennis") {
+    return format === "doppio" ? 3 : 1;
+  }
+
+  return format === "squadra" ? 5 : 10;
+}
+
+function clampMissingPlayers(value: string, sport?: string, format?: string) {
+  const max = getMissingPlayersLimit(sport, format);
+  const numericValue = Math.max(1, Number(value || 1));
+
+  return String(Math.min(max, numericValue));
 }
 
 const TIME_OPTIONS = [
@@ -275,7 +325,7 @@ async function notifyCompatibleMatchmakingUsers({
           type: "generic",
           title: "Nuovo annuncio matchmaking",
           message: `${creatorName} ha pubblicato: ${getRequestTitle(requestType)}${city ? ` · ${city}` : ""}${zone ? ` · ${zone}` : ""}.`,
-          link: "/opponents",
+          link: `/opponents?tab=${getTabFromRequestType(requestType)}&requestId=${requestId}`,
           createdBy: creatorUid,
           metadata: {
             requestId,
@@ -308,8 +358,11 @@ const [sentRequests, setSentRequests] = useState<JoinRequest[]>([]);
 const [activeTab, setActiveTab] = useState<MatchmakingTab>("groups");
 
 const [matchmakingRequests, setMatchmakingRequests] = useState<MatchmakingRequest[]>([]);
+const [matchmakingApplications, setMatchmakingApplications] = useState<MatchmakingApplication[]>([]);
 const [loadingRequests, setLoadingRequests] = useState(false);
 const [savingRequest, setSavingRequest] = useState(false);
+const [applyingRequestId, setApplyingRequestId] = useState("");
+const [selectedRequestId, setSelectedRequestId] = useState("");
 const [zone, setZone] = useState("");
 const [radiusKm, setRadiusKm] = useState("10");
 const [levelWanted, setLevelWanted] = useState("qualsiasi");
@@ -339,11 +392,28 @@ const [notes, setNotes] = useState("");
 
       setUserSport(currentUserSport);
       setSportFilter(currentUserSport);
+      setFormat(getFormatOptions(currentUserSport)[0]?.value || "amichevole");
       setAccountLocked(isProfileDeletionRequested(profile));
 
       await loadPublicGroups(currentUserSport);
       await loadSentRequests(currentUser.uid);
       await loadMatchmakingRequests(currentUserSport);
+
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab") as MatchmakingTab | null;
+      const requestIdParam = params.get("requestId") || "";
+
+      if (
+        tabParam === "matches" ||
+        tabParam === "players" ||
+        tabParam === "opponents"
+      ) {
+        setActiveTab(tabParam);
+      }
+
+      if (requestIdParam) {
+        setSelectedRequestId(requestIdParam);
+      }
     });
 
     return () => unsubscribe();
@@ -417,6 +487,19 @@ const [notes, setNotes] = useState("");
         .filter((request) => (request.status || "open") === "open");
 
       setMatchmakingRequests(result);
+
+      const applicationsSnap = await getDocs(collection(db, "matchmakingApplications"));
+
+      const applicationsResult = applicationsSnap.docs
+        .map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<MatchmakingApplication, "id">),
+        }))
+        .filter((application) =>
+          result.some((request) => request.id === application.requestId)
+        );
+
+      setMatchmakingApplications(applicationsResult);
     } catch (error) {
       console.error(error);
       setMatchmakingRequests([]);
@@ -490,7 +573,7 @@ const [notes, setNotes] = useState("");
         radiusKm: Number(radiusKm || 0),
         levelWanted,
         format,
-        missingPlayers: Number(missingPlayers || 0),
+        missingPlayers: Number(clampMissingPlayers(missingPlayers, freshProfileSport, format)),
         date: requestDate,
         time: requestTime,
         notes: notes.trim(),
@@ -515,7 +598,7 @@ const [notes, setNotes] = useState("");
       setZone("");
       setRadiusKm("10");
       setLevelWanted("qualsiasi");
-      setFormat("amichevole");
+      setFormat(getFormatOptions(freshProfileSport)[0]?.value || "amichevole");
       setMissingPlayers("1");
       setRequestDate("");
       setRequestTime("");
@@ -642,6 +725,104 @@ if (alreadyRequested) {
     setRequestingGroupId("");
   }
 }
+  async function applyToMatchmakingRequest(request: MatchmakingRequest) {
+    if (!user) return;
+
+    if (accountLocked) {
+      setMessage("Profilo non attivo: candidatura bloccata.");
+      return;
+    }
+
+    if (request.createdBy === user.uid) {
+      setMessage("Questo annuncio è tuo.");
+      return;
+    }
+
+    const alreadyApplied = matchmakingApplications.some(
+      (application) =>
+        application.requestId === request.id &&
+        application.fromUid === user.uid &&
+        application.status !== "rejected"
+    );
+
+    if (alreadyApplied) {
+      setMessage("Ti sei già proposto per questo annuncio.");
+      return;
+    }
+
+    setApplyingRequestId(request.id);
+    setMessage("");
+
+    try {
+      const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+      const freshProfile = freshProfileSnap.exists()
+        ? (freshProfileSnap.data() as UserProfile)
+        : null;
+
+      if (isProfileDeletionRequested(freshProfile)) {
+        setAccountLocked(true);
+        setMessage("Profilo non attivo: candidatura bloccata.");
+        setApplyingRequestId("");
+        return;
+      }
+
+      const freshProfileSport = normalizeSport(
+        freshProfile?.activeSport ||
+          freshProfile?.mainSport ||
+          freshProfile?.sport ||
+          userSport
+      );
+
+      if (freshProfileSport !== normalizeSport(request.activeSport)) {
+        setMessage("Puoi proporti solo per annunci del tuo sport attivo.");
+        setApplyingRequestId("");
+        return;
+      }
+
+      const applicantName =
+        freshProfile?.name ||
+        freshProfile?.nickname ||
+        user.displayName ||
+        "Rivalo Player";
+
+      const applicationRef = await addDoc(collection(db, "matchmakingApplications"), {
+        requestId: request.id,
+        requestOwnerId: request.createdBy || "",
+        fromUid: user.uid,
+        fromName: applicantName,
+        activeSport: freshProfileSport,
+        status: "pending",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      if (request.createdBy) {
+        await createNotification({
+          uid: request.createdBy,
+          type: "generic",
+          title: "Nuova candidatura matchmaking",
+          message: `${applicantName} si è proposto per il tuo annuncio.`,
+          link: `/opponents?tab=${getTabFromRequestType(request.type)}&requestId=${request.id}`,
+          createdBy: user.uid,
+          metadata: {
+            requestId: request.id,
+            applicationId: applicationRef.id,
+            requestType: request.type || "match",
+            activeSport: freshProfileSport,
+          },
+        });
+      }
+
+      setMessage("Candidatura inviata.");
+      await loadMatchmakingRequests(freshProfileSport);
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante l'invio della candidatura.");
+    } finally {
+      setApplyingRequestId("");
+    }
+  }
+
   const filteredGroups = useMemo(() => {
     const cleanCity = cityFilter.trim().toLowerCase();
     const lockedSport = normalizeSport(userSport);
@@ -829,7 +1010,9 @@ if (alreadyRequested) {
                 onRadiusKmChange={setRadiusKm}
                 onLevelWantedChange={setLevelWanted}
                 onFormatChange={setFormat}
-                onMissingPlayersChange={setMissingPlayers}
+                onMissingPlayersChange={(value) =>
+                  setMissingPlayers(clampMissingPlayers(value, userSport, format))
+                }
                 onRequestDateChange={setRequestDate}
                 onRequestTimeChange={setRequestTime}
                 onNotesChange={setNotes}
@@ -842,12 +1025,33 @@ if (alreadyRequested) {
                 <EmptyBox text="Nessun annuncio matchmaking trovato con questi filtri." />
               ) : (
                 <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                  {filteredMatchmakingRequests.map((request) => (
-                    <MatchmakingRequestCard
-                      key={request.id}
-                      request={request}
-                    />
-                  ))}
+                  {[...filteredMatchmakingRequests]
+                    .sort((a, b) =>
+                      a.id === selectedRequestId
+                        ? -1
+                        : b.id === selectedRequestId
+                        ? 1
+                        : 0
+                    )
+                    .map((request) => (
+                      <MatchmakingRequestCard
+                        key={request.id}
+                        request={request}
+                        currentUid={user?.uid || ""}
+                        selected={request.id === selectedRequestId}
+                        applying={applyingRequestId === request.id}
+                        alreadyApplied={matchmakingApplications.some(
+                          (application) =>
+                            application.requestId === request.id &&
+                            application.fromUid === user?.uid &&
+                            application.status !== "rejected"
+                        )}
+                        applications={matchmakingApplications.filter(
+                          (application) => application.requestId === request.id
+                        )}
+                        onApply={applyToMatchmakingRequest}
+                      />
+                    ))}
                 </div>
               )}
             </div>
@@ -998,13 +1202,19 @@ function MatchmakingRequestForm({
         <SmallField label="Formato">
           <select
             value={format}
-            onChange={(event) => onFormatChange(event.target.value)}
+            onChange={(event) => {
+              const nextFormat = event.target.value;
+
+              onFormatChange(nextFormat);
+              onMissingPlayersChange(clampMissingPlayers(missingPlayers, userSport, nextFormat));
+            }}
             className="w-full bg-[#061126] text-white outline-none"
           >
-            <option value="amichevole">Amichevole</option>
-            <option value="singolo">Singolo</option>
-            <option value="doppio">Doppio</option>
-            <option value="squadra">Squadra</option>
+            {getFormatOptions(userSport).map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </SmallField>
 
@@ -1012,6 +1222,7 @@ function MatchmakingRequestForm({
           <input
             type="number"
             min="1"
+            max={getMissingPlayersLimit(userSport, format)}
             value={missingPlayers}
             onChange={(event) => onMissingPlayersChange(event.target.value)}
             className="w-full bg-transparent outline-none"
@@ -1068,9 +1279,34 @@ function MatchmakingRequestForm({
   );
 }
 
-function MatchmakingRequestCard({ request }: { request: MatchmakingRequest }) {
+function MatchmakingRequestCard({
+  request,
+  currentUid,
+  selected,
+  applying,
+  alreadyApplied,
+  applications,
+  onApply,
+}: {
+  request: MatchmakingRequest;
+  currentUid: string;
+  selected: boolean;
+  applying: boolean;
+  alreadyApplied: boolean;
+  applications: MatchmakingApplication[];
+  onApply: (request: MatchmakingRequest) => void;
+}) {
+  const isOwner = request.createdBy === currentUid;
+  const pendingApplications = applications.filter(
+    (application) => application.status === "pending"
+  );
+
   return (
-    <div className="min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-[#061126]/80 p-5 shadow-2xl sm:p-6">
+    <div
+      className={`min-w-0 overflow-hidden rounded-[2rem] border bg-[#061126]/80 p-5 shadow-2xl sm:p-6 ${
+        selected ? "border-cyan-300/50" : "border-white/10"
+      }`}
+    >
       <div className="mb-5 flex items-center justify-between gap-3">
         <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-cyan-200">
           {getRequestTitle(request.type)}
@@ -1109,6 +1345,50 @@ function MatchmakingRequestCard({ request }: { request: MatchmakingRequest }) {
         <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-bold leading-6 text-slate-200">
           {request.notes}
         </div>
+      )}
+
+      {isOwner ? (
+        <div className="mt-5 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-4">
+          <div className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">
+            Candidature
+          </div>
+
+          {pendingApplications.length === 0 ? (
+            <div className="mt-2 text-sm font-semibold text-slate-300">
+              Nessuna candidatura ancora.
+            </div>
+          ) : (
+            <div className="mt-3 grid gap-2">
+              {pendingApplications.map((application) => (
+                <div
+                  key={application.id}
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+                >
+                  <span className="min-w-0 truncate text-sm font-black text-white">
+                    {application.fromName || "Rivalo Player"}
+                  </span>
+
+                  <span className="shrink-0 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-[10px] font-black uppercase text-yellow-100">
+                    Da valutare
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onApply(request)}
+          disabled={applying || alreadyApplied}
+          className="mt-5 w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-3 font-black text-white disabled:opacity-60"
+        >
+          {alreadyApplied
+            ? "Candidatura inviata"
+            : applying
+            ? "Invio candidatura..."
+            : "Proponiti"}
+        </button>
       )}
     </div>
   );
