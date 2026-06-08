@@ -815,7 +815,8 @@ if (alreadyRequested) {
       (application) =>
         application.requestId === request.id &&
         application.fromUid === user.uid &&
-        application.status !== "rejected"
+        application.status !== "rejected" &&
+        application.status !== "cancelled"
     );
 
     if (alreadyApplied) {
@@ -893,6 +894,53 @@ if (alreadyRequested) {
       setMessage("Errore durante l'invio della candidatura.");
     } finally {
       setApplyingRequestId("");
+    }
+  }
+
+  async function cancelMatchmakingApplication(request: MatchmakingRequest) {
+    if (!user) return;
+
+    const application = matchmakingApplications.find(
+      (item) =>
+        item.requestId === request.id &&
+        item.fromUid === user.uid &&
+        item.status === "pending"
+    );
+
+    if (!application) {
+      setMessage("Nessuna candidatura in attesa da annullare.");
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, "matchmakingApplications", application.id), {
+        status: "cancelled",
+        updatedAt: serverTimestamp(),
+      });
+
+      if (request.createdBy) {
+        await createNotification({
+          uid: request.createdBy,
+          type: "generic",
+          title: "Candidatura annullata",
+          message: `${application.fromName || "Rivalo Player"} ha annullato la candidatura.`,
+          link: `/opponents?tab=${getTabFromRequestType(request.type)}&requestId=${request.id}`,
+          createdBy: user.uid,
+          metadata: {
+            requestId: request.id,
+            applicationId: application.id,
+            requestType: request.type || "match",
+            activeSport: request.activeSport || userSport,
+            status: "cancelled",
+          },
+        });
+      }
+
+      setMessage("Candidatura annullata.");
+      await loadMatchmakingRequests(userSport);
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante l'annullamento della candidatura.");
     }
   }
 
@@ -1292,12 +1340,14 @@ if (alreadyRequested) {
                           (application) =>
                             application.requestId === request.id &&
                             application.fromUid === user?.uid &&
-                            application.status !== "rejected"
+                            application.status !== "rejected" &&
+                            application.status !== "cancelled"
                         )}
                         applications={matchmakingApplications.filter(
                           (application) => application.requestId === request.id
                         )}
                         onApply={applyToMatchmakingRequest}
+                        onCancelApplication={cancelMatchmakingApplication}
                         onDecideApplication={decideMatchmakingApplication}
                         onUpdateRequestStatus={updateMatchmakingRequestStatus}
                         onDeleteRequest={deleteMatchmakingRequest}
@@ -1558,6 +1608,7 @@ function MatchmakingRequestCard({
   alreadyApplied,
   applications,
   onApply,
+  onCancelApplication,
   onDecideApplication,
   onUpdateRequestStatus,
   onDeleteRequest,
@@ -1569,6 +1620,7 @@ function MatchmakingRequestCard({
   alreadyApplied: boolean;
   applications: MatchmakingApplication[];
   onApply: (request: MatchmakingRequest) => void;
+  onCancelApplication: (request: MatchmakingRequest) => void;
   onDecideApplication: (input: {
     request: MatchmakingRequest;
     application: MatchmakingApplication;
@@ -1581,6 +1633,10 @@ function MatchmakingRequestCard({
   onDeleteRequest: (request: MatchmakingRequest) => void;
 }) {
   const isOwner = request.createdBy === currentUid;
+  const pendingOwnApplication = applications.find(
+    (application) =>
+      application.fromUid === currentUid && application.status === "pending"
+  );
   const acceptedCount = getAcceptedApplicationsCount(applications);
   const remainingSpots = getRemainingSpots(request, applications);
   const isClosed = request.status === "closed";
@@ -1762,7 +1818,8 @@ function MatchmakingRequestCard({
                         className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-black uppercase ${
                           applicationStatus === "accepted"
                             ? "border-green-300/20 bg-green-400/10 text-green-100"
-                            : applicationStatus === "rejected"
+                            : applicationStatus === "rejected" ||
+                              applicationStatus === "cancelled"
                             ? "border-red-300/20 bg-red-400/10 text-red-100"
                             : "border-yellow-300/20 bg-yellow-400/10 text-yellow-100"
                         }`}
@@ -1771,6 +1828,8 @@ function MatchmakingRequestCard({
                           ? "Accettata"
                           : applicationStatus === "rejected"
                           ? "Rifiutata"
+                          : applicationStatus === "cancelled"
+                          ? "Annullata"
                           : "Da valutare"}
                       </span>
                     </div>
@@ -1813,22 +1872,34 @@ function MatchmakingRequestCard({
           )}
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => onApply(request)}
-          disabled={applying || alreadyApplied || isCompleted || isClosed}
-          className="mt-5 w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-3 font-black text-white disabled:opacity-60"
-        >
-          {isClosed
-            ? "Annuncio chiuso"
-            : isCompleted
-            ? "Annuncio completo"
-            : alreadyApplied
-            ? "Candidatura inviata"
-            : applying
-            ? "Invio candidatura..."
-            : "Proponiti"}
-        </button>
+        <div className="mt-5 grid gap-2">
+          <button
+            type="button"
+            onClick={() => onApply(request)}
+            disabled={applying || alreadyApplied || isCompleted || isClosed}
+            className="w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-3 font-black text-white disabled:opacity-60"
+          >
+            {isClosed
+              ? "Annuncio chiuso"
+              : isCompleted
+              ? "Annuncio completo"
+              : alreadyApplied
+              ? "Candidatura inviata"
+              : applying
+              ? "Invio candidatura..."
+              : "Proponiti"}
+          </button>
+
+          {pendingOwnApplication && (
+            <button
+              type="button"
+              onClick={() => onCancelApplication(request)}
+              className="w-full rounded-2xl border border-red-300/20 bg-red-400/10 px-5 py-3 text-sm font-black uppercase text-red-100"
+            >
+              Annulla candidatura
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
