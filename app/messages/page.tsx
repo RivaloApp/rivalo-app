@@ -460,8 +460,8 @@ function MessagesPageContent() {
                             </div>
                           </div>
 
-                          <div className="mt-3 line-clamp-2 min-w-0 break-words text-sm font-semibold leading-5 text-slate-400">
-                            {conversation.lastMessage || "Apri conversazione"}
+                          <div className="mt-3 text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                            Tocca per aprire la chat
                           </div>
                         </button>
                       );
