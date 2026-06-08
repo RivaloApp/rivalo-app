@@ -1,0 +1,435 @@
+"use client";
+
+import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { onAuthStateChanged, User } from "firebase/auth";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { auth, db } from "../../lib/firebase";
+import { createNotification } from "../../lib/createNotification";
+import { ArrowLeft, Send } from "lucide-react";
+
+type UserProfile = {
+  name?: string;
+  nickname?: string;
+  photoUrl?: string;
+  photoURL?: string;
+  accountStatus?: string;
+  deletionRequested?: boolean;
+};
+
+type Conversation = {
+  id: string;
+  participantIds?: string[];
+  participantNames?: Record<string, string>;
+  sourceType?: string;
+  requestId?: string;
+  matchId?: string;
+  lastMessage?: string;
+  updatedAt?: any;
+};
+
+type Message = {
+  id: string;
+  text?: string;
+  createdBy?: string;
+  createdAt?: any;
+  readBy?: string[];
+};
+
+function isRemovedProfile(user?: UserProfile | null) {
+  return Boolean(
+    user?.accountStatus === "deletion_requested" ||
+      user?.accountStatus === "deleted" ||
+      user?.deletionRequested
+  );
+}
+
+function getDisplayName(profile?: UserProfile | null, fallback = "Rivalo Player") {
+  if (!profile || isRemovedProfile(profile)) return fallback;
+
+  return profile.name || profile.nickname || fallback;
+}
+
+function getConversationId(uidA: string, uidB: string) {
+  return [uidA, uidB].sort().join("_");
+}
+
+function getTimestampValue(value: any) {
+  if (!value) return 0;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  if (typeof value.seconds === "number") return value.seconds * 1000;
+  return 0;
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
+          Caricamento chat...
+        </main>
+      }
+    >
+      <MessagesPageContent />
+    </Suspense>
+  );
+}
+
+function MessagesPageContent() {
+  const searchParams = useSearchParams();
+  const targetUid = searchParams.get("with") || "";
+  const requestId = searchParams.get("requestId") || "";
+
+  const [user, setUser] = useState<User | null>(null);
+  const [currentName, setCurrentName] = useState("Rivalo Player");
+  const [targetName, setTargetName] = useState("Rivalo Player");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const activeConversation = useMemo(
+    () => conversations.find((conversation) => conversation.id === activeConversationId),
+    [conversations, activeConversationId]
+  );
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        window.location.href = "/login";
+        return;
+      }
+
+      setUser(currentUser);
+      await loadInitialData(currentUser);
+    });
+
+    return () => unsubscribe();
+  }, [targetUid, requestId]);
+
+  async function loadInitialData(currentUser: User) {
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const currentProfileSnap = await getDoc(doc(db, "users", currentUser.uid));
+      const currentProfile = currentProfileSnap.exists()
+        ? (currentProfileSnap.data() as UserProfile)
+        : null;
+
+      const resolvedCurrentName = getDisplayName(
+        currentProfile,
+        currentUser.displayName || "Rivalo Player"
+      );
+
+      setCurrentName(resolvedCurrentName);
+
+      let createdConversationId = "";
+
+      if (targetUid && targetUid !== currentUser.uid) {
+        const targetProfileSnap = await getDoc(doc(db, "users", targetUid));
+        const targetProfile = targetProfileSnap.exists()
+          ? (targetProfileSnap.data() as UserProfile)
+          : null;
+
+        if (!targetProfileSnap.exists() || isRemovedProfile(targetProfile)) {
+          setMessage("Profilo non disponibile per la chat.");
+        } else {
+          const resolvedTargetName = getDisplayName(targetProfile);
+          setTargetName(resolvedTargetName);
+
+          createdConversationId = getConversationId(currentUser.uid, targetUid);
+          const conversationRef = doc(db, "conversations", createdConversationId);
+          const conversationSnap = await getDoc(conversationRef);
+
+          if (!conversationSnap.exists()) {
+            await setDoc(conversationRef, {
+              participantIds: [currentUser.uid, targetUid],
+              participantNames: {
+                [currentUser.uid]: resolvedCurrentName,
+                [targetUid]: resolvedTargetName,
+              },
+              sourceType: requestId ? "matchmaking" : "direct",
+              requestId,
+              matchId: "",
+              lastMessage: "",
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+          } else {
+            await updateDoc(conversationRef, {
+              [`participantNames.${currentUser.uid}`]: resolvedCurrentName,
+              [`participantNames.${targetUid}`]: resolvedTargetName,
+              updatedAt: serverTimestamp(),
+            });
+          }
+
+          setActiveConversationId(createdConversationId);
+        }
+      }
+
+      await loadConversations(currentUser.uid, createdConversationId);
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore nel caricamento della chat.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadConversations(uid: string, preferredConversationId = "") {
+    const conversationsSnap = await getDocs(collection(db, "conversations"));
+
+    const result = conversationsSnap.docs
+      .map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<Conversation, "id">),
+      }))
+      .filter((conversation) => conversation.participantIds?.includes(uid))
+      .sort((a, b) => getTimestampValue(b.updatedAt) - getTimestampValue(a.updatedAt));
+
+    setConversations(result);
+
+    const nextConversationId =
+      preferredConversationId || activeConversationId || result[0]?.id || "";
+
+    setActiveConversationId(nextConversationId);
+
+    if (nextConversationId) {
+      await loadMessages(nextConversationId);
+    }
+  }
+
+  async function loadMessages(conversationId: string) {
+    const messagesSnap = await getDocs(
+      collection(db, "conversations", conversationId, "messages")
+    );
+
+    const result = messagesSnap.docs
+      .map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<Message, "id">),
+      }))
+      .sort((a, b) => getTimestampValue(a.createdAt) - getTimestampValue(b.createdAt));
+
+    setMessages(result);
+  }
+
+  async function selectConversation(conversationId: string) {
+    setActiveConversationId(conversationId);
+    await loadMessages(conversationId);
+  }
+
+  async function sendMessage(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!user || !activeConversationId || !text.trim()) return;
+
+    const cleanText = text.trim().slice(0, 500);
+    const conversation = conversations.find((item) => item.id === activeConversationId);
+
+    if (!conversation) return;
+
+    const recipientUid =
+      conversation.participantIds?.find((participantId) => participantId !== user.uid) || "";
+
+    if (!recipientUid) return;
+
+    setSending(true);
+    setMessage("");
+
+    try {
+      await addDoc(collection(db, "conversations", activeConversationId, "messages"), {
+        text: cleanText,
+        createdBy: user.uid,
+        createdAt: serverTimestamp(),
+        readBy: [user.uid],
+      });
+
+      await updateDoc(doc(db, "conversations", activeConversationId), {
+        lastMessage: cleanText,
+        updatedAt: serverTimestamp(),
+      });
+
+      await createNotification({
+        uid: recipientUid,
+        type: "generic",
+        title: "Nuovo messaggio",
+        message: `${currentName}: ${cleanText}`,
+        link: `/messages?with=${user.uid}${conversation.requestId ? `&requestId=${conversation.requestId}` : ""}`,
+        createdBy: user.uid,
+        metadata: {
+          conversationId: activeConversationId,
+          requestId: conversation.requestId || "",
+          sourceType: conversation.sourceType || "direct",
+        },
+      });
+
+      setText("");
+      await loadConversations(user.uid, activeConversationId);
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore durante l'invio del messaggio.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function getOtherName(conversation: Conversation) {
+    if (!user) return "Chat";
+
+    const otherUid =
+      conversation.participantIds?.find((participantId) => participantId !== user.uid) || "";
+
+    return conversation.participantNames?.[otherUid] || "Rivalo Player";
+  }
+
+  return (
+    <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_6%,rgba(34,211,238,.17),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(217,70,239,.15),transparent_32%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
+
+      <section className="relative z-10 mx-auto w-full max-w-6xl px-3 py-7 sm:px-5 sm:py-8">
+        <Link
+          href={requestId ? `/opponents?requestId=${requestId}` : "/dashboard"}
+          className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
+        >
+          <ArrowLeft size={17} />
+          {requestId ? "Torna al matchmaking" : "Torna alla dashboard"}
+        </Link>
+
+        <div className="mt-7 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl backdrop-blur sm:rounded-[2.5rem]">
+          <div className="border-b border-white/10 p-5 sm:p-7">
+            <div className="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">
+              Rivalo Chat
+            </div>
+
+            <h1 className="mt-2 break-words text-4xl font-black sm:text-5xl">
+              Messaggi
+            </h1>
+
+            <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
+              Organizzati con gli utenti del matchmaking e prepara il match.
+            </p>
+          </div>
+
+          {message && (
+            <div className="m-5 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-100">
+              {message}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="p-5 text-slate-300">Caricamento chat...</div>
+          ) : (
+            <div className="grid min-h-[620px] gap-0 lg:grid-cols-[330px_1fr]">
+              <aside className="border-b border-white/10 p-4 lg:border-b-0 lg:border-r">
+                {conversations.length === 0 ? (
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">
+                    Nessuna conversazione ancora.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {conversations.map((conversation) => (
+                      <button
+                        key={conversation.id}
+                        type="button"
+                        onClick={() => selectConversation(conversation.id)}
+                        className={`w-full min-w-0 rounded-2xl border p-4 text-left transition ${
+                          conversation.id === activeConversationId
+                            ? "border-cyan-300/40 bg-cyan-400/10"
+                            : "border-white/10 bg-black/20 hover:border-cyan-300/20"
+                        }`}
+                      >
+                        <div className="truncate text-sm font-black text-white">
+                          {getOtherName(conversation)}
+                        </div>
+
+                        <div className="mt-1 truncate text-xs font-semibold text-slate-400">
+                          {conversation.lastMessage || "Apri conversazione"}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </aside>
+
+              <section className="flex min-w-0 flex-col">
+                <div className="border-b border-white/10 p-4">
+                  <div className="truncate text-lg font-black text-white">
+                    {activeConversation ? getOtherName(activeConversation) : targetName}
+                  </div>
+
+                  <div className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">
+                    Chat 1-to-1
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-3 overflow-y-auto p-4">
+                  {messages.length === 0 ? (
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm font-semibold text-slate-300">
+                      Nessun messaggio. Scrivi il primo.
+                    </div>
+                  ) : (
+                    messages.map((chatMessage) => {
+                      const mine = chatMessage.createdBy === user?.uid;
+
+                      return (
+                        <div
+                          key={chatMessage.id}
+                          className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                        >
+                          <div
+                            className={`max-w-[82%] break-words rounded-2xl px-4 py-3 text-sm font-semibold leading-6 ${
+                              mine
+                                ? "bg-cyan-400/20 text-cyan-50"
+                                : "bg-white/[.07] text-slate-100"
+                            }`}
+                          >
+                            {chatMessage.text}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <form onSubmit={sendMessage} className="border-t border-white/10 p-4">
+                  <div className="flex gap-2">
+                    <input
+                      value={text}
+                      onChange={(event) => setText(event.target.value)}
+                      placeholder="Scrivi un messaggio..."
+                      maxLength={500}
+                      className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={sending || !text.trim() || !activeConversationId}
+                      className="shrink-0 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-4 py-3 font-black text-white disabled:opacity-50"
+                    >
+                      <Send size={18} />
+                    </button>
+                  </div>
+                </form>
+              </section>
+            </div>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}

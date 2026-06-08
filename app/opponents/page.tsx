@@ -1855,6 +1855,15 @@ function MatchmakingRequestCard({
                       </span>
                     </div>
 
+                    {application.fromUid && (
+                      <Link
+                        href={`/messages?with=${application.fromUid}&requestId=${request.id}`}
+                        className="mt-3 flex items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase text-cyan-100"
+                      >
+                        Chat
+                      </Link>
+                    )}
+
                     {!decided && (
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         <button
@@ -1916,13 +1925,26 @@ function MatchmakingRequestCard({
             </div>
           )}
 
-          {ownApplication?.status === "accepted" && request.linkedMatchId && (
-            <Link
-              href={`/match/${request.linkedMatchId}`}
-              className="flex items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase text-cyan-100"
-            >
-              Apri match
-            </Link>
+          {ownApplication?.status === "accepted" && (
+            <div className="grid gap-2">
+              {request.createdBy && (
+                <Link
+                  href={`/messages?with=${request.createdBy}&requestId=${request.id}`}
+                  className="flex items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase text-cyan-100"
+                >
+                  Chat creator
+                </Link>
+              )}
+
+              {request.linkedMatchId && (
+                <Link
+                  href={`/match/${request.linkedMatchId}`}
+                  className="flex items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase text-cyan-100"
+                >
+                  Apri match
+                </Link>
+              )}
+            </div>
           )}
 
           <button

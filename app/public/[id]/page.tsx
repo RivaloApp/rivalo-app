@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth } from "../../../lib/firebase";
 import { useParams, useSearchParams } from "next/navigation";
 import PlayerCard from "../../../components/cards/PlayerCard";
 
@@ -122,16 +124,24 @@ export default function PublicProfilePage() {
 
   const from = searchParams.get("from");
   const rivalryId = searchParams.get("rivalryId");
+  const requestId = searchParams.get("requestId") || "";
 
   const backHref =
     from === "rivalry" && rivalryId
       ? `/rivalries/${rivalryId}`
+      : from === "matchmaking"
+      ? `/opponents${requestId ? `?requestId=${requestId}` : ""}`
       : "/leaderboard";
 
   const backLabel =
     from === "rivalry" && rivalryId
       ? "Torna alla rivalità"
+      : from === "matchmaking"
+      ? "Torna al matchmaking"
       : "Torna alla leaderboard";
+
+  const [currentUser, setCurrentUser] =
+    useState<User | null>(null);
 
   const [user, setUser] =
     useState<UserProfile | null>(null);
@@ -141,6 +151,14 @@ export default function PublicProfilePage() {
 
   const [loading, setLoading] =
     useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+      setCurrentUser(authUser);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     async function loadUser() {
@@ -306,6 +324,15 @@ export default function PublicProfilePage() {
                 <div className="mt-4 rounded-2xl border border-slate-400/20 bg-slate-400/10 px-5 py-3 text-sm font-bold text-slate-200">
                   Profilo non attivo. Lo storico sportivo resta consultabile.
                 </div>
+              )}
+
+              {!isRemoved && currentUser && currentUser.uid !== id && (
+                <Link
+                  href={`/messages?with=${id}${requestId ? `&requestId=${requestId}` : ""}`}
+                  className="mt-5 inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-3 text-sm font-black uppercase text-white"
+                >
+                  Scrivi in chat
+                </Link>
               )}
 
               <div

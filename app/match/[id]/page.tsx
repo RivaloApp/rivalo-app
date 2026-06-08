@@ -2480,12 +2480,12 @@ function Info({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-white/[.04] p-5 text-center">
-      <div className="max-w-[130px] truncate text-2xl font-black text-cyan-300">
+    <div className="min-w-0 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[.04] p-4 text-center sm:p-5">
+      <div className="break-words text-xl font-black leading-tight text-cyan-300 sm:text-2xl">
         {value}
       </div>
 
-      <div className="mt-2 text-xs font-black uppercase tracking-[.18em] text-slate-400">
+      <div className="mt-2 break-words text-[10px] font-black uppercase tracking-[.12em] text-slate-400 sm:text-xs sm:tracking-[.18em]">
         {label}
       </div>
     </div>
