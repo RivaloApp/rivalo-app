@@ -71,6 +71,19 @@ function getTimestampValue(value: any) {
   return 0;
 }
 
+function formatConversationTime(value: any) {
+  const timestamp = getTimestampValue(value);
+
+  if (!timestamp) return "";
+
+  return new Intl.DateTimeFormat("it-IT", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
+}
+
 function canAccessConversation(conversation: Conversation | undefined, uid: string) {
   return Boolean(uid && conversation?.participantIds?.includes(uid));
 }
@@ -99,6 +112,7 @@ function MessagesPageContent() {
   const [targetName, setTargetName] = useState("Rivalo Player");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState("");
+  const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -182,6 +196,7 @@ function MessagesPageContent() {
           }
 
           setActiveConversationId(createdConversationId);
+          setChatOpen(true);
         }
       }
 
@@ -271,6 +286,7 @@ function MessagesPageContent() {
     }
 
     setActiveConversationId(conversationId);
+    setChatOpen(true);
     await loadMessages(conversationId, user.uid);
   }
 
@@ -341,6 +357,14 @@ function MessagesPageContent() {
     return conversation.participantNames?.[otherUid] || "Rivalo Player";
   }
 
+  function getOtherUid(conversation: Conversation) {
+    if (!user) return "";
+
+    return (
+      conversation.participantIds?.find((participantId) => participantId !== user.uid) || ""
+    );
+  }
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_6%,rgba(34,211,238,.17),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(217,70,239,.15),transparent_32%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
@@ -378,40 +402,89 @@ function MessagesPageContent() {
           {loading ? (
             <div className="p-5 text-slate-300">Caricamento chat...</div>
           ) : (
-            <div className="grid min-h-[620px] min-w-0 gap-0 overflow-hidden lg:grid-cols-[330px_minmax(0,1fr)]">
-              <aside className="min-w-0 overflow-hidden border-b border-white/10 p-4 lg:border-b-0 lg:border-r">
+            <div className="grid min-h-[620px] min-w-0 gap-0 overflow-hidden lg:grid-cols-[360px_minmax(0,1fr)]">
+              <aside
+                className={`min-w-0 overflow-hidden border-white/10 p-4 lg:block lg:border-r ${
+                  chatOpen ? "hidden" : "block"
+                }`}
+              >
+                <div className="mb-4">
+                  <div className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                    Conversazioni
+                  </div>
+
+                  <div className="mt-1 text-sm font-semibold text-slate-400">
+                    Ordinate per ultimo messaggio.
+                  </div>
+                </div>
+
                 {conversations.length === 0 ? (
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">
                     Nessuna conversazione ancora.
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {conversations.map((conversation) => (
-                      <button
-                        key={conversation.id}
-                        type="button"
-                        onClick={() => selectConversation(conversation.id)}
-                        className={`w-full min-w-0 rounded-2xl border p-4 text-left transition ${
-                          conversation.id === activeConversationId
-                            ? "border-cyan-300/40 bg-cyan-400/10"
-                            : "border-white/10 bg-black/20 hover:border-cyan-300/20"
-                        }`}
-                      >
-                        <div className="truncate text-sm font-black text-white">
-                          {getOtherName(conversation)}
-                        </div>
+                  <div className="space-y-3">
+                    {conversations.map((conversation) => {
+                      const otherUid = getOtherUid(conversation);
 
-                        <div className="mt-1 min-w-0 truncate text-xs font-semibold text-slate-400">
-                          {conversation.lastMessage || "Apri conversazione"}
-                        </div>
-                      </button>
-                    ))}
+                      return (
+                        <button
+                          key={conversation.id}
+                          type="button"
+                          onClick={() => selectConversation(conversation.id)}
+                          className={`w-full min-w-0 rounded-2xl border p-4 text-left transition ${
+                            conversation.id === activeConversationId
+                              ? "border-cyan-300/40 bg-cyan-400/10"
+                              : "border-white/10 bg-black/20 hover:border-cyan-300/20"
+                          }`}
+                        >
+                          <div className="flex min-w-0 items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-base font-black text-white">
+                                {getOtherName(conversation)}
+                              </div>
+
+                              {otherUid && (
+                                <Link
+                                  href={`/public/${otherUid}`}
+                                  onClick={(event) => event.stopPropagation()}
+                                  className="mt-1 inline-block text-[11px] font-black uppercase tracking-[0.12em] text-cyan-300"
+                                >
+                                  Apri profilo
+                                </Link>
+                              )}
+                            </div>
+
+                            <div className="shrink-0 text-right text-[11px] font-bold text-slate-500">
+                              {formatConversationTime(conversation.updatedAt)}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 line-clamp-2 min-w-0 break-words text-sm font-semibold leading-5 text-slate-400">
+                            {conversation.lastMessage || "Apri conversazione"}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </aside>
 
-              <section className="flex min-w-0 max-w-full flex-col overflow-hidden">
+              <section
+                className={`min-w-0 max-w-full flex-col overflow-hidden lg:flex ${
+                  chatOpen ? "flex" : "hidden"
+                }`}
+              >
                 <div className="border-b border-white/10 p-4">
+                  <button
+                    type="button"
+                    onClick={() => setChatOpen(false)}
+                    className="mb-4 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-300 lg:hidden"
+                  >
+                    <ArrowLeft size={16} />
+                    Conversazioni
+                  </button>
+
                   <div className="min-w-0 truncate text-lg font-black text-white">
                     {activeConversation ? getOtherName(activeConversation) : targetName}
                   </div>
@@ -422,7 +495,11 @@ function MessagesPageContent() {
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden p-4">
-                  {messages.length === 0 ? (
+                  {!activeConversationId ? (
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm font-semibold text-slate-300">
+                      Seleziona una conversazione dalla lista.
+                    </div>
+                  ) : messages.length === 0 ? (
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm font-semibold text-slate-300">
                       Nessun messaggio. Scrivi il primo.
                     </div>
