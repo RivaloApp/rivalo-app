@@ -1633,10 +1633,11 @@ function MatchmakingRequestCard({
   onDeleteRequest: (request: MatchmakingRequest) => void;
 }) {
   const isOwner = request.createdBy === currentUid;
-  const pendingOwnApplication = applications.find(
-    (application) =>
-      application.fromUid === currentUid && application.status === "pending"
+  const ownApplication = applications.find(
+    (application) => application.fromUid === currentUid
   );
+  const pendingOwnApplication =
+    ownApplication?.status === "pending" ? ownApplication : undefined;
   const acceptedCount = getAcceptedApplicationsCount(applications);
   const remainingSpots = getRemainingSpots(request, applications);
   const isClosed = request.status === "closed";
@@ -1873,6 +1874,28 @@ function MatchmakingRequestCard({
         </div>
       ) : (
         <div className="mt-5 grid gap-2">
+          {ownApplication && (
+            <div
+              className={`rounded-2xl border px-4 py-3 text-sm font-black ${
+                ownApplication.status === "accepted"
+                  ? "border-green-300/20 bg-green-400/10 text-green-100"
+                  : ownApplication.status === "rejected"
+                  ? "border-red-300/20 bg-red-400/10 text-red-100"
+                  : ownApplication.status === "cancelled"
+                  ? "border-slate-300/20 bg-slate-400/10 text-slate-200"
+                  : "border-yellow-300/20 bg-yellow-400/10 text-yellow-100"
+              }`}
+            >
+              {ownApplication.status === "accepted"
+                ? "La tua candidatura è stata accettata"
+                : ownApplication.status === "rejected"
+                ? "La tua candidatura non è stata selezionata"
+                : ownApplication.status === "cancelled"
+                ? "Candidatura annullata"
+                : "Candidatura in attesa"}
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => onApply(request)}
