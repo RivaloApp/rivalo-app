@@ -188,6 +188,26 @@ function clampMissingPlayers(value: string, sport?: string, format?: string) {
   return String(Math.min(max, numericValue));
 }
 
+function getMissingPlayersOptions(sport?: string, format?: string) {
+  const max = getMissingPlayersLimit(sport, format);
+
+  return Array.from({ length: max }, (_, index) => String(index + 1));
+}
+
+function getMissingPlayersHelp(sport?: string, format?: string) {
+  const normalizedSport = normalizeSport(sport);
+
+  if (normalizedSport === "padel" || normalizedSport === "tennis") {
+    if (format === "doppio") {
+      return "Doppio: puoi cercare da 1 a 3 player. Con te il totale arriva a 4.";
+    }
+
+    return "Singolo: puoi cercare 1 avversario. Con te il totale arriva a 2.";
+  }
+
+  return "Calcetto: puoi cercare da 1 a 9 player. Con te il totale arriva fino a 10.";
+}
+
 function getAcceptedApplicationsCount(applications: MatchmakingApplication[]) {
   return applications.filter((application) => application.status === "accepted").length;
 }
@@ -1463,14 +1483,21 @@ function MatchmakingRequestForm({
         </SmallField>
 
         <SmallField label="Posti mancanti">
-          <input
-            type="number"
-            min="1"
-            max={getMissingPlayersLimit(userSport, format)}
-            value={missingPlayers}
+          <select
+            value={clampMissingPlayers(missingPlayers, userSport, format)}
             onChange={(event) => onMissingPlayersChange(event.target.value)}
-            className="w-full bg-transparent outline-none"
-          />
+            className="w-full bg-[#061126] text-white outline-none"
+          >
+            {getMissingPlayersOptions(userSport, format).map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+
+          <div className="mt-2 text-xs leading-5 text-slate-500">
+            {getMissingPlayersHelp(userSport, format)}
+          </div>
         </SmallField>
 
         <SmallField label="Data">
