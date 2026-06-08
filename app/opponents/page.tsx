@@ -62,7 +62,6 @@ type MatchmakingRequest = {
   city?: string;
   zone?: string;
   matchPlace?: string;
-  mapsLink?: string;
   radiusKm?: number;
   levelWanted?: string;
   format?: string;
@@ -200,6 +199,22 @@ function getRemainingSpots(request: MatchmakingRequest, applications: Matchmakin
   return Math.max(0, totalSpots - acceptedCount);
 }
 
+function buildMapsSearchUrl({
+  matchPlace,
+  zone,
+  city,
+}: {
+  matchPlace?: string;
+  zone?: string;
+  city?: string;
+}) {
+  const query = [matchPlace, zone, city].filter(Boolean).join(" ").trim();
+
+  if (!query) return "";
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
 const TIME_OPTIONS = [
   "08:00",
   "08:30",
@@ -303,7 +318,6 @@ async function notifyCompatibleMatchmakingUsers({
   city,
   zone,
   matchPlace,
-  mapsLink,
   levelWanted,
 }: {
   creatorUid: string;
@@ -314,7 +328,6 @@ async function notifyCompatibleMatchmakingUsers({
   city: string;
   zone: string;
   matchPlace: string;
-  mapsLink: string;
   levelWanted: string;
 }) {
   try {
@@ -357,7 +370,6 @@ async function notifyCompatibleMatchmakingUsers({
             city,
             zone,
             matchPlace,
-            mapsLink,
             levelWanted,
           },
         })
@@ -390,7 +402,6 @@ const [applyingRequestId, setApplyingRequestId] = useState("");
 const [selectedRequestId, setSelectedRequestId] = useState("");
 const [zone, setZone] = useState("");
 const [matchPlace, setMatchPlace] = useState("");
-const [mapsLink, setMapsLink] = useState("");
 const [radiusKm, setRadiusKm] = useState("10");
 const [levelWanted, setLevelWanted] = useState("qualsiasi");
 const [format, setFormat] = useState("amichevole");
@@ -588,8 +599,6 @@ const [notes, setNotes] = useState("");
       const cleanCity = cityFilter.trim();
       const cleanZone = zone.trim();
       const cleanMatchPlace = matchPlace.trim();
-      const cleanMapsLink = mapsLink.trim();
-
       const requestRef = await addDoc(collection(db, "matchmakingRequests"), {
         type: requestType,
         activeSport: freshProfileSport,
@@ -598,7 +607,6 @@ const [notes, setNotes] = useState("");
         city: cleanCity,
         zone: cleanZone,
         matchPlace: cleanMatchPlace,
-        mapsLink: cleanMapsLink,
         radiusKm: Number(radiusKm || 0),
         levelWanted,
         format,
@@ -622,13 +630,11 @@ const [notes, setNotes] = useState("");
         city: cleanCity,
         zone: cleanZone,
         matchPlace: cleanMatchPlace,
-        mapsLink: cleanMapsLink,
         levelWanted,
       });
 
       setZone("");
       setMatchPlace("");
-      setMapsLink("");
       setRadiusKm("10");
       setLevelWanted("qualsiasi");
       setFormat(getFormatOptions(freshProfileSport)[0]?.value || "amichevole");
@@ -1218,7 +1224,6 @@ if (alreadyRequested) {
                 cityFilter={cityFilter}
                 zone={zone}
                 matchPlace={matchPlace}
-                mapsLink={mapsLink}
                 radiusKm={radiusKm}
                 levelWanted={levelWanted}
                 format={format}
@@ -1230,7 +1235,6 @@ if (alreadyRequested) {
                 accountLocked={accountLocked}
                 onZoneChange={setZone}
                 onMatchPlaceChange={setMatchPlace}
-                onMapsLinkChange={setMapsLink}
                 onRadiusKmChange={setRadiusKm}
                 onLevelWantedChange={setLevelWanted}
                 onFormatChange={setFormat}
@@ -1327,7 +1331,6 @@ function MatchmakingRequestForm({
   cityFilter,
   zone,
   matchPlace,
-  mapsLink,
   radiusKm,
   levelWanted,
   format,
@@ -1339,7 +1342,6 @@ function MatchmakingRequestForm({
   accountLocked,
   onZoneChange,
   onMatchPlaceChange,
-  onMapsLinkChange,
   onRadiusKmChange,
   onLevelWantedChange,
   onFormatChange,
@@ -1354,7 +1356,6 @@ function MatchmakingRequestForm({
   cityFilter: string;
   zone: string;
   matchPlace: string;
-  mapsLink: string;
   radiusKm: string;
   levelWanted: string;
   format: string;
@@ -1366,7 +1367,6 @@ function MatchmakingRequestForm({
   accountLocked: boolean;
   onZoneChange: (value: string) => void;
   onMatchPlaceChange: (value: string) => void;
-  onMapsLinkChange: (value: string) => void;
   onRadiusKmChange: (value: string) => void;
   onLevelWantedChange: (value: string) => void;
   onFormatChange: (value: string) => void;
@@ -1413,16 +1413,7 @@ function MatchmakingRequestForm({
           <input
             value={matchPlace}
             onChange={(event) => onMatchPlaceChange(event.target.value)}
-            placeholder="Campo, club o indirizzo"
-            className="w-full bg-transparent outline-none placeholder:text-slate-500"
-          />
-        </SmallField>
-
-        <SmallField label="Link Maps">
-          <input
-            value={mapsLink}
-            onChange={(event) => onMapsLinkChange(event.target.value)}
-            placeholder="https://maps.google.com/..."
+            placeholder="Nome campo, club o indirizzo"
             className="w-full bg-transparent outline-none placeholder:text-slate-500"
           />
         </SmallField>
@@ -1599,14 +1590,22 @@ function MatchmakingRequestCard({
           </div>
         )}
 
-        {request.mapsLink && (
+        {buildMapsSearchUrl({
+          matchPlace: request.matchPlace,
+          zone: request.zone,
+          city: request.city,
+        }) && (
           <a
-            href={request.mapsLink}
+            href={buildMapsSearchUrl({
+              matchPlace: request.matchPlace,
+              zone: request.zone,
+              city: request.city,
+            })}
             target="_blank"
             rel="noreferrer"
             className="w-fit rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase text-cyan-200"
           >
-            Apri posizione
+            Apri su Maps
           </a>
         )}
 
