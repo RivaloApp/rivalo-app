@@ -74,6 +74,7 @@ type MatchmakingRequest = {
   createdByName?: string;
   completedAt?: any;
   closedAt?: any;
+  linkedMatchId?: string;
 };
 
 type MatchmakingApplication = {
@@ -1641,7 +1642,11 @@ function MatchmakingRequestCard({
   const acceptedCount = getAcceptedApplicationsCount(applications);
   const remainingSpots = getRemainingSpots(request, applications);
   const isClosed = request.status === "closed";
-  const isCompleted = remainingSpots <= 0 || request.status === "completed";
+  const isCompleted =
+    remainingSpots <= 0 ||
+    request.status === "completed" ||
+    request.status === "match_created" ||
+    Boolean(request.linkedMatchId);
 
   return (
     <div
@@ -1655,7 +1660,13 @@ function MatchmakingRequestCard({
         </span>
 
         <span className="rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300">
-          {isClosed ? "Chiuso" : isCompleted ? "Completo" : sportLabel(request.activeSport)}
+          {request.linkedMatchId
+            ? "Match creato"
+            : isClosed
+            ? "Chiuso"
+            : isCompleted
+            ? "Completo"
+            : sportLabel(request.activeSport)}
         </span>
       </div>
 
@@ -1774,15 +1785,24 @@ function MatchmakingRequestCard({
           {isCompleted && (
             <div className="mt-3 grid gap-3">
               <div className="rounded-xl border border-green-300/20 bg-green-400/10 px-3 py-2 text-xs font-black uppercase text-green-100">
-                Annuncio completo
+                {request.linkedMatchId ? "Match creato" : "Annuncio completo"}
               </div>
 
-              <Link
-                href={`/match?matchmakingRequestId=${request.id}`}
-                className="flex items-center justify-center rounded-xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-3 py-3 text-xs font-black uppercase text-white"
-              >
-                Crea match amichevole
-              </Link>
+              {request.linkedMatchId ? (
+                <Link
+                  href={`/match/${request.linkedMatchId}`}
+                  className="flex items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-3 text-xs font-black uppercase text-cyan-100"
+                >
+                  Apri match
+                </Link>
+              ) : (
+                <Link
+                  href={`/match?matchmakingRequestId=${request.id}`}
+                  className="flex items-center justify-center rounded-xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-3 py-3 text-xs font-black uppercase text-white"
+                >
+                  Crea match amichevole
+                </Link>
+              )}
             </div>
           )}
 
