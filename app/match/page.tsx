@@ -16,6 +16,7 @@ import {
   where,
 } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
+import { createNotification } from "../../lib/createNotification";
 import {
   ArrowLeft,
   CalendarDays,
@@ -1047,6 +1048,30 @@ awayScore: null,
           updatedAt: serverTimestamp(),
         });
       }
+
+      const notifyParticipantIds = Array.from(
+        new Set(matchPlayers.map((player) => player.uid).filter(Boolean))
+      ).filter((uid) => uid !== user.uid);
+
+      await Promise.all(
+        notifyParticipantIds.map((uid) =>
+          createNotification({
+            uid,
+            type: "new_match",
+            title: "Nuovo match amichevole",
+            message: `${matchName || "Match amichevole"} è stato creato su Rivalo.`,
+            link: `/match/${matchRef.id}`,
+            createdBy: user.uid,
+            metadata: {
+              matchId: matchRef.id,
+              sourceType,
+              matchmakingRequestId: matchmakingSourceId || "",
+              activeSport,
+              isRanked: false,
+            },
+          })
+        )
+      );
 
       setMatchmakingSourceId("");
       setMatchName("");
