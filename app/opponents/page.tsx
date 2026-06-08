@@ -456,7 +456,7 @@ const [notes, setNotes] = useState("");
 
       await loadPublicGroups(currentUserSport);
       await loadSentRequests(currentUser.uid);
-      await loadMatchmakingRequests(currentUserSport);
+      await loadMatchmakingRequests(currentUserSport, currentUser.uid);
 
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab") as MatchmakingTab | null;
@@ -527,7 +527,7 @@ const [notes, setNotes] = useState("");
   }
 }
 
-  async function loadMatchmakingRequests(currentUserSport = userSport) {
+  async function loadMatchmakingRequests(currentUserSport = userSport, currentUid = user?.uid || "") {
     setLoadingRequests(true);
 
     try {
@@ -545,16 +545,38 @@ const [notes, setNotes] = useState("");
 
       setMatchmakingRequests(result);
 
-      const applicationsSnap = await getDocs(collection(db, "matchmakingApplications"));
+      if (!currentUid) {
+        setMatchmakingApplications([]);
+        return;
+      }
 
-      const applicationsResult = applicationsSnap.docs
-        .map((docSnap) => ({
+      const ownApplicationsQuery = query(
+        collection(db, "matchmakingApplications"),
+        where("fromUid", "==", currentUid)
+      );
+
+      const receivedApplicationsQuery = query(
+        collection(db, "matchmakingApplications"),
+        where("requestOwnerId", "==", currentUid)
+      );
+
+      const [ownApplicationsSnap, receivedApplicationsSnap] = await Promise.all([
+        getDocs(ownApplicationsQuery),
+        getDocs(receivedApplicationsQuery),
+      ]);
+
+      const applicationsMap = new Map<string, MatchmakingApplication>();
+
+      [...ownApplicationsSnap.docs, ...receivedApplicationsSnap.docs].forEach((docSnap) => {
+        applicationsMap.set(docSnap.id, {
           id: docSnap.id,
           ...(docSnap.data() as Omit<MatchmakingApplication, "id">),
-        }))
-        .filter((application) =>
-          result.some((request) => request.id === application.requestId)
-        );
+        });
+      });
+
+      const applicationsResult = Array.from(applicationsMap.values()).filter((application) =>
+        result.some((request) => request.id === application.requestId)
+      );
 
       setMatchmakingApplications(applicationsResult);
     } catch (error) {
@@ -665,7 +687,7 @@ const [notes, setNotes] = useState("");
       setNotes("");
 
       setMessage("Annuncio matchmaking creato.");
-      await loadMatchmakingRequests(freshProfileSport);
+      await loadMatchmakingRequests(freshProfileSport, user.uid);
     } catch (error) {
       console.error(error);
       setMessage("Errore durante la creazione dell'annuncio.");
@@ -889,7 +911,7 @@ if (alreadyRequested) {
       }
 
       setMessage("Candidatura inviata.");
-      await loadMatchmakingRequests(freshProfileSport);
+      await loadMatchmakingRequests(freshProfileSport, user.uid);
     } catch (error) {
       console.error(error);
       setMessage("Errore durante l'invio della candidatura.");
@@ -938,7 +960,7 @@ if (alreadyRequested) {
       }
 
       setMessage("Candidatura annullata.");
-      await loadMatchmakingRequests(userSport);
+      await loadMatchmakingRequests(userSport, user.uid);
     } catch (error) {
       console.error(error);
       setMessage("Errore durante l'annullamento della candidatura.");
@@ -1039,7 +1061,7 @@ if (alreadyRequested) {
           : "Candidatura rifiutata."
       );
 
-      await loadMatchmakingRequests(userSport);
+      await loadMatchmakingRequests(userSport, user.uid);
     } catch (error) {
       console.error(error);
       setMessage("Errore durante la gestione della candidatura.");
@@ -1077,7 +1099,7 @@ if (alreadyRequested) {
       });
 
       setMessage(status === "closed" ? "Annuncio chiuso." : "Annuncio riaperto.");
-      await loadMatchmakingRequests(userSport);
+      await loadMatchmakingRequests(userSport, user.uid);
     } catch (error) {
       console.error(error);
       setMessage("Errore durante la gestione dell'annuncio.");
@@ -1105,7 +1127,7 @@ if (alreadyRequested) {
       await deleteDoc(doc(db, "matchmakingRequests", request.id));
 
       setMessage("Annuncio eliminato.");
-      await loadMatchmakingRequests(userSport);
+      await loadMatchmakingRequests(userSport, user.uid);
     } catch (error) {
       console.error(error);
       setMessage("Errore durante l'eliminazione dell'annuncio.");
