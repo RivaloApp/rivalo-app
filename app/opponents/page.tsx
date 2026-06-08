@@ -1916,6 +1916,15 @@ function MatchmakingRequestCard({
             </div>
           )}
 
+          {ownApplication?.status === "accepted" && request.linkedMatchId && (
+            <Link
+              href={`/match/${request.linkedMatchId}`}
+              className="flex items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase text-cyan-100"
+            >
+              Apri match
+            </Link>
+          )}
+
           <button
             type="button"
             onClick={() => onApply(request)}
