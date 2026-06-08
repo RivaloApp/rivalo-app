@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import {
   addDoc,
+  arrayUnion,
   collection,
   doc,
   getDoc,
@@ -35,7 +36,9 @@ type Conversation = {
   requestId?: string;
   matchId?: string;
   lastMessage?: string;
+  lastMessageBy?: string;
   updatedAt?: any;
+  unreadCount?: number;
 };
 
 type Message = {
@@ -86,6 +89,13 @@ function formatConversationTime(value: any) {
 
 function canAccessConversation(conversation: Conversation | undefined, uid: string) {
   return Boolean(uid && conversation?.participantIds?.includes(uid));
+}
+
+function isUnreadForUser(message: Message, uid: string) {
+  if (!uid) return false;
+  if (message.createdBy === uid) return false;
+
+  return !Array.isArray(message.readBy) || !message.readBy.includes(uid);
 }
 
 export default function MessagesPage() {
@@ -212,13 +222,34 @@ function MessagesPageContent() {
   async function loadConversations(uid: string, preferredConversationId = "") {
     const conversationsSnap = await getDocs(collection(db, "conversations"));
 
-    const result = conversationsSnap.docs
+    const visibleConversations = conversationsSnap.docs
       .map((docSnap) => ({
         id: docSnap.id,
         ...(docSnap.data() as Omit<Conversation, "id">),
       }))
-      .filter((conversation) => conversation.participantIds?.includes(uid))
-      .sort((a, b) => getTimestampValue(b.updatedAt) - getTimestampValue(a.updatedAt));
+      .filter((conversation) => conversation.participantIds?.includes(uid));
+
+    const result = await Promise.all(
+      visibleConversations.map(async (conversation) => {
+        const messagesSnap = await getDocs(
+          collection(db, "conversations", conversation.id, "messages")
+        );
+
+        const unreadCount = messagesSnap.docs
+          .map((docSnap) => ({
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<Message, "id">),
+          }))
+          .filter((chatMessage) => isUnreadForUser(chatMessage, uid)).length;
+
+        return {
+          ...conversation,
+          unreadCount,
+        };
+      })
+    );
+
+    result.sort((a, b) => getTimestampValue(b.updatedAt) - getTimestampValue(a.updatedAt));
 
     setConversations(result);
 
@@ -265,7 +296,26 @@ function MessagesPageContent() {
       collection(db, "conversations", conversationId, "messages")
     );
 
-    const result = messagesSnap.docs
+    await Promise.all(
+      messagesSnap.docs.map(async (docSnap) => {
+        const chatMessage = {
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<Message, "id">),
+        };
+
+        if (isUnreadForUser(chatMessage, uid)) {
+          await updateDoc(doc(db, "conversations", conversationId, "messages", docSnap.id), {
+            readBy: arrayUnion(uid),
+          });
+        }
+      })
+    );
+
+    const refreshedMessagesSnap = await getDocs(
+      collection(db, "conversations", conversationId, "messages")
+    );
+
+    const result = refreshedMessagesSnap.docs
       .map((docSnap) => ({
         id: docSnap.id,
         ...(docSnap.data() as Omit<Message, "id">),
@@ -321,6 +371,7 @@ function MessagesPageContent() {
 
       await updateDoc(doc(db, "conversations", activeConversationId), {
         lastMessage: cleanText,
+        lastMessageBy: user.uid,
         updatedAt: serverTimestamp(),
       });
 
@@ -455,8 +506,18 @@ function MessagesPageContent() {
                               )}
                             </div>
 
-                            <div className="shrink-0 text-right text-[11px] font-bold text-slate-500">
-                              {formatConversationTime(conversation.updatedAt)}
+                            <div className="shrink-0 text-right">
+                              {Number(conversation.unreadCount || 0) > 0 && (
+                                <div className="mb-1 ml-auto flex h-6 min-w-6 items-center justify-center rounded-full bg-fuchsia-500 px-2 text-[10px] font-black text-white">
+                                  {Number(conversation.unreadCount || 0) > 9
+                                    ? "9+"
+                                    : conversation.unreadCount}
+                                </div>
+                              )}
+
+                              <div className="text-[11px] font-bold text-slate-500">
+                                {formatConversationTime(conversation.updatedAt)}
+                              </div>
                             </div>
                           </div>
 

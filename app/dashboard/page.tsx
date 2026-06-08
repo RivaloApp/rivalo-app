@@ -332,6 +332,7 @@ export default function DashboardPage() {
   const [leaders, setLeaders] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -387,6 +388,42 @@ export default function DashboardPage() {
         const notificationsSnap = await getDocs(notificationsQuery);
 
         setUnreadNotificationsCount(notificationsSnap.size);
+
+        const conversationsSnap = await getDocs(collection(db, "conversations"));
+
+        const myConversations = conversationsSnap.docs
+          .map((conversationSnap) => ({
+            id: conversationSnap.id,
+            ...(conversationSnap.data() as {
+              participantIds?: string[];
+            }),
+          }))
+          .filter((conversation) =>
+            conversation.participantIds?.includes(currentUser.uid)
+          );
+
+        let nextUnreadMessagesCount = 0;
+
+        for (const conversation of myConversations) {
+          const messagesSnap = await getDocs(
+            collection(db, "conversations", conversation.id, "messages")
+          );
+
+          nextUnreadMessagesCount += messagesSnap.docs.filter((messageSnap) => {
+            const messageData = messageSnap.data() as {
+              createdBy?: string;
+              readBy?: string[];
+            };
+
+            return (
+              messageData.createdBy !== currentUser.uid &&
+              (!Array.isArray(messageData.readBy) ||
+                !messageData.readBy.includes(currentUser.uid))
+            );
+          }).length;
+        }
+
+        setUnreadMessagesCount(nextUnreadMessagesCount);
       } finally {
         setLoading(false);
       }
@@ -472,6 +509,7 @@ export default function DashboardPage() {
             <div className="mt-4 flex justify-end lg:mt-0">
               <TopIcons
                 unreadNotificationsCount={unreadNotificationsCount}
+                unreadMessagesCount={unreadMessagesCount}
                 onOpenMenu={() => setMobileMenuOpen(true)}
               />
             </div>
@@ -904,9 +942,11 @@ function SideLink({
 
 function TopIcons({
   unreadNotificationsCount,
+  unreadMessagesCount,
   onOpenMenu,
 }: {
   unreadNotificationsCount: number;
+  unreadMessagesCount: number;
   onOpenMenu: () => void;
 }) {
   async function handleLogout() {
@@ -929,11 +969,17 @@ function TopIcons({
       <div className="flex shrink-0 items-center justify-end gap-3 sm:gap-4">
         <Link
           href="/messages"
-          className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
+          className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
           title="Messaggi"
           aria-label="Messaggi"
         >
           <MessageCircle size={22} />
+
+          {unreadMessagesCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-500 px-1 text-[10px] font-black text-white">
+              {unreadMessagesCount > 9 ? "9+" : unreadMessagesCount}
+            </span>
+          )}
         </Link>
 
         <Link
