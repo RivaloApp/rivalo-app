@@ -1688,8 +1688,17 @@ function MatchmakingRequestCard({
           </div>
 
           {isCompleted && (
-            <div className="mt-3 rounded-xl border border-green-300/20 bg-green-400/10 px-3 py-2 text-xs font-black uppercase text-green-100">
-              Annuncio completo
+            <div className="mt-3 grid gap-3">
+              <div className="rounded-xl border border-green-300/20 bg-green-400/10 px-3 py-2 text-xs font-black uppercase text-green-100">
+                Annuncio completo
+              </div>
+
+              <Link
+                href={`/match?matchmakingRequestId=${request.id}`}
+                className="flex items-center justify-center rounded-xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-3 py-3 text-xs font-black uppercase text-white"
+              >
+                Crea match amichevole
+              </Link>
             </div>
           )}
 

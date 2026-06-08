@@ -12,6 +12,7 @@ import {
   getDocs,
   query,
   serverTimestamp,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
@@ -215,6 +216,29 @@ type MatchDoc = {
   awayScore?: number | null;
 };
 
+type MatchmakingRequestDoc = {
+  id: string;
+  type?: string;
+  activeSport?: string;
+  city?: string;
+  zone?: string;
+  matchPlace?: string;
+  format?: string;
+  date?: string;
+  time?: string;
+  createdBy?: string;
+  createdByName?: string;
+  status?: string;
+};
+
+type MatchmakingApplicationDoc = {
+  id: string;
+  requestId?: string;
+  fromUid?: string;
+  fromName?: string;
+  status?: string;
+};
+
 export default function MatchPage() {
   return (
     <Suspense
@@ -232,6 +256,8 @@ export default function MatchPage() {
 function MatchPageContent() {
   const searchParams = useSearchParams();
   const requestedGroupId = searchParams.get("groupId") || "";
+  const requestedMatchmakingRequestId =
+    searchParams.get("matchmakingRequestId") || "";
 
   const [user, setUser] = useState<User | null>(null);
   const [userSport, setUserSport] = useState("calcetto");
@@ -262,6 +288,7 @@ const [awayTeamId, setAwayTeamId] = useState("");
   const [saving, setSaving] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [message, setMessage] = useState("");
+  const [matchmakingSourceId, setMatchmakingSourceId] = useState("");
   const [matchFilter, setMatchFilter] = useState<
     "tutti" | "ufficiali" | "da_confermare" | "contestati"
   >("tutti");
@@ -278,17 +305,19 @@ const [awayTeamId, setAwayTeamId] = useState("");
       await loadData(
         currentUser.uid,
         currentUser.displayName || "Rivalo Player",
-        requestedGroupId
+        requestedGroupId,
+        requestedMatchmakingRequestId
       );
     });
 
     return () => unsubscribe();
-  }, [requestedGroupId]);
+  }, [requestedGroupId, requestedMatchmakingRequestId]);
 
   async function loadData(
     uid: string,
     fallbackName?: string,
-    preferredGroupId?: string
+    preferredGroupId?: string,
+    preferredMatchmakingRequestId?: string
   ) {
     setLoadingData(true);
 
@@ -361,6 +390,16 @@ const [awayTeamId, setAwayTeamId] = useState("");
         await loadGroupTeams("");
       }
 
+      if (preferredMatchmakingRequestId) {
+        await loadMatchmakingSource({
+          requestId: preferredMatchmakingRequestId,
+          currentUid: uid,
+          fallbackName: profileName,
+          activeSport: profileSport,
+          profileCity,
+        });
+      }
+
       const createdMatchesQuery = query(
         collection(db, "matches"),
         where("createdBy", "==", uid)
@@ -407,6 +446,134 @@ const [awayTeamId, setAwayTeamId] = useState("");
       setMessage("Errore nel caricamento dei match.");
     } finally {
       setLoadingData(false);
+    }
+  }
+
+  async function loadMatchmakingSource({
+    requestId,
+    currentUid,
+    fallbackName,
+    activeSport,
+    profileCity,
+  }: {
+    requestId: string;
+    currentUid: string;
+    fallbackName: string;
+    activeSport: Sport;
+    profileCity: string;
+  }) {
+    try {
+      const requestSnap = await getDoc(doc(db, "matchmakingRequests", requestId));
+
+      if (!requestSnap.exists()) {
+        setMessage("Annuncio matchmaking non trovato.");
+        return;
+      }
+
+      const requestData = {
+        id: requestSnap.id,
+        ...(requestSnap.data() as Omit<MatchmakingRequestDoc, "id">),
+      };
+
+      const requestSport = normalizeSport(requestData.activeSport || activeSport);
+
+      if (requestSport !== activeSport) {
+        setMessage("L'annuncio appartiene a uno sport diverso dal profilo attivo.");
+        return;
+      }
+
+      if (requestData.createdBy !== currentUid) {
+        setMessage("Solo il creator dell'annuncio può creare il match.");
+        return;
+      }
+
+      const applicationsQuery = query(
+        collection(db, "matchmakingApplications"),
+        where("requestId", "==", requestId),
+        where("status", "==", "accepted")
+      );
+
+      const applicationsSnap = await getDocs(applicationsQuery);
+
+      const applications = applicationsSnap.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<MatchmakingApplicationDoc, "id">),
+      }));
+
+      const participantIds = Array.from(
+        new Set([currentUid, ...applications.map((application) => application.fromUid || "")].filter(Boolean))
+      );
+
+      const usersResult: UserOption[] = [];
+
+      for (const participantId of participantIds) {
+        if (participantId === currentUid) {
+          usersResult.push({
+            uid: currentUid,
+            name: fallbackName || "Rivalo Player",
+          });
+          continue;
+        }
+
+        const userSnap = await getDoc(doc(db, "users", participantId));
+
+        if (userSnap.exists()) {
+          const userData = userSnap.data() as UserProfile & {
+            photoUrl?: string;
+            photoURL?: string;
+          };
+
+          if (isProfileDeletionRequested(userData)) continue;
+          if (getProfileActiveSport(userData) !== requestSport) continue;
+
+          usersResult.push({
+            uid: participantId,
+            name: userData.name || userData.nickname || "Rivalo Player",
+            nickname: userData.nickname || "",
+            photoUrl: userData.photoUrl || userData.photoURL || "",
+          });
+        }
+      }
+
+      const safeFormat =
+        requestData.format === "doppio" || requestData.format === "singolo"
+          ? (requestData.format as CompetitionFormat)
+          : requestSport === "calcetto"
+          ? "squadre"
+          : "singolo";
+
+      const sideSize = requestSport === "calcetto" ? 0 : getRacketSideSize(safeFormat);
+      const selectedIds = usersResult.map((item) => item.uid);
+
+      setMatchmakingSourceId(requestId);
+      setGroupId("");
+      setSport(requestSport);
+      setCity(requestData.city || profileCity || "");
+      setField(requestData.matchPlace || requestData.zone || "");
+      setDate(requestData.date || "");
+      setTime(requestData.time || "");
+      setMode("amichevole");
+      setMatchName(
+        `${sportLabel(requestSport)} amichevole${requestData.matchPlace ? ` · ${requestData.matchPlace}` : ""}`
+      );
+      setCompetitionFormat(safeFormat);
+      setSlots(String(Math.max(selectedIds.length, requestSport === "calcetto" ? 2 : sideSize * 2)));
+      setAvailableUsers(usersResult);
+      setSelectedPlayerIds(selectedIds);
+
+      if (requestSport === "calcetto") {
+        const half = Math.ceil(selectedIds.length / 2);
+        setHomePlayerIds(selectedIds.slice(0, half));
+        setAwayPlayerIds(selectedIds.slice(half));
+      } else {
+        setHomePlayerIds(selectedIds.slice(0, sideSize));
+        setAwayPlayerIds(selectedIds.slice(sideSize, sideSize * 2));
+      }
+
+      setMessage("Annuncio matchmaking caricato. Controlla i dati e crea il match amichevole.");
+    } catch (error) {
+      console.error(error);
+      setMessage("Errore nel caricamento dell'annuncio matchmaking.");
     }
   }
 
@@ -681,7 +848,7 @@ let matchHomeTeamId = "";
 let matchAwayTeamId = "";
 let homeCaptainId = "";
 let awayCaptainId = "";
-let sourceType = "manual";
+let sourceType = matchmakingSourceId ? "matchmaking" : "manual";
 
 if (activeSport === "calcetto" && selectedHomeTeam && selectedAwayTeam) {
   if (selectedHomeTeam.id === selectedAwayTeam.id) {
@@ -734,7 +901,7 @@ sourceType = "groupTeams";
   const allSelectedIds = [...homePlayerIds, ...awayPlayerIds].filter(Boolean);
   const uniqueSelectedIds = Array.from(new Set(allSelectedIds));
 
-  if (!groupId) {
+  if (!groupId && !matchmakingSourceId) {
     setMessage("Per creare match padel o tennis seleziona prima un gruppo.");
     return;
   }
@@ -762,7 +929,7 @@ sourceType = "groupTeams";
   awayTeamName = buildRacketTeamName(awayUsers);
   homeCaptainId = homeUsers[0]?.uid || "";
   awayCaptainId = awayUsers[0]?.uid || "";
-  sourceType = "groupPlayers";
+  sourceType = matchmakingSourceId ? "matchmaking" : "groupPlayers";
 
   matchPlayers = [
     ...homeUsers.map((selectedUser) => ({
@@ -817,8 +984,9 @@ sourceType = "groupTeams";
     setMessage("");
 
     try {
-      await addDoc(collection(db, "matches"), {
+      const matchRef = await addDoc(collection(db, "matches"), {
         groupId: groupId || "nessun-gruppo",
+        matchmakingRequestId: matchmakingSourceId || "",
         createdBy: user.uid,
         createdByName:
           freshProfile?.name ||
@@ -838,7 +1006,10 @@ sourceType = "groupTeams";
         field,
         date,
         time,
-        mode,
+        mode: "amichevole",
+        isRanked: false,
+        competitive: false,
+        sourceLabel: matchmakingSourceId ? "matchmaking" : "",
         slots: Number(slots),
 
         status: "programmata",
@@ -869,6 +1040,15 @@ awayScore: null,
         updatedAt: serverTimestamp(),
       });
 
+      if (matchmakingSourceId) {
+        await updateDoc(doc(db, "matchmakingRequests", matchmakingSourceId), {
+          linkedMatchId: matchRef.id,
+          status: "match_created",
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      setMatchmakingSourceId("");
       setMatchName("");
       setField("");
       setDate("");
