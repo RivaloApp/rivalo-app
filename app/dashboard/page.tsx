@@ -115,6 +115,12 @@ const NAV_ITEMS: NavItem[] = [
     subtitle: "Trova match, player e avversari",
   },
   {
+    href: "/messages",
+    icon: <MessageCircle />,
+    text: "Messaggi",
+    subtitle: "Chat e organizzazione match",
+  },
+  {
     href: "/events",
     icon: <CalendarDays />,
     text: "Eventi",
@@ -624,6 +630,14 @@ export default function DashboardPage() {
               />
 
               <QuickAction
+                href="/messages"
+                tone="blue"
+                icon={<MessageCircle />}
+                title="Messaggi"
+                text="Chat e organizzazione match"
+              />
+
+              <QuickAction
                 href="/events"
                 tone="purple"
                 icon={<CalendarDays />}
@@ -827,6 +841,7 @@ function Sidebar({ accountLocked }: { accountLocked: boolean }) {
         <SideLink href="/seasons" icon={<Medal />} text="Stagione" />
         <SideLink href="/groups" icon={<Users />} text="Gruppi" locked={accountLocked} />
         <SideLink href="/opponents" icon={<Search />} text="Matchmaking" locked={accountLocked} />
+        <SideLink href="/messages" icon={<MessageCircle />} text="Messaggi" />
         <SideLink href="/match" icon={<CircleDot />} text="Match" locked={accountLocked} />
         <SideLink href="/community" icon={<MessageCircle />} text="Community" />
         <SideLink href="/events" icon={<CalendarDays />} text="Eventi" locked={accountLocked} />
@@ -912,6 +927,15 @@ function TopIcons({
       </button>
 
       <div className="flex shrink-0 items-center justify-end gap-3 sm:gap-4">
+        <Link
+          href="/messages"
+          className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"
+          title="Messaggi"
+          aria-label="Messaggi"
+        >
+          <MessageCircle size={22} />
+        </Link>
+
         <Link
           href="/notifications"
           className="relative rounded-2xl border border-white/10 bg-white/[.04] p-3 text-slate-200 transition hover:bg-white/[.08]"

@@ -71,6 +71,10 @@ function getTimestampValue(value: any) {
   return 0;
 }
 
+function canAccessConversation(conversation: Conversation | undefined, uid: string) {
+  return Boolean(uid && conversation?.participantIds?.includes(uid));
+}
+
 export default function MessagesPage() {
   return (
     <Suspense
@@ -209,11 +213,39 @@ function MessagesPageContent() {
     setActiveConversationId(nextConversationId);
 
     if (nextConversationId) {
-      await loadMessages(nextConversationId);
+      const selectedConversation = result.find(
+        (conversation) => conversation.id === nextConversationId
+      );
+
+      if (canAccessConversation(selectedConversation, uid)) {
+        await loadMessages(nextConversationId, uid);
+      } else {
+        setActiveConversationId("");
+        setMessages([]);
+      }
     }
   }
 
-  async function loadMessages(conversationId: string) {
+  async function loadMessages(conversationId: string, uid = user?.uid || "") {
+    const conversationSnap = await getDoc(doc(db, "conversations", conversationId));
+
+    if (!conversationSnap.exists()) {
+      setMessages([]);
+      return;
+    }
+
+    const conversation = {
+      id: conversationSnap.id,
+      ...(conversationSnap.data() as Omit<Conversation, "id">),
+    };
+
+    if (!canAccessConversation(conversation, uid)) {
+      setMessage("Non puoi accedere a questa conversazione.");
+      setActiveConversationId("");
+      setMessages([]);
+      return;
+    }
+
     const messagesSnap = await getDocs(
       collection(db, "conversations", conversationId, "messages")
     );
@@ -229,8 +261,17 @@ function MessagesPageContent() {
   }
 
   async function selectConversation(conversationId: string) {
+    if (!user) return;
+
+    const conversation = conversations.find((item) => item.id === conversationId);
+
+    if (!canAccessConversation(conversation, user.uid)) {
+      setMessage("Non puoi accedere a questa conversazione.");
+      return;
+    }
+
     setActiveConversationId(conversationId);
-    await loadMessages(conversationId);
+    await loadMessages(conversationId, user.uid);
   }
 
   async function sendMessage(e: React.FormEvent) {
@@ -241,7 +282,10 @@ function MessagesPageContent() {
     const cleanText = text.trim().slice(0, 500);
     const conversation = conversations.find((item) => item.id === activeConversationId);
 
-    if (!conversation) return;
+    if (!conversation || !canAccessConversation(conversation, user.uid)) {
+      setMessage("Non puoi inviare messaggi in questa conversazione.");
+      return;
+    }
 
     const recipientUid =
       conversation.participantIds?.find((participantId) => participantId !== user.uid) || "";
