@@ -310,7 +310,7 @@ function MessagesPageContent() {
           {requestId ? "Torna al matchmaking" : "Torna alla dashboard"}
         </Link>
 
-        <div className="mt-7 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl backdrop-blur sm:rounded-[2.5rem]">
+        <div className="mt-7 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl backdrop-blur sm:rounded-[2.5rem]">
           <div className="border-b border-white/10 p-5 sm:p-7">
             <div className="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">
               Rivalo Chat
@@ -334,8 +334,8 @@ function MessagesPageContent() {
           {loading ? (
             <div className="p-5 text-slate-300">Caricamento chat...</div>
           ) : (
-            <div className="grid min-h-[620px] gap-0 lg:grid-cols-[330px_1fr]">
-              <aside className="border-b border-white/10 p-4 lg:border-b-0 lg:border-r">
+            <div className="grid min-h-[620px] min-w-0 gap-0 overflow-hidden lg:grid-cols-[330px_minmax(0,1fr)]">
+              <aside className="min-w-0 overflow-hidden border-b border-white/10 p-4 lg:border-b-0 lg:border-r">
                 {conversations.length === 0 ? (
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">
                     Nessuna conversazione ancora.
@@ -357,7 +357,7 @@ function MessagesPageContent() {
                           {getOtherName(conversation)}
                         </div>
 
-                        <div className="mt-1 truncate text-xs font-semibold text-slate-400">
+                        <div className="mt-1 min-w-0 truncate text-xs font-semibold text-slate-400">
                           {conversation.lastMessage || "Apri conversazione"}
                         </div>
                       </button>
@@ -366,9 +366,9 @@ function MessagesPageContent() {
                 )}
               </aside>
 
-              <section className="flex min-w-0 flex-col">
+              <section className="flex min-w-0 max-w-full flex-col overflow-hidden">
                 <div className="border-b border-white/10 p-4">
-                  <div className="truncate text-lg font-black text-white">
+                  <div className="min-w-0 truncate text-lg font-black text-white">
                     {activeConversation ? getOtherName(activeConversation) : targetName}
                   </div>
 
@@ -377,7 +377,7 @@ function MessagesPageContent() {
                   </div>
                 </div>
 
-                <div className="flex-1 space-y-3 overflow-y-auto p-4">
+                <div className="min-w-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden p-4">
                   {messages.length === 0 ? (
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm font-semibold text-slate-300">
                       Nessun messaggio. Scrivi il primo.
@@ -392,7 +392,7 @@ function MessagesPageContent() {
                           className={`flex ${mine ? "justify-end" : "justify-start"}`}
                         >
                           <div
-                            className={`max-w-[82%] break-words rounded-2xl px-4 py-3 text-sm font-semibold leading-6 ${
+                            className={`min-w-0 max-w-[92%] overflow-hidden whitespace-pre-wrap break-words rounded-2xl px-4 py-3 text-sm font-semibold leading-6 sm:max-w-[82%] ${
                               mine
                                 ? "bg-cyan-400/20 text-cyan-50"
                                 : "bg-white/[.07] text-slate-100"
@@ -406,8 +406,8 @@ function MessagesPageContent() {
                   )}
                 </div>
 
-                <form onSubmit={sendMessage} className="border-t border-white/10 p-4">
-                  <div className="flex gap-2">
+                <form onSubmit={sendMessage} className="min-w-0 border-t border-white/10 p-4">
+                  <div className="flex min-w-0 gap-2">
                     <input
                       value={text}
                       onChange={(event) => setText(event.target.value)}
