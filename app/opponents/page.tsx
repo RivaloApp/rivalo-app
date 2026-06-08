@@ -1709,9 +1709,18 @@ function MatchmakingRequestCard({
                     className="min-w-0 rounded-xl border border-white/10 bg-black/20 px-3 py-3"
                   >
                     <div className="flex min-w-0 items-center justify-between gap-3">
-                      <span className="min-w-0 truncate text-sm font-black text-white">
-                        {application.fromName || "Rivalo Player"}
-                      </span>
+                      {application.fromUid ? (
+                        <Link
+                          href={`/public/${application.fromUid}?from=matchmaking&requestId=${request.id}`}
+                          className="min-w-0 truncate text-sm font-black text-cyan-200 underline-offset-4 hover:underline"
+                        >
+                          {application.fromName || "Rivalo Player"}
+                        </Link>
+                      ) : (
+                        <span className="min-w-0 truncate text-sm font-black text-white">
+                          {application.fromName || "Rivalo Player"}
+                        </span>
+                      )}
 
                       <span
                         className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-black uppercase ${
