@@ -11,9 +11,11 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import { createNotification } from "../../lib/createNotification";
@@ -220,14 +222,17 @@ function MessagesPageContent() {
   }
 
   async function loadConversations(uid: string, preferredConversationId = "") {
-    const conversationsSnap = await getDocs(collection(db, "conversations"));
+    const conversationsQuery = query(
+      collection(db, "conversations"),
+      where("participantIds", "array-contains", uid)
+    );
 
-    const visibleConversations = conversationsSnap.docs
-      .map((docSnap) => ({
-        id: docSnap.id,
-        ...(docSnap.data() as Omit<Conversation, "id">),
-      }))
-      .filter((conversation) => conversation.participantIds?.includes(uid));
+    const conversationsSnap = await getDocs(conversationsQuery);
+
+    const visibleConversations = conversationsSnap.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...(docSnap.data() as Omit<Conversation, "id">),
+    }));
 
     const result = await Promise.all(
       visibleConversations.map(async (conversation) => {

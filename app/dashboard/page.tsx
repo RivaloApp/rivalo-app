@@ -389,18 +389,19 @@ export default function DashboardPage() {
 
         setUnreadNotificationsCount(notificationsSnap.size);
 
-        const conversationsSnap = await getDocs(collection(db, "conversations"));
+        const conversationsQuery = query(
+          collection(db, "conversations"),
+          where("participantIds", "array-contains", currentUser.uid)
+        );
 
-        const myConversations = conversationsSnap.docs
-          .map((conversationSnap) => ({
-            id: conversationSnap.id,
-            ...(conversationSnap.data() as {
-              participantIds?: string[];
-            }),
-          }))
-          .filter((conversation) =>
-            conversation.participantIds?.includes(currentUser.uid)
-          );
+        const conversationsSnap = await getDocs(conversationsQuery);
+
+        const myConversations = conversationsSnap.docs.map((conversationSnap) => ({
+          id: conversationSnap.id,
+          ...(conversationSnap.data() as {
+            participantIds?: string[];
+          }),
+        }));
 
         let nextUnreadMessagesCount = 0;
 
