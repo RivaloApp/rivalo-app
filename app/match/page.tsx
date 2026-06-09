@@ -491,6 +491,7 @@ const [awayTeamId, setAwayTeamId] = useState("");
       const applicationsQuery = query(
         collection(db, "matchmakingApplications"),
         where("requestId", "==", requestId),
+        where("requestOwnerId", "==", currentUid),
         where("status", "==", "accepted")
       );
 

@@ -234,17 +234,12 @@ function MessagesPageContent() {
               updatedAt: serverTimestamp(),
             });
           } else {
-            await updateDoc(conversationRef, {
-              [`participantNames.${currentUser.uid}`]: resolvedCurrentName,
-              [`participantNames.${targetUid}`]: resolvedTargetName,
-              ...(requestId
-                ? {
-                    sourceType: "matchmaking",
-                    requestId,
-                  }
-                : {}),
-              updatedAt: serverTimestamp(),
-            });
+            const existingConversation = conversationSnap.data() as Conversation;
+
+            if (!existingConversation.participantIds?.includes(currentUser.uid)) {
+              setMessage("Non puoi accedere a questa conversazione.");
+              return;
+            }
           }
 
           setActiveConversationId(createdConversationId);
