@@ -224,7 +224,7 @@ function MessagesPageContent() {
 
           if (!conversationSnap.exists()) {
             await setDoc(conversationRef, {
-              participantIds: [currentUser.uid, targetUid],
+              participantIds: Array.from(new Set([currentUser.uid, targetUid])),
               participantNames: {
                 [currentUser.uid]: resolvedCurrentName,
                 [targetUid]: resolvedTargetName,
@@ -247,6 +247,21 @@ function MessagesPageContent() {
 
           setActiveConversationId(createdConversationId);
           setChatOpen(true);
+
+          const directConversationSnap = await getDoc(conversationRef);
+
+          if (directConversationSnap.exists()) {
+            const directConversation = {
+              id: directConversationSnap.id,
+              ...(directConversationSnap.data() as Omit<Conversation, "id">),
+            };
+
+            if (canAccessConversation(directConversation, currentUser.uid)) {
+              setConversations([directConversation]);
+              await loadMessages(createdConversationId, currentUser.uid);
+              return;
+            }
+          }
         }
       }
 
