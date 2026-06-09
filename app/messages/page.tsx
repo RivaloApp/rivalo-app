@@ -66,8 +66,11 @@ function getDisplayName(profile?: UserProfile | null, fallback = "Rivalo Player"
   return profile.name || profile.nickname || fallback;
 }
 
-function getConversationId(uidA: string, uidB: string) {
-  return [uidA, uidB].sort().join("_");
+function getConversationId(uidA: string, uidB: string, contextId = "") {
+  const baseId = [uidA, uidB].sort().join("_");
+  const cleanContextId = contextId.replace(/[^a-zA-Z0-9_-]/g, "");
+
+  return cleanContextId ? `${baseId}_${cleanContextId}` : baseId;
 }
 
 function getTimestampValue(value: any) {
@@ -215,7 +218,7 @@ function MessagesPageContent() {
           const resolvedTargetName = getDisplayName(targetProfile);
           setTargetName(resolvedTargetName);
 
-          createdConversationId = getConversationId(currentUser.uid, targetUid);
+          createdConversationId = getConversationId(currentUser.uid, targetUid, requestId);
           const conversationRef = doc(db, "conversations", createdConversationId);
           const conversationSnap = await getDoc(conversationRef);
 
@@ -544,15 +547,23 @@ function MessagesPageContent() {
                                 {getOtherName(conversation)}
                               </div>
 
-                              {otherUid && (
-                                <Link
-                                  href={`/public/${otherUid}`}
-                                  onClick={(event) => event.stopPropagation()}
-                                  className="mt-1 inline-block text-[11px] font-black uppercase tracking-[0.12em] text-cyan-300"
-                                >
-                                  Apri profilo
-                                </Link>
-                              )}
+                              <div className="mt-1 flex flex-wrap items-center gap-2">
+                                {otherUid && (
+                                  <Link
+                                    href={`/public/${otherUid}`}
+                                    onClick={(event) => event.stopPropagation()}
+                                    className="inline-block text-[11px] font-black uppercase tracking-[0.12em] text-cyan-300"
+                                  >
+                                    Apri profilo
+                                  </Link>
+                                )}
+
+                                {conversation.requestId && (
+                                  <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-100">
+                                    Matchmaking
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
                             <div className="shrink-0 text-right">
