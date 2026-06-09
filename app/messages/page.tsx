@@ -482,7 +482,7 @@ function MessagesPageContent() {
     <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_6%,rgba(34,211,238,.17),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(217,70,239,.15),transparent_32%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
 
-      <section className="relative z-10 mx-auto w-full max-w-6xl px-3 py-7 sm:px-5 sm:py-8">
+      <section className="relative z-10 mx-auto w-full max-w-6xl px-3 py-4 sm:px-5 sm:py-8">
         <Link
           href={requestId ? `/opponents?requestId=${requestId}` : "/dashboard"}
           className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
@@ -491,17 +491,17 @@ function MessagesPageContent() {
           {requestId ? "Torna al matchmaking" : "Torna alla dashboard"}
         </Link>
 
-        <div className="mt-7 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl backdrop-blur sm:rounded-[2.5rem]">
-          <div className="border-b border-white/10 p-5 sm:p-7">
+        <div className="mt-4 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl backdrop-blur sm:mt-7 sm:rounded-[2.5rem]">
+          <div className="border-b border-white/10 p-4 sm:p-7">
             <div className="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">
               Rivalo Chat
             </div>
 
-            <h1 className="mt-2 break-words text-4xl font-black sm:text-5xl">
+            <h1 className="mt-2 break-words text-3xl font-black sm:text-5xl">
               Messaggi
             </h1>
 
-            <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
+            <p className="mt-2 text-sm font-semibold leading-5 text-slate-300 sm:mt-3 sm:leading-6">
               Organizzati con gli utenti del matchmaking e prepara il match.
             </p>
           </div>
@@ -515,7 +515,7 @@ function MessagesPageContent() {
           {loading ? (
             <div className="p-5 text-slate-300">Caricamento chat...</div>
           ) : (
-            <div className="grid min-h-[620px] min-w-0 gap-0 overflow-hidden lg:grid-cols-[360px_minmax(0,1fr)]">
+            <div className="grid h-[calc(100svh-260px)] min-h-[430px] min-w-0 gap-0 overflow-hidden lg:h-[620px] lg:grid-cols-[360px_minmax(0,1fr)]">
               <aside
                 className={`min-w-0 overflow-hidden border-white/10 p-4 lg:block lg:border-r ${
                   chatOpen ? "hidden" : "block"
@@ -606,11 +606,11 @@ function MessagesPageContent() {
                   chatOpen ? "flex" : "hidden"
                 }`}
               >
-                <div className="border-b border-white/10 p-4">
+                <div className="border-b border-white/10 p-3 sm:p-4">
                   <button
                     type="button"
                     onClick={() => setChatOpen(false)}
-                    className="mb-4 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-300 lg:hidden"
+                    className="mb-3 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-300 lg:hidden"
                   >
                     <ArrowLeft size={16} />
                     Conversazioni
@@ -625,13 +625,13 @@ function MessagesPageContent() {
                   </div>
                 </div>
 
-                <div className="min-w-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden p-4">
+                <div className="min-h-0 min-w-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
                   {!activeConversationId ? (
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm font-semibold text-slate-300">
                       Seleziona una conversazione dalla lista.
                     </div>
                   ) : messages.length === 0 ? (
-                    <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm font-semibold text-slate-300">
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300 sm:p-5">
                       Nessun messaggio. Scrivi il primo.
                     </div>
                   ) : (
@@ -696,7 +696,7 @@ function MessagesPageContent() {
                   )}
                 </div>
 
-                <form onSubmit={sendMessage} className="min-w-0 border-t border-white/10 p-4">
+                <form onSubmit={sendMessage} className="min-w-0 shrink-0 border-t border-white/10 p-3 sm:p-4">
                   <div className="flex min-w-0 gap-2">
                     <input
                       value={text}
