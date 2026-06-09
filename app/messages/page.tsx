@@ -220,11 +220,12 @@ function MessagesPageContent() {
 
           createdConversationId = getConversationId(currentUser.uid, targetUid, requestId);
           const conversationRef = doc(db, "conversations", createdConversationId);
-          const conversationSnap = await getDoc(conversationRef);
+          const participantIds = Array.from(new Set([currentUser.uid, targetUid]));
 
-          if (!conversationSnap.exists()) {
-            await setDoc(conversationRef, {
-              participantIds: Array.from(new Set([currentUser.uid, targetUid])),
+          await setDoc(
+            conversationRef,
+            {
+              participantIds,
               participantNames: {
                 [currentUser.uid]: resolvedCurrentName,
                 [targetUid]: resolvedTargetName,
@@ -232,36 +233,30 @@ function MessagesPageContent() {
               sourceType: requestId ? "matchmaking" : "direct",
               requestId,
               matchId: "",
-              lastMessage: "",
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
-            });
-          } else {
-            const existingConversation = conversationSnap.data() as Conversation;
+            },
+            { merge: true }
+          );
 
-            if (!existingConversation.participantIds?.includes(currentUser.uid)) {
-              setMessage("Non puoi accedere a questa conversazione.");
-              return;
-            }
-          }
+          const directConversation: Conversation = {
+            id: createdConversationId,
+            participantIds,
+            participantNames: {
+              [currentUser.uid]: resolvedCurrentName,
+              [targetUid]: resolvedTargetName,
+            },
+            sourceType: requestId ? "matchmaking" : "direct",
+            requestId,
+            matchId: "",
+            lastMessage: "",
+          };
 
           setActiveConversationId(createdConversationId);
           setChatOpen(true);
-
-          const directConversationSnap = await getDoc(conversationRef);
-
-          if (directConversationSnap.exists()) {
-            const directConversation = {
-              id: directConversationSnap.id,
-              ...(directConversationSnap.data() as Omit<Conversation, "id">),
-            };
-
-            if (canAccessConversation(directConversation, currentUser.uid)) {
-              setConversations([directConversation]);
-              await loadMessages(createdConversationId, currentUser.uid);
-              return;
-            }
-          }
+          setConversations([directConversation]);
+          await loadMessages(createdConversationId, currentUser.uid);
+          return;
         }
       }
 
