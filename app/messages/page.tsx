@@ -49,6 +49,7 @@ type Message = {
   createdBy?: string;
   createdAt?: any;
   readBy?: string[];
+  requestId?: string;
 };
 
 function isRemovedProfile(user?: UserProfile | null) {
@@ -87,6 +88,39 @@ function formatConversationTime(value: any) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(timestamp));
+}
+
+function formatMessageDay(value: any) {
+  const timestamp = getTimestampValue(value);
+
+  if (!timestamp) return "";
+
+  return new Intl.DateTimeFormat("it-IT", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(timestamp));
+}
+
+function formatMessageTime(value: any) {
+  const timestamp = getTimestampValue(value);
+
+  if (!timestamp) return "";
+
+  return new Intl.DateTimeFormat("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function getMessageRequestLabel(messageRequestId?: string, currentRequestId?: string) {
+  if (!messageRequestId) return "Conversazione precedente";
+  if (currentRequestId && messageRequestId === currentRequestId) {
+    return "Annuncio matchmaking corrente";
+  }
+
+  return "Altro annuncio matchmaking";
 }
 
 function canAccessConversation(conversation: Conversation | undefined, uid: string) {
@@ -203,6 +237,12 @@ function MessagesPageContent() {
             await updateDoc(conversationRef, {
               [`participantNames.${currentUser.uid}`]: resolvedCurrentName,
               [`participantNames.${targetUid}`]: resolvedTargetName,
+              ...(requestId
+                ? {
+                    sourceType: "matchmaking",
+                    requestId,
+                  }
+                : {}),
               updatedAt: serverTimestamp(),
             });
           }
@@ -367,16 +407,25 @@ function MessagesPageContent() {
     setMessage("");
 
     try {
+      const messageRequestId = requestId || conversation.requestId || "";
+
       await addDoc(collection(db, "conversations", activeConversationId, "messages"), {
         text: cleanText,
         createdBy: user.uid,
         createdAt: serverTimestamp(),
         readBy: [user.uid],
+        requestId: messageRequestId,
       });
 
       await updateDoc(doc(db, "conversations", activeConversationId), {
         lastMessage: cleanText,
         lastMessageBy: user.uid,
+        ...(messageRequestId
+          ? {
+              sourceType: "matchmaking",
+              requestId: messageRequestId,
+            }
+          : {}),
         updatedAt: serverTimestamp(),
       });
 
@@ -570,22 +619,60 @@ function MessagesPageContent() {
                       Nessun messaggio. Scrivi il primo.
                     </div>
                   ) : (
-                    messages.map((chatMessage) => {
+                    messages.map((chatMessage, index) => {
                       const mine = chatMessage.createdBy === user?.uid;
+                      const previousMessage = messages[index - 1];
+
+                      const currentDay = formatMessageDay(chatMessage.createdAt);
+                      const previousDay = previousMessage
+                        ? formatMessageDay(previousMessage.createdAt)
+                        : "";
+
+                      const currentRequest = chatMessage.requestId || "";
+                      const previousRequest = previousMessage?.requestId || "";
+
+                      const showDayDivider = currentDay && currentDay !== previousDay;
+                      const showRequestDivider =
+                        index === 0 || currentRequest !== previousRequest;
 
                       return (
-                        <div
-                          key={chatMessage.id}
-                          className={`flex ${mine ? "justify-end" : "justify-start"}`}
-                        >
+                        <div key={chatMessage.id} className="space-y-3">
+                          {showDayDivider && (
+                            <div className="flex justify-center">
+                              <span className="rounded-full border border-white/10 bg-white/[.06] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-slate-300">
+                                {currentDay}
+                              </span>
+                            </div>
+                          )}
+
+                          {showRequestDivider && (
+                            <div className="flex justify-center">
+                              <span className="max-w-full rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-center text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200">
+                                {getMessageRequestLabel(currentRequest, requestId)}
+                              </span>
+                            </div>
+                          )}
+
                           <div
-                            className={`min-w-0 max-w-[92%] overflow-hidden whitespace-pre-wrap break-words rounded-2xl px-4 py-3 text-sm font-semibold leading-6 sm:max-w-[82%] ${
-                              mine
-                                ? "bg-cyan-400/20 text-cyan-50"
-                                : "bg-white/[.07] text-slate-100"
-                            }`}
+                            className={`flex ${mine ? "justify-end" : "justify-start"}`}
                           >
-                            {chatMessage.text}
+                            <div
+                              className={`min-w-0 max-w-[92%] overflow-hidden whitespace-pre-wrap break-words rounded-2xl px-4 py-3 text-sm font-semibold leading-6 sm:max-w-[82%] ${
+                                mine
+                                  ? "bg-cyan-400/20 text-cyan-50"
+                                  : "bg-white/[.07] text-slate-100"
+                              }`}
+                            >
+                              <div>{chatMessage.text}</div>
+
+                              <div
+                                className={`mt-2 text-right text-[10px] font-bold ${
+                                  mine ? "text-cyan-100/60" : "text-slate-400"
+                                }`}
+                              >
+                                {formatMessageTime(chatMessage.createdAt)}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
