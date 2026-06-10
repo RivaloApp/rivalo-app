@@ -25,6 +25,7 @@ import {
   ChevronRight,
   Clock,
   MapPin,
+  MessageCircle,
   ShieldCheck,
   Trophy,
   Users,
@@ -71,6 +72,7 @@ type MatchDoc = {
   homeCaptainId?: string;
   awayCaptainId?: string;
   sourceType?: string;
+  matchmakingRequestId?: string;
   homeScore?: number | null;
   awayScore?: number | null;
   mvpName?: string;
@@ -266,6 +268,20 @@ function getPlayerDisplayName(player?: MatchPlayer | null) {
 
 function getPlayerStatusLabel(player?: MatchPlayer | null) {
   return isProfileDeletionRequested(player) ? "Profilo non attivo" : "";
+}
+
+function getUniqueChatPlayers(players: MatchPlayer[], currentUid?: string) {
+  const seen = new Set<string>();
+
+  return players.filter((player) => {
+    if (!player.uid) return false;
+    if (player.uid === currentUid) return false;
+    if (isProfileDeletionRequested(player)) return false;
+    if (seen.has(player.uid)) return false;
+
+    seen.add(player.uid);
+    return true;
+  });
 }
 
 function getAccountLockedMessage() {
@@ -1752,6 +1768,9 @@ setMessage("Risultato contestato. Servirà revisione.");
     (player) => player.team !== "home" && player.team !== "away"
   );
 
+  const chatPlayers = getUniqueChatPlayers(players, user?.uid);
+  const chatContextId = match.matchmakingRequestId || matchId;
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_10%_4%,rgba(34,211,238,.16),transparent_28%),radial-gradient(circle_at_88%_8%,rgba(217,70,239,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
@@ -1825,6 +1844,58 @@ setMessage("Risultato contestato. Servirà revisione.");
               >
                 Apri evento
               </Link>
+            </div>
+          </section>
+        )}
+
+        {chatPlayers.length > 0 && (
+          <section className="mt-6 w-full min-w-0 overflow-hidden rounded-[1.6rem] border border-cyan-400/20 bg-cyan-400/10 p-4 sm:rounded-[2rem] sm:p-5">
+            <div className="flex items-start gap-3">
+              <MessageCircle className="shrink-0 text-cyan-300" size={26} />
+
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
+                  Chat partecipanti
+                </div>
+
+                <h2 className="mt-2 break-words text-2xl font-black text-white">
+                  Organizza il match
+                </h2>
+
+                <p className="mt-1 text-sm font-semibold leading-6 text-slate-300">
+                  Apri una chat 1-to-1 con gli altri player coinvolti in questo match.
+                </p>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {chatPlayers.map((player) => (
+                    <Link
+                      key={player.uid}
+                      href={`/messages?with=${player.uid}&requestId=${chatContextId}`}
+                      className="min-w-0 rounded-2xl border border-cyan-300/20 bg-[#020617]/70 p-4 transition hover:border-cyan-300/40 hover:bg-cyan-400/10"
+                    >
+                      <div className="flex min-w-0 items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-base font-black text-white">
+                            {getPlayerDisplayName(player)}
+                          </div>
+
+                          <div className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-cyan-300">
+                            {player.team === "home"
+                              ? homeSideLabel
+                              : player.team === "away"
+                              ? awaySideLabel
+                              : "Partecipante"}
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase text-cyan-100">
+                          Chat
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             </div>
           </section>
         )}
