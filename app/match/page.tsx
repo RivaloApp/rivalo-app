@@ -179,6 +179,18 @@ function applySportDefaults(
   setSlots("10");
 }
 
+function getMatchTimeOptions() {
+  const options: string[] = [];
+
+  for (let hour = 6; hour <= 23; hour += 1) {
+    ["00", "30"].forEach((minute) => {
+      options.push(`${String(hour).padStart(2, "0")}:${minute}`);
+    });
+  }
+
+  return options;
+}
+
 function isProfileDeletionRequested(profile?: UserProfile | null) {
   return Boolean(
     profile?.accountStatus === "deletion_requested" ||
@@ -1141,6 +1153,7 @@ awayScore: null,
   });
 
   const pageCopy = getMatchCopy(sport);
+  const timeOptions = getMatchTimeOptions();
 
   return (
     <main className="min-h-screen bg-[#020617] text-white">
@@ -1508,13 +1521,26 @@ awayScore: null,
                 </Field>
 
                 <Field label="Ora">
-                  <input
-                    type="time"
+                  <select
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
-                    className="w-full min-w-0 bg-transparent outline-none"
+                    className="w-full min-w-0 bg-[#0b1730] text-white outline-none"
                     required
-                  />
+                  >
+                    <option className="bg-[#020617] text-white" value="">
+                      Seleziona ora
+                    </option>
+
+                    {timeOptions.map((option) => (
+                      <option
+                        key={option}
+                        value={option}
+                        className="bg-[#020617] text-white"
+                      >
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
 
                 <Field label="Slot">
