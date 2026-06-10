@@ -312,7 +312,8 @@ const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
 
       const matchesQuery = query(
         collection(db, "matches"),
-        where("groupId", "==", groupId)
+        where("groupId", "==", groupId),
+        where("participants", "array-contains", currentUserId)
       );
 
       const matchesSnap = await getDocs(matchesQuery);
