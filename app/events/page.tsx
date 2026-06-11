@@ -10,10 +10,9 @@ import {
   doc,
   getDoc,
   getDocs,
-  limit,
-  orderBy,
   query,
   serverTimestamp,
+  where,
 } from "firebase/firestore";
 
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -304,37 +303,64 @@ export default function EventsPage() {
     setLoading(true);
 
     try {
-      const q = query(
+      const createdEventsQuery = query(
         collection(db, "events"),
-        orderBy("createdAt", "desc"),
-        limit(80)
+        where("createdBy", "==", currentUserId)
       );
 
-      const snap = await getDocs(q);
+      const participantEventsQuery = query(
+        collection(db, "events"),
+        where("participants", "array-contains", currentUserId)
+      );
 
-      const allEvents = snap.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...(docSnap.data() as Omit<EventItem, "id">),
-      }));
+      const publicEventsQuery = query(
+        collection(db, "events"),
+        where("isPublic", "==", true)
+      );
 
-      const filteredEvents = allEvents.filter((event) => {
-        const isMine = event.createdBy === currentUserId;
-        const canDiscover = isPublicEvent(event);
+      const [createdSnap, participantSnap, publicSnap] = await Promise.all([
+        getDocs(createdEventsQuery),
+        getDocs(participantEventsQuery),
+        getDocs(publicEventsQuery),
+      ]);
 
-        if (!isMine && !canDiscover) {
-          return false;
+      const eventsMap = new Map<string, EventItem>();
+
+      [...createdSnap.docs, ...participantSnap.docs, ...publicSnap.docs].forEach(
+        (docSnap) => {
+          eventsMap.set(docSnap.id, {
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<EventItem, "id">),
+          });
         }
+      );
 
-        if (!isSameSport(event, currentUserSport)) {
-          return false;
-        }
+      const filteredEvents = Array.from(eventsMap.values())
+        .filter((event) => {
+          const isMine = event.createdBy === currentUserId;
+          const isParticipant = event.participants?.includes(currentUserId);
+          const canDiscover = isPublicEvent(event);
 
-        if (isMine) {
-          return true;
-        }
+          if (!isMine && !isParticipant && !canDiscover) {
+            return false;
+          }
 
-        return isSameCityOrCompatible(event, currentUserCity);
-      });
+          if (!isSameSport(event, currentUserSport)) {
+            return false;
+          }
+
+          if (isMine || isParticipant) {
+            return true;
+          }
+
+          return isSameCityOrCompatible(event, currentUserCity);
+        })
+        .sort((a, b) => {
+          const dateA = `${a.date || ""} ${a.time || ""}`;
+          const dateB = `${b.date || ""} ${b.time || ""}`;
+
+          return dateB.localeCompare(dateA);
+        });
 
       setEvents(filteredEvents);
     } finally {

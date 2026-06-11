@@ -758,33 +758,9 @@ setAvailableUsers(
   }))
 );
 
-const usersSnap = await getDocs(collection(db, "users"));
 const candidateUsersResult: UserOption[] = [];
 
-usersSnap.docs.forEach((userDoc) => {
-  const data = userDoc.data() as any;
-  const candidateSport = normalizeSport(data.mainSport || data.sport || "calcetto");
-
-  if (candidateSport !== normalizeSport(eventData.sport)) return;
-  if (!isUserCandidateActive(data)) return;
-  if (participants.includes(userDoc.id)) return;
-
-  candidateUsersResult.push({
-    uid: userDoc.id,
-    name: data.name || data.nickname || "Rivalo Player",
-    nickname: data.nickname || "",
-    photoUrl: data.photoUrl || data.photoURL || "",
-    photoURL: data.photoURL || data.photoUrl || "",
-  });
-});
-
-setCandidateUsers(
-  candidateUsersResult.sort((a, b) =>
-    getParticipantName({ uid: a.uid, name: a.name }).localeCompare(
-      getParticipantName({ uid: b.uid, name: b.name })
-    )
-  )
-);
+setCandidateUsers(candidateUsersResult);
 
       const statsQuery = query(
         collection(db, "eventStats"),
