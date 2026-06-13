@@ -257,10 +257,14 @@ function MessagesPageContent() {
           setChatOpen(true);
           setConversations([directConversation]);
           await loadMessages(createdConversationId, currentUser.uid);
+          await markAllMessagesAsRead(currentUser.uid);
+          await loadMessages(createdConversationId, currentUser.uid);
           return;
         }
       }
 
+      await loadConversations(currentUser.uid, createdConversationId);
+      await markAllMessagesAsRead(currentUser.uid);
       await loadConversations(currentUser.uid, createdConversationId);
     } catch (error) {
       console.error(error);
@@ -336,6 +340,50 @@ function MessagesPageContent() {
             }
           : conversation
       )
+    );
+  }
+
+  async function markAllMessagesAsRead(uid: string) {
+    const conversationsQuery = query(
+      collection(db, "conversations"),
+      where("participantIds", "array-contains", uid)
+    );
+
+    const conversationsSnap = await getDocs(conversationsQuery);
+
+    await Promise.all(
+      conversationsSnap.docs.map(async (conversationSnap) => {
+        const conversationId = conversationSnap.id;
+
+        const messagesSnap = await getDocs(
+          collection(db, "conversations", conversationId, "messages")
+        );
+
+        await Promise.all(
+          messagesSnap.docs.map(async (messageSnap) => {
+            const chatMessage = {
+              id: messageSnap.id,
+              ...(messageSnap.data() as Omit<Message, "id">),
+            };
+
+            if (isUnreadForUser(chatMessage, uid)) {
+              await updateDoc(
+                doc(db, "conversations", conversationId, "messages", messageSnap.id),
+                {
+                  readBy: arrayUnion(uid),
+                }
+              );
+            }
+          })
+        );
+      })
+    );
+
+    setConversations((currentConversations) =>
+      currentConversations.map((conversation) => ({
+        ...conversation,
+        unreadCount: 0,
+      }))
     );
   }
 
