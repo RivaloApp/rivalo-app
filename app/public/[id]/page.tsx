@@ -12,6 +12,8 @@ import {
   getDoc,
   collection,
   getDocs,
+  query,
+  where,
 } from "firebase/firestore";
 
 import { db } from "../../../lib/firebase";
@@ -173,13 +175,17 @@ export default function PublicProfilePage() {
           );
         }
 
-        const matchesSnap =
-          await getDocs(
-            collection(db, "matches")
+        const currentUid = auth.currentUser?.uid || currentUser?.uid || "";
+
+        if (currentUid === id) {
+          const matchesQuery = query(
+            collection(db, "matches"),
+            where("participants", "array-contains", id)
           );
 
-        const userMatches =
-          matchesSnap.docs
+          const matchesSnap = await getDocs(matchesQuery);
+
+          const userMatches = matchesSnap.docs
             .map((d) => ({
               id: d.id,
               ...d.data(),
@@ -187,12 +193,13 @@ export default function PublicProfilePage() {
             .filter(
               (m: any) =>
                 Array.isArray(m.players) &&
-                m.players.some(
-                  (p: any) => p.uid === id
-                )
+                m.players.some((p: any) => p.uid === id)
             );
 
-        setMatches(userMatches);
+          setMatches(userMatches);
+        } else {
+          setMatches([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -201,7 +208,7 @@ export default function PublicProfilePage() {
     if (id) {
       loadUser();
     }
-  }, [id]);
+  }, [id, currentUser?.uid]);
 
   if (loading) {
     return (
