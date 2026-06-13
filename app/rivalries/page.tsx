@@ -268,7 +268,6 @@ export default function RivalriesPage() {
 
       const matchesQuery = query(
         collection(db, "matches"),
-        where("participants", "array-contains", currentUserId),
         orderBy("updatedAt", "desc"),
         limit(300)
       );
