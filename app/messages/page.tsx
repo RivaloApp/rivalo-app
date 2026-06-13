@@ -250,6 +250,7 @@ function MessagesPageContent() {
             requestId,
             matchId: "",
             lastMessage: "",
+            unreadCount: 0,
           };
 
           setActiveConversationId(createdConversationId);
@@ -325,6 +326,19 @@ function MessagesPageContent() {
     }
   }
 
+  function clearUnreadForConversation(conversationId: string) {
+    setConversations((currentConversations) =>
+      currentConversations.map((conversation) =>
+        conversation.id === conversationId
+          ? {
+              ...conversation,
+              unreadCount: 0,
+            }
+          : conversation
+      )
+    );
+  }
+
   async function loadMessages(conversationId: string, uid = user?.uid || "") {
     const conversationSnap = await getDoc(doc(db, "conversations", conversationId));
 
@@ -376,6 +390,7 @@ function MessagesPageContent() {
       .sort((a, b) => getTimestampValue(a.createdAt) - getTimestampValue(b.createdAt));
 
     setMessages(result);
+    clearUnreadForConversation(conversationId);
   }
 
   async function selectConversation(conversationId: string) {

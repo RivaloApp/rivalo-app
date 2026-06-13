@@ -226,6 +226,57 @@ function isGoalkeeperProfile(mainSport?: string, role?: string) {
     normalizeCalcettoRole(role) === "portiere";
 }
 
+function isUnreadMessageForUser(
+  messageData: {
+    createdBy?: string;
+    readBy?: string[];
+  },
+  uid: string
+) {
+  if (!uid) return false;
+  if (messageData.createdBy === uid) return false;
+
+  return (
+    !Array.isArray(messageData.readBy) ||
+    !messageData.readBy.includes(uid)
+  );
+}
+
+async function getUnreadMessagesCount(uid: string) {
+  const conversationsQuery = query(
+    collection(db, "conversations"),
+    where("participantIds", "array-contains", uid)
+  );
+
+  const conversationsSnap = await getDocs(conversationsQuery);
+
+  let nextUnreadMessagesCount = 0;
+
+  for (const conversationSnap of conversationsSnap.docs) {
+    const conversationData = conversationSnap.data() as {
+      participantIds?: string[];
+    };
+
+    if (!conversationData.participantIds?.includes(uid)) continue;
+
+    const messagesSnap = await getDocs(
+      collection(db, "conversations", conversationSnap.id, "messages")
+    );
+
+    nextUnreadMessagesCount += messagesSnap.docs.filter((messageSnap) =>
+      isUnreadMessageForUser(
+        messageSnap.data() as {
+          createdBy?: string;
+          readBy?: string[];
+        },
+        uid
+      )
+    ).length;
+  }
+
+  return nextUnreadMessagesCount;
+}
+
 function getSportDashboardCopy(value?: string, role?: string) {
   const sport = normalizeSport(value);
 
@@ -389,42 +440,7 @@ export default function DashboardPage() {
 
         setUnreadNotificationsCount(notificationsSnap.size);
 
-        const conversationsQuery = query(
-          collection(db, "conversations"),
-          where("participantIds", "array-contains", currentUser.uid)
-        );
-
-        const conversationsSnap = await getDocs(conversationsQuery);
-
-        const myConversations = conversationsSnap.docs.map((conversationSnap) => ({
-          id: conversationSnap.id,
-          ...(conversationSnap.data() as {
-            participantIds?: string[];
-          }),
-        }));
-
-        let nextUnreadMessagesCount = 0;
-
-        for (const conversation of myConversations) {
-          const messagesSnap = await getDocs(
-            collection(db, "conversations", conversation.id, "messages")
-          );
-
-          nextUnreadMessagesCount += messagesSnap.docs.filter((messageSnap) => {
-            const messageData = messageSnap.data() as {
-              createdBy?: string;
-              readBy?: string[];
-            };
-
-            return (
-              messageData.createdBy !== currentUser.uid &&
-              (!Array.isArray(messageData.readBy) ||
-                !messageData.readBy.includes(currentUser.uid))
-            );
-          }).length;
-        }
-
-        setUnreadMessagesCount(nextUnreadMessagesCount);
+        setUnreadMessagesCount(await getUnreadMessagesCount(currentUser.uid));
       } finally {
         setLoading(false);
       }
@@ -432,6 +448,36 @@ export default function DashboardPage() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const uid = user.uid;
+    let active = true;
+
+    function refreshUnreadMessages() {
+      getUnreadMessagesCount(uid)
+        .then((count) => {
+          if (active) {
+            setUnreadMessagesCount(count);
+          }
+        })
+        .catch(() => {
+          // Badge best-effort: non blocca la dashboard.
+        });
+    }
+
+    refreshUnreadMessages();
+
+    window.addEventListener("focus", refreshUnreadMessages);
+    window.addEventListener("pageshow", refreshUnreadMessages);
+
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refreshUnreadMessages);
+      window.removeEventListener("pageshow", refreshUnreadMessages);
+    };
+  }, [user]);
 
   const displayName = isProfileDeletionRequested(profile)
     ? "Profilo non attivo"
