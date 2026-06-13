@@ -172,6 +172,7 @@ leagueFixtures?: LeagueFixture[];
 };
 
 type UserProfile = {
+  activeSport?: string;
   mainSport?: string;
   sport?: string;
   accountStatus?: string;
@@ -574,6 +575,8 @@ export default function EventDetailPage() {
   const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
   const [candidateUsers, setCandidateUsers] = useState<UserOption[]>([]);
   const [selectedUserToAdd, setSelectedUserToAdd] = useState("");
+  const [userSearch, setUserSearch] = useState("");
+  const [searchingUser, setSearchingUser] = useState(false);
   const [addingUser, setAddingUser] = useState(false);
   const [generatingBracket, setGeneratingBracket] = useState(false);
   const [generatingLeague, setGeneratingLeague] = useState(false);
@@ -979,6 +982,99 @@ if (competitionStarted) {
     setJoining(false);
   }
 
+async function searchUserForEvent() {
+  if (!user || !event) return;
+
+  if (accountLocked || await isCurrentAccountLocked()) {
+    setMessage(getAccountLockedMessage());
+    return;
+  }
+
+  if (user.uid !== event.createdBy) {
+    setMessage("Solo il creator può cercare utenti da aggiungere all'evento.");
+    return;
+  }
+
+  if (sportMismatch || normalizeSport(event.sport) !== userSport) {
+    setMessage("Non puoi aggiungere utenti a un evento di un altro sport.");
+    return;
+  }
+
+  const search = userSearch.trim();
+
+  if (search.length < 2) {
+    setMessage("Inserisci almeno 2 caratteri: email, nickname o nome utente.");
+    return;
+  }
+
+  setSearchingUser(true);
+  setMessage("");
+
+  try {
+    const usersRef = collection(db, "users");
+    const searchLower = search.toLowerCase();
+
+    const possibleQueries = [
+      query(usersRef, where("email", "==", searchLower)),
+      query(usersRef, where("nickname", "==", search)),
+      query(usersRef, where("name", "==", search)),
+    ];
+
+    const participants = event.participants || [];
+    const resultsMap = new Map<string, UserOption>();
+
+    for (const candidateQuery of possibleQueries) {
+      const snap = await getDocs(candidateQuery);
+
+      snap.docs.forEach((userDoc) => {
+        const data = userDoc.data() as any;
+        const candidateSport = normalizeSport(
+          data.activeSport || data.mainSport || data.sport || "calcetto"
+        );
+
+        if (candidateSport !== normalizeSport(event.sport)) return;
+        if (!isUserCandidateActive(data)) return;
+        if (participants.includes(userDoc.id)) return;
+
+        resultsMap.set(userDoc.id, {
+          uid: userDoc.id,
+          name: data.name || data.nickname || "Rivalo Player",
+          nickname: data.nickname || "",
+          photoUrl: data.photoUrl || data.photoURL || "",
+          photoURL: data.photoURL || data.photoUrl || "",
+          accountStatus: data.accountStatus || "",
+          deletionRequested: Boolean(data.deletionRequested),
+        });
+      });
+    }
+
+    const results = Array.from(resultsMap.values()).sort((a, b) =>
+      getParticipantName({ uid: a.uid, name: a.name }).localeCompare(
+        getParticipantName({ uid: b.uid, name: b.name })
+      )
+    );
+
+    setCandidateUsers(results);
+    setSelectedUserToAdd(results[0]?.uid || "");
+
+    if (results.length === 0) {
+      setMessage("Nessun utente compatibile trovato o utente già iscritto.");
+      return;
+    }
+
+    setMessage(
+      results.length === 1
+        ? "Utente trovato. Ora puoi aggiungerlo all'evento."
+        : `${results.length} utenti trovati. Seleziona chi aggiungere.`
+    );
+  } catch (error) {
+    console.error(error);
+    setMessage("Errore durante la ricerca utente.");
+  } finally {
+    setSearchingUser(false);
+  }
+}
+
 async function addUserToEvent() {
   if (!user || !event) return;
 
@@ -1106,6 +1202,7 @@ async function addUserToEvent() {
       current.filter((candidate) => candidate.uid !== newParticipant.uid)
     );
     setSelectedUserToAdd("");
+    setUserSearch("");
     setMessage("Utente aggiunto all'evento.");
   } catch (error) {
     console.error(error);
@@ -2662,37 +2759,57 @@ const visibleTournamentBracket =
                     </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-                    <select
-                      value={selectedUserToAdd}
-                      onChange={(e) => setSelectedUserToAdd(e.target.value)}
-                      className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
-                    >
-                      <option value="" className="bg-[#020617] text-white">
-                        {candidateUsers.length > 0
-                          ? "Seleziona utente"
-                          : "Nessun utente disponibile"}
-                      </option>
+                  <div className="space-y-3">
+                    <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                      <input
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        placeholder="Cerca per email, nickname o nome"
+                        className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none placeholder:text-slate-500"
+                      />
 
-                      {candidateUsers.map((candidate) => (
-                        <option
-                          key={candidate.uid}
-                          value={candidate.uid}
-                          className="bg-[#020617] text-white"
-                        >
-                          {candidate.name || candidate.nickname || "Rivalo Player"}
+                      <button
+                        type="button"
+                        onClick={searchUserForEvent}
+                        disabled={searchingUser || userSearch.trim().length < 2}
+                        className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200 transition hover:bg-cyan-400/20 disabled:opacity-60"
+                      >
+                        {searchingUser ? "Cerco..." : "Cerca"}
+                      </button>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                      <select
+                        value={selectedUserToAdd}
+                        onChange={(e) => setSelectedUserToAdd(e.target.value)}
+                        className="w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-white outline-none"
+                      >
+                        <option value="" className="bg-[#020617] text-white">
+                          {candidateUsers.length > 0
+                            ? "Seleziona utente trovato"
+                            : "Cerca prima un utente"}
                         </option>
-                      ))}
-                    </select>
 
-                    <button
-                      type="button"
-                      onClick={addUserToEvent}
-                      disabled={addingUser || !selectedUserToAdd}
-                      className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200 transition hover:bg-cyan-400/20 disabled:opacity-60"
-                    >
-                      {addingUser ? "Aggiungo..." : "Aggiungi"}
-                    </button>
+                        {candidateUsers.map((candidate) => (
+                          <option
+                            key={candidate.uid}
+                            value={candidate.uid}
+                            className="bg-[#020617] text-white"
+                          >
+                            {candidate.name || candidate.nickname || "Rivalo Player"}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={addUserToEvent}
+                        disabled={addingUser || !selectedUserToAdd}
+                        className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200 transition hover:bg-cyan-400/20 disabled:opacity-60"
+                      >
+                        {addingUser ? "Aggiungo..." : "Aggiungi"}
+                      </button>
+                    </div>
                   </div>
                 </section>
               )}
