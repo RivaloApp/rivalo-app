@@ -13,7 +13,6 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  where,
 } from "firebase/firestore";
 
 import { onAuthStateChanged} from "firebase/auth";
@@ -215,7 +214,6 @@ export default function RivalriesPage() {
 
       const q = query(
         collection(db, "rivalries"),
-        where("users", "array-contains", currentUserId),
         orderBy("updatedAt", "desc"),
         limit(50)
       );

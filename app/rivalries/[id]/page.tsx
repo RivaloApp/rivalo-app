@@ -3,9 +3,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../../../lib/firebase";
+import { db } from "../../../lib/firebase";
 import {
   ArrowLeft,
   Flame,
@@ -41,80 +40,59 @@ export default function RivalryDetailPage() {
   const [rivalry, setRivalry] = useState<Rivalry | null>(null);
   const [users, setUsers] = useState<UserMini[]>([]);
   const [loading, setLoading] = useState(true);
-  const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      if (!authUser) {
-        window.location.href = "/login";
-        return;
-      }
+    async function loadRivalry() {
+      try {
+        const rivalrySnap = await getDoc(doc(db, "rivalries", id));
 
-      const currentUid = authUser.uid;
-
-      async function loadRivalry() {
-        try {
-          const rivalrySnap = await getDoc(doc(db, "rivalries", id));
-
-          if (!rivalrySnap.exists()) {
-            setRivalry(null);
-            return;
-          }
-
-          const rivalryData = {
-            id: rivalrySnap.id,
-            ...(rivalrySnap.data() as Record<string, unknown>),
-          } as Rivalry;
-
-          const userIds = Array.isArray(rivalryData.users)
-            ? rivalryData.users.filter(
-                (userId): userId is string =>
-                  typeof userId === "string" && userId.length > 0
-              )
-            : [];
-
-          if (!userIds.includes(currentUid)) {
-            setForbidden(true);
-            setRivalry(null);
-            setUsers([]);
-            return;
-          }
-
-          setRivalry(rivalryData);
-
-          const loadedUsers: UserMini[] = [];
-
-          for (const uid of userIds) {
-            const userSnap = await getDoc(doc(db, "users", uid));
-
-            if (userSnap.exists()) {
-              loadedUsers.push({
-                id: uid,
-                ...(userSnap.data() as Omit<UserMini, "id">),
-              });
-            } else {
-              loadedUsers.push({
-                id: uid,
-                name: "Player",
-                nickname: "Rivalo Player",
-              });
-            }
-          }
-
-          setUsers(loadedUsers);
-        } finally {
-          setLoading(false);
+        if (!rivalrySnap.exists()) {
+          setRivalry(null);
+          return;
         }
-      }
 
-      if (id) {
-        await loadRivalry();
-      } else {
+        const rivalryData = {
+          id: rivalrySnap.id,
+          ...(rivalrySnap.data() as Record<string, unknown>),
+        } as Rivalry;
+
+        setRivalry(rivalryData);
+
+        const userIds = Array.isArray(rivalryData.users)
+          ? rivalryData.users.filter(
+              (userId): userId is string =>
+                typeof userId === "string" && userId.length > 0
+            )
+          : [];
+
+        const loadedUsers: UserMini[] = [];
+
+        for (const uid of userIds) {
+          const userSnap = await getDoc(doc(db, "users", uid));
+
+          if (userSnap.exists()) {
+            loadedUsers.push({
+              id: uid,
+              ...(userSnap.data() as Omit<UserMini, "id">),
+            });
+          } else {
+            loadedUsers.push({
+              id: uid,
+              name: "Player",
+              nickname: "Rivalo Player",
+            });
+          }
+        }
+
+        setUsers(loadedUsers);
+      } finally {
         setLoading(false);
       }
-    });
+    }
 
-    return () => unsubscribe();
+    if (id) {
+      loadRivalry();
+    }
   }, [id]);
 
   if (loading) {
@@ -122,27 +100,6 @@ export default function RivalryDetailPage() {
       <main className="flex min-h-screen items-center justify-center bg-[#020617] px-5 text-white">
         <div className="rounded-[2rem] border border-white/10 bg-white/[.04] px-7 py-5 text-center text-sm font-black uppercase tracking-[0.18em] text-cyan-300">
           Caricamento rivalità...
-        </div>
-      </main>
-    );
-  }
-
-  if (forbidden) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] px-5 text-white">
-        <div className="rounded-[2rem] border border-white/10 bg-white/[.04] p-8 text-center">
-          <div className="text-3xl font-black">Rivalità non disponibile</div>
-
-          <p className="mt-3 max-w-md text-sm font-bold leading-6 text-slate-300">
-            Puoi aprire solo rivalità collegate al tuo profilo.
-          </p>
-
-          <Link
-            href="/rivalries"
-            className="mt-6 inline-flex rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-300"
-          >
-            Torna alle rivalità
-          </Link>
         </div>
       </main>
     );
