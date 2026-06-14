@@ -371,7 +371,7 @@ export default function SettingsPage() {
             <SettingsCard
               icon={<Trophy />}
               title="Sport e statistiche"
-              text="Il profilo usa uno sport attivo alla volta per mantenere ranking e statistiche coerenti."
+              text="Il profilo mantiene ranking e statistiche separati in base allo sport attivo."
             >
               <InfoRow label="Sport attivo" value={sportLabel(sport)} />
               <InfoRow label="Stato sport" value={getSportLockText(sport)} />
@@ -380,7 +380,7 @@ export default function SettingsPage() {
               <InfoRow label="Partite" value={String(matchesPlayed)} />
 
               <div className="mt-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-                Lo sport non si cambia da qui. Per usare un altro sport servirà un profilo sportivo separato.
+                Lo sport attivo è bloccato per proteggere ranking, match e statistiche. La gestione di altri sport avviene con profili sportivi separati.
               </div>
             </SettingsCard>
 
@@ -403,7 +403,7 @@ export default function SettingsPage() {
             <SettingsCard
               icon={<ShieldCheck />}
               title="Privacy"
-              text="Controlli base sul profilo e sui contenuti visibili."
+              text="Gestione della visibilità del profilo e dei contenuti collegati."
             >
               <InfoRow
                 label="Profilo pubblico"
@@ -416,7 +416,7 @@ export default function SettingsPage() {
             <SettingsCard
               icon={<Lock />}
               title="Sicurezza account"
-              text="Accesso, email e protezione dell’account Rivalo."
+              text="Informazioni di accesso e stato operativo dell’account Rivalo."
             >
               <InfoRow label="Email account" value={email} />
               <InfoRow label="Accesso" value="Email e password" />
@@ -429,7 +429,7 @@ export default function SettingsPage() {
             <SettingsCard
               icon={<Trash2 />}
               title="Rimuovi profilo/account"
-              text="Richiedi la rimozione sicura del tuo profilo Rivalo."
+              text="Gestisci la richiesta di rimozione del profilo Rivalo."
               danger
             >
               {deletionActive ? (
@@ -465,7 +465,7 @@ export default function SettingsPage() {
                     </div>
 
                     Dopo la richiesta, il profilo non potrà più creare o modificare
-                    match, eventi e gruppi. Il tuo storico sportivo resterà protetto.
+                    match, eventi, gruppi e messaggi. Lo storico sportivo resterà protetto.
                   </div>
 
                   <label className="mt-4 block">
