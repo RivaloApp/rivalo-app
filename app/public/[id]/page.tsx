@@ -127,12 +127,13 @@ export default function PublicProfilePage() {
   const from = searchParams.get("from");
   const rivalryId = searchParams.get("rivalryId");
   const requestId = searchParams.get("requestId") || "";
+  const tab = searchParams.get("tab") || "matches";
 
   const backHref =
     from === "rivalry" && rivalryId
       ? `/rivalries/${rivalryId}`
       : from === "matchmaking"
-      ? `/opponents${requestId ? `?requestId=${requestId}` : ""}`
+      ? `/opponents?tab=${tab}${requestId ? `&requestId=${requestId}` : ""}`
       : "/leaderboard";
 
   const backLabel =
@@ -145,6 +146,9 @@ export default function PublicProfilePage() {
   const [currentUser, setCurrentUser] =
     useState<User | null>(null);
 
+  const [currentUserLocked, setCurrentUserLocked] =
+    useState(false);
+
   const [user, setUser] =
     useState<UserProfile | null>(null);
 
@@ -155,8 +159,24 @@ export default function PublicProfilePage() {
     useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       setCurrentUser(authUser);
+
+      if (!authUser) {
+        setCurrentUserLocked(false);
+        return;
+      }
+
+      try {
+        const currentProfileSnap = await getDoc(doc(db, "users", authUser.uid));
+        const currentProfile = currentProfileSnap.exists()
+          ? (currentProfileSnap.data() as UserProfile)
+          : null;
+
+        setCurrentUserLocked(isRemovedProfile(currentProfile));
+      } catch {
+        setCurrentUserLocked(false);
+      }
     });
 
     return () => unsubscribe();
@@ -333,13 +353,19 @@ export default function PublicProfilePage() {
                 </div>
               )}
 
-              {!isRemoved && currentUser && currentUser.uid !== id && (
+              {!isRemoved && currentUser && currentUser.uid !== id && !currentUserLocked && (
                 <Link
                   href={`/messages?with=${id}${requestId ? `&requestId=${requestId}` : ""}`}
                   className="mt-5 inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-3 text-sm font-black uppercase text-white"
                 >
                   Scrivi in chat
                 </Link>
+              )}
+
+              {!isRemoved && currentUser && currentUser.uid !== id && currentUserLocked && (
+                <div className="mt-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-5 py-3 text-sm font-bold text-yellow-100">
+                  Profilo non attivo: chat bloccata.
+                </div>
               )}
 
               <div
