@@ -242,6 +242,7 @@ type MatchmakingRequestDoc = {
   createdBy?: string;
   createdByName?: string;
   status?: string;
+  linkedMatchId?: string;
 };
 
 type MatchmakingApplicationDoc = {
@@ -497,6 +498,12 @@ const [awayTeamId, setAwayTeamId] = useState("");
 
       if (requestData.createdBy !== currentUid) {
         setMessage("Solo il creator dell'annuncio può creare il match.");
+        return;
+      }
+
+      if (requestData.linkedMatchId || requestData.status === "match_created") {
+        setMatchmakingSourceId("");
+        setMessage("Questo annuncio ha già un match collegato. Apri il match esistente dall'annuncio matchmaking.");
         return;
       }
 
@@ -998,6 +1005,32 @@ sourceType = "groupTeams";
     setMessage("");
 
     try {
+      if (matchmakingSourceId) {
+        const freshRequestSnap = await getDoc(
+          doc(db, "matchmakingRequests", matchmakingSourceId)
+        );
+
+        if (!freshRequestSnap.exists()) {
+          setMessage("Annuncio matchmaking non trovato. Torna al matchmaking e riprova.");
+          setSaving(false);
+          return;
+        }
+
+        const freshRequest = freshRequestSnap.data() as MatchmakingRequestDoc;
+
+        if (freshRequest.createdBy !== user.uid) {
+          setMessage("Solo il creator dell'annuncio può creare il match.");
+          setSaving(false);
+          return;
+        }
+
+        if (freshRequest.linkedMatchId || freshRequest.status === "match_created") {
+          setMessage("Questo annuncio ha già un match collegato. Apri il match esistente dal matchmaking.");
+          setSaving(false);
+          return;
+        }
+      }
+
       const matchRef = await addDoc(collection(db, "matches"), {
         groupId: groupId || "nessun-gruppo",
         matchmakingRequestId: matchmakingSourceId || "",
