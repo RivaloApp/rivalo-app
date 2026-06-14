@@ -167,6 +167,7 @@ function MessagesPageContent() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
+  const [accountLocked, setAccountLocked] = useState(false);
 
   const activeConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === activeConversationId),
@@ -203,6 +204,7 @@ function MessagesPageContent() {
       );
 
       setCurrentName(resolvedCurrentName);
+      setAccountLocked(isRemovedProfile(currentProfile));
 
       let createdConversationId = "";
 
@@ -461,6 +463,22 @@ function MessagesPageContent() {
 
     if (!user || !activeConversationId || !text.trim()) return;
 
+    if (accountLocked) {
+      setMessage("Profilo non attivo: puoi leggere le chat, ma non puoi inviare nuovi messaggi.");
+      return;
+    }
+
+    const freshProfileSnap = await getDoc(doc(db, "users", user.uid));
+    const freshProfile = freshProfileSnap.exists()
+      ? (freshProfileSnap.data() as UserProfile)
+      : null;
+
+    if (isRemovedProfile(freshProfile)) {
+      setAccountLocked(true);
+      setMessage("Profilo non attivo: puoi leggere le chat, ma non puoi inviare nuovi messaggi.");
+      return;
+    }
+
     const cleanText = text.trim().slice(0, 500);
     const conversation = conversations.find((item) => item.id === activeConversationId);
 
@@ -505,12 +523,12 @@ function MessagesPageContent() {
         type: "generic",
         title: "Nuovo messaggio",
         message: `${currentName}: ${cleanText}`,
-        link: `/messages?with=${user.uid}${conversation.requestId ? `&requestId=${conversation.requestId}` : ""}`,
+        link: `/messages?with=${user.uid}${messageRequestId ? `&requestId=${messageRequestId}` : ""}`,
         createdBy: user.uid,
         metadata: {
           conversationId: activeConversationId,
-          requestId: conversation.requestId || "",
-          sourceType: conversation.sourceType || "direct",
+          requestId: messageRequestId,
+          sourceType: messageRequestId ? "matchmaking" : conversation.sourceType || "direct",
         },
       });
 
@@ -572,6 +590,12 @@ function MessagesPageContent() {
           {message && (
             <div className="m-5 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-4 text-sm font-bold text-cyan-100">
               {message}
+            </div>
+          )}
+
+          {accountLocked && (
+            <div className="m-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
+              Profilo non attivo: puoi leggere lo storico chat, ma non puoi inviare nuovi messaggi.
             </div>
           )}
 
@@ -764,14 +788,15 @@ function MessagesPageContent() {
                     <input
                       value={text}
                       onChange={(event) => setText(event.target.value)}
-                      placeholder="Scrivi un messaggio..."
+                      placeholder={accountLocked ? "Profilo non attivo" : "Scrivi un messaggio..."}
                       maxLength={500}
-                      className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+                      disabled={accountLocked}
+                      className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-slate-500 disabled:opacity-60"
                     />
 
                     <button
                       type="submit"
-                      disabled={sending || !text.trim() || !activeConversationId}
+                      disabled={sending || accountLocked || !text.trim() || !activeConversationId}
                       className="shrink-0 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-4 py-3 font-black text-white disabled:opacity-50"
                     >
                       <Send size={18} />
