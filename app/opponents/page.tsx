@@ -1864,7 +1864,7 @@ function MatchmakingRequestCard({
                     <div className="flex min-w-0 items-center justify-between gap-3">
                       {application.fromUid ? (
                         <Link
-                          href={`/public/${application.fromUid}?from=matchmaking&requestId=${request.id}`}
+                          href={`/public/${application.fromUid}?from=matchmaking&tab=${getTabFromRequestType(request.type)}&requestId=${request.id}`}
                           className="min-w-0 truncate text-sm font-black text-cyan-200 underline-offset-4 hover:underline"
                         >
                           {application.fromName || "Rivalo Player"}
