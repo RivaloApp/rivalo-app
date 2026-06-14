@@ -983,6 +983,22 @@ if (alreadyRequested) {
       return;
     }
 
+    if (status === "accepted") {
+      const acceptedApplications = matchmakingApplications.filter(
+        (item) =>
+          item.requestId === request.id &&
+          item.status === "accepted" &&
+          item.id !== application.id
+      );
+
+      const requiredSpots = Math.max(1, Number(request.missingPlayers || 1));
+
+      if (acceptedApplications.length >= requiredSpots) {
+        setMessage("Annuncio già completo: non puoi accettare altri player.");
+        return;
+      }
+    }
+
     try {
       await updateDoc(doc(db, "matchmakingApplications", application.id), {
         status,
@@ -1275,7 +1291,7 @@ if (alreadyRequested) {
 
         {accountLocked && (
           <div className="mt-6 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-            Profilo non attivo: puoi consultare i gruppi pubblici, ma non puoi inviare richieste.
+            Profilo non attivo: puoi consultare matchmaking e gruppi, ma non puoi creare annunci, candidarti o inviare richieste.
           </div>
         )}
 
@@ -1670,6 +1686,8 @@ function MatchmakingRequestCard({
     request.status === "match_created" ||
     Boolean(request.linkedMatchId);
 
+  const canAcceptMore = !isCompleted && !isClosed && remainingSpots > 0;
+
   return (
     <div
       className={`min-w-0 overflow-hidden rounded-[2rem] border bg-[#061126]/80 p-5 shadow-2xl sm:p-6 ${
@@ -1897,9 +1915,10 @@ function MatchmakingRequestCard({
                               status: "accepted",
                             })
                           }
-                          className="rounded-xl border border-green-300/20 bg-green-400/10 px-3 py-2 text-xs font-black uppercase text-green-100"
+                          disabled={!canAcceptMore}
+                          className="rounded-xl border border-green-300/20 bg-green-400/10 px-3 py-2 text-xs font-black uppercase text-green-100 disabled:opacity-50"
                         >
-                          Accetta
+                          {canAcceptMore ? "Accetta" : "Completo"}
                         </button>
 
                         <button
