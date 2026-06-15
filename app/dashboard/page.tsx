@@ -776,7 +776,7 @@ export default function DashboardPage() {
                 href="/feed"
                 tone="orange"
                 icon={<Radio />}
-                title="Feed Live"
+                title="Feed live"
                 text="Risultati e attività"
               />
 
@@ -800,7 +800,11 @@ export default function DashboardPage() {
               fallbackMvp={mvp}
             />
 
-            <UpgradePanel />
+            <ProgressPanel
+              matchesPlayed={matchesPlayed}
+              wins={wins}
+              mvp={mvp}
+            />
           </section>
         </div>
       </section>
@@ -1323,23 +1327,31 @@ function Leaderboard({
   );
 }
 
-function UpgradePanel() {
+function ProgressPanel({
+  matchesPlayed,
+  wins,
+  mvp,
+}: {
+  matchesPlayed: number;
+  wins: number;
+  mvp: number;
+}) {
   return (
     <div className="rounded-[1.8rem] border border-white/10 bg-[#071126]/80 p-6 shadow-2xl">
-      <h2 className="text-2xl font-black uppercase">Prossimi upgrade</h2>
+      <h2 className="text-2xl font-black uppercase">Progressi profilo</h2>
 
       <div className="mt-5 rounded-2xl border border-purple-500 bg-purple-700/20 p-5">
-        <div className="text-xl font-black">Completa il tuo profilo</div>
+        <div className="text-xl font-black">Fai crescere la tua card</div>
 
         <div className="mt-2 leading-6 text-slate-300">
-          Aggiungi foto e personalizza la tua card.
+          Gioca match confermati, vinci partite e conquista MVP per migliorare il tuo profilo Rivalo.
         </div>
       </div>
 
       <div className="mt-4 space-y-3">
-        <Goal icon={<ShieldCheck />} text="Gioca 5 match" value="0/5" />
-        <Goal icon={<Trophy />} text="Vinci 3 match" value="0/3" />
-        <Goal icon={<Star />} text="Ottieni 1 MVP" value="0/1" />
+        <Goal icon={<ShieldCheck />} text="Gioca 5 match" value={`${Math.min(matchesPlayed, 5)}/5`} />
+        <Goal icon={<Trophy />} text="Vinci 3 match" value={`${Math.min(wins, 3)}/3`} />
+        <Goal icon={<Star />} text="Ottieni 1 MVP" value={`${Math.min(mvp, 1)}/1`} />
       </div>
     </div>
   );
