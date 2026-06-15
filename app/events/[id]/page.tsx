@@ -206,29 +206,29 @@ function getEventCopy(value?: string) {
 
   if (sport === "padel") {
     return {
-      teamLabel: "Coppie / player",
+      teamLabel: "Coppie / giocatori",
       teamSingle: "Coppia",
       teamPlural: "Coppie",
       scoreFor: "SF",
       scoreAgainst: "SS",
       scoreDiff: "DS",
       rankingTitle: "Ranking padel",
-      rankingText: "Classifica basata su punti, vittorie e score dei match confermati. Gol e assist non vengono usati.",
-      matchStatsMode: "no gol/assist",
+      rankingText: "Classifica basata su punti, vittorie e risultati dei match confermati.",
+      matchStatsMode: "set",
     };
   }
 
   if (sport === "tennis") {
     return {
-      teamLabel: "Player / coppie",
-      teamSingle: "Player/Coppia",
-      teamPlural: "Player/Coppie",
+      teamLabel: "Giocatori / coppie",
+      teamSingle: "Giocatore/Coppia",
+      teamPlural: "Giocatori/Coppie",
       scoreFor: "SF",
       scoreAgainst: "SS",
       scoreDiff: "DS",
       rankingTitle: "Ranking tennis",
-      rankingText: "Classifica basata su punti, vittorie e score dei match confermati. Gol e assist non vengono usati.",
-      matchStatsMode: "no gol/assist",
+      rankingText: "Classifica basata su punti, vittorie e risultati dei match confermati.",
+      matchStatsMode: "set",
     };
   }
 
@@ -465,7 +465,7 @@ function buildTournamentBracket(units: TeamInfo[]) {
 
 function getTeamCreationTitle(format: CompetitionFormat, sport?: string) {
   if (isRacketSport(sport)) {
-    if (format === "singolo") return "Crea player";
+    if (format === "singolo") return "Crea giocatore";
     if (format === "doppio") return "Crea coppia";
   }
 
@@ -474,7 +474,7 @@ function getTeamCreationTitle(format: CompetitionFormat, sport?: string) {
 
 function getTeamPluralLabel(format: CompetitionFormat, sport?: string) {
   if (isRacketSport(sport)) {
-    if (format === "singolo") return "Player";
+    if (format === "singolo") return "Giocatori";
     if (format === "doppio") return "Coppie";
   }
 
@@ -1341,7 +1341,7 @@ async function addUserToEvent() {
   );
 
   if (duplicatedTeamName) {
-    setMessage("Esiste già una squadra/coppia/player con questo nome nell'evento.");
+    setMessage("Esiste già una squadra, coppia o giocatore con questo nome nell'evento.");
     return;
   }
 
@@ -1388,7 +1388,7 @@ async function addUserToEvent() {
     await createActivity({
       uid: user.uid,
       type: "event",
-      text: `Squadra creata: ${newTeam.name}`,
+      text: `${getTeamCreationTitle(competitionFormat, event.sport)} creato: ${newTeam.name}`,
       value: 1,
     });
 
@@ -1406,7 +1406,7 @@ async function addUserToEvent() {
     setMessage(`${getTeamCreationTitle(competitionFormat, event.sport)} creato.`);
   } catch (error) {
     console.error(error);
-    setMessage("Errore durante la creazione della squadra.");
+    setMessage("Errore durante la creazione.");
   } finally {
     setCreatingTeam(false);
   }
@@ -1459,8 +1459,8 @@ function validateTeamsForCompetition() {
   if (teams.length < 2) {
     setMessage(
       competitionFormat === "singolo" && isRacketSport(event.sport)
-        ? "Servono almeno 2 player iscritti per generare il tabellone."
-        : "Servono almeno 2 squadre/coppie/player per iniziare."
+        ? "Servono almeno 2 giocatori iscritti per generare il tabellone."
+        : "Servono almeno 2 squadre, coppie o giocatori per iniziare."
     );
     return false;
   }
@@ -1473,7 +1473,7 @@ function validateTeamsForCompetition() {
 
   if (invalidTeams.length > 0) {
     setMessage(
-      "Ci sono squadre/coppie non valide. Controlla le rose prima di continuare."
+      "Ci sono squadre o coppie non valide. Controlla le rose prima di continuare."
     );
     return false;
   }
@@ -1483,7 +1483,7 @@ function validateTeamsForCompetition() {
   );
 
   if (validTeams.length < 2) {
-    setMessage("Servono almeno 2 squadre/coppie valide per continuare.");
+    setMessage("Servono almeno 2 squadre o coppie valide per continuare.");
     return false;
   }
 
@@ -1874,7 +1874,7 @@ setMessage("");
       const units = getCompetitionUnits({ event, participantsInfo });
 
       if (units.length < 2) {
-        setMessage("Servono almeno 2 player per creare un match.");
+        setMessage("Servono almeno 2 giocatori per creare un match.");
         setCreatingMatch(false);
         return;
       }
@@ -2168,7 +2168,7 @@ async function cancelEvent() {
   }
 
   if (user.uid !== event.createdBy) {
-    setMessage("Solo il creator può annullare questo evento.");
+    setMessage("Solo chi ha creato l’evento può annullarlo.");
     return;
   }
 
@@ -2274,7 +2274,7 @@ async function cancelEvent() {
     console.error(error);
 
     if (error?.message === "CREATOR_REQUIRED") {
-      setMessage("Solo il creator può annullare questo evento.");
+      setMessage("Solo chi ha creato l’evento può annullarlo.");
     } else if (error?.message === "SPORT_MISMATCH") {
       setMessage("Questo evento appartiene a un altro sport.");
     } else if (error?.message === "CANCEL_BLOCKED") {
@@ -2333,7 +2333,7 @@ async function cancelEvent() {
 
             <p className="mt-4 leading-7 text-slate-300">
               Questo evento è dedicato a {formatSportLabel(event.sport)}, mentre il tuo profilo attivo è {formatSportLabel(userSport)}.
-              Per usare un altro sport servirà un profilo sport separato.
+              Per usare un altro sport è necessario un profilo sportivo separato.
             </p>
           </div>
         </div>
@@ -2926,7 +2926,7 @@ const visibleTournamentBracket =
                         </select>
 
                         <div className="mt-2 text-xs leading-5 text-slate-400">
-                         Puoi selezionare solo utenti già iscritti all'evento. Un utente non può stare in due squadre/coppie/player.
+                         Puoi selezionare solo utenti già iscritti all'evento. Un utente non può stare in due squadre, coppie o giocatori.
                         </div>
 
                         {selectedPlayerIds.length > 0 && (
