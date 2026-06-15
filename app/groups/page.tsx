@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
-  import {
+import {
   addDoc,
   collection,
   doc,
@@ -252,19 +252,19 @@ export default function GroupsPage() {
             </div>
 
             <h1 className="mt-3 text-[42px] font-black leading-[1.08] tracking-tight sm:text-5xl md:text-6xl">
-              Crea il tuo gruppo competitivo.
+              Gruppi e community
             </h1>
 
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300 sm:mt-5 sm:text-lg sm:leading-8">
-              Il gruppo è la base di Rivalo: da qui partono partite, ranking,
-              campionati, eventi, conferme risultati e classifiche singoli/squadre.
+              Crea o gestisci community sportive collegate al tuo sport attivo: partite, ranking,
+              campionati, eventi, conferme risultati e classifiche.
             </p>
 
             <div className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-2 sm:gap-4">
               <Feature icon={<Trophy />} title="Classifiche" text="Squadre e singoli per ogni gruppo." />
               <Feature icon={<ShieldCheck />} title="FairPlay" text="Risultati ufficiali solo dopo conferma." />
-              <Feature icon={<CalendarDays />} title="Campionati" text="Season da 3 mesi con premi." />
-              <Feature icon={<Crown />} title="Premium" text="Badge, coppe, eventi e boost futuri." />
+              <Feature icon={<CalendarDays />} title="Campionati" text="Organizza stagioni e calendari di gruppo." />
+              <Feature icon={<Crown />} title="Premium" text="Badge, coppe ed eventi per community competitive." />
             </div>
           </div>
 
@@ -323,7 +323,7 @@ export default function GroupsPage() {
                   </div>
 
                   <div className="mt-2 text-xs leading-5 text-slate-400">
-                    Per creare gruppi in un altro sport servirà un profilo sport separato.
+                    Lo sport attivo è bloccato per proteggere ranking e statistiche. Gli altri sport richiedono un profilo sportivo separato.
                   </div>
                 </Field>
 
@@ -381,7 +381,7 @@ export default function GroupsPage() {
             </div>
           ) : groups.length === 0 ? (
             <div className="mt-6 rounded-2xl border border-white/10 bg-[#020617]/60 p-5 text-slate-300">
-              Non hai ancora gruppi per {sportLabel(userSport)}. Creane uno per iniziare a usare ranking, partite e campionati.
+              Non hai ancora gruppi per {sportLabel(userSport)}. Crea il primo gruppo per organizzare partite, ranking e campionati.
             </div>
           ) : (
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -392,16 +392,6 @@ export default function GroupsPage() {
           )}
         </section>
 
-        <div className="mt-8 rounded-[2rem] border border-fuchsia-400/25 bg-fuchsia-500/[.06] p-5 sm:p-6">
-          <div className="text-sm font-black uppercase tracking-[.28em] text-fuchsia-300">
-            Monetizzazione futura
-          </div>
-          <h2 className="mt-3 text-[32px] font-black leading-tight sm:text-3xl">Gruppi premium e campionati con premi</h2>
-          <p className="mt-3 max-w-3xl leading-7 text-slate-300">
-            Da qui potremo aggiungere quote evento, coppe, badge premium, tornei sponsorizzati,
-            campi affiliati e pacchetti per centri sportivi.
-          </p>
-        </div>
       </section>
     </main>
   );
