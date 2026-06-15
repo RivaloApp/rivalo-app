@@ -75,15 +75,8 @@ function getSportPositionLabel(value?: string, role?: string) {
   return calcettoRoleCardLabel(role);
 }
 
-function SportCardIcon({
-  mainSport,
-  role = "",
-}: {
-  mainSport: string;
-  role?: string;
-}) {
+function SportCardIcon({ mainSport }: { mainSport: string }) {
   const sport = normalizeSport(mainSport);
-  const goalkeeper = sport === "calcetto" && normalizeCalcettoRole(role) === "portiere";
 
   if (sport === "padel") {
     return (
@@ -155,49 +148,6 @@ function SportCardIcon({
           stroke="currentColor"
           strokeWidth="4"
           strokeLinecap="round"
-        />
-      </svg>
-    );
-  }
-
-  if (goalkeeper) {
-    return (
-      <svg
-        viewBox="0 0 64 64"
-        className="h-full w-full"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M18 28V15c0-3 2-5 5-5s5 2 5 5v12"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
-        <path
-          d="M28 25V12c0-3 2-5 5-5s5 2 5 5v14"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
-        <path
-          d="M38 27V15c0-3 2-5 5-5s5 2 5 5v18"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
-        <path
-          d="M18 29c-5 2-7 6-5 12l2 6c2 6 7 10 14 10h10c8 0 14-6 14-14V29"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M22 43h22"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
-          opacity=".75"
         />
       </svg>
     );
@@ -537,6 +487,9 @@ export default function PlayerCard({
     penaltiesSaved,
   });
 
+  const displayCardName = name || "Player";
+  const isLongCardName = displayCardName.length > 16;
+
   return (
     <div className="relative mx-auto w-full max-w-[258px] sm:max-w-[330px]">
       <div className={`pointer-events-none absolute -left-16 top-10 h-72 w-28 rotate-[-16deg] rounded-full border-l-2 ${theme.glowLeft} opacity-80 blur-[1px] sm:-left-20 sm:top-20 sm:h-96 sm:w-36`} />
@@ -602,7 +555,7 @@ export default function PlayerCard({
             </div>
 
             <div className={`pointer-events-none absolute right-4 top-[74px] z-20 flex h-9 w-9 items-center justify-center rounded-2xl border ${theme.badgeBorder} bg-black/35 p-2 ${theme.badgeText} ${theme.badgeShadow} sm:right-5 sm:top-[96px] sm:h-12 sm:w-12 sm:p-2.5`}>
-              <SportCardIcon mainSport={mainSport} role={role} />
+              <SportCardIcon mainSport={mainSport} />
             </div>
 
             <div className="relative mt-1 flex h-[84px] items-center justify-center sm:mt-3 sm:h-[132px]">
@@ -621,8 +574,14 @@ export default function PlayerCard({
             </div>
 
             <div className="mt-0 text-center">
-              <div className={`truncate px-2 text-[22px] font-black uppercase leading-tight ${theme.ratingText} sm:px-3 sm:text-3xl`}>
-                {name || "Player"}
+              <div
+                className={`px-2 text-center font-black uppercase ${theme.ratingText} sm:px-3 ${
+                  isLongCardName
+                    ? "break-words text-[17px] leading-[0.95] sm:text-[25px]"
+                    : "break-words text-[22px] leading-tight sm:text-3xl"
+                }`}
+              >
+                {displayCardName}
               </div>
 
               <div className={`mt-0.5 truncate px-2 text-[13px] font-black uppercase leading-tight ${theme.softText} sm:mt-1 sm:px-3 sm:text-lg`}>
