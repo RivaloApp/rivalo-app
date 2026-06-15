@@ -121,6 +121,22 @@ function sportLabel(value?: string) {
   return "Calcetto";
 }
 
+function formatModeLabel(value?: string) {
+  const mode = (value || "").toLowerCase().trim();
+
+  if (mode === "campionato") return "Campionato";
+  if (mode === "torneo") return "Torneo";
+  return "Amichevole";
+}
+
+function formatPrivacyLabel(value?: string) {
+  const privacy = (value || "").toLowerCase().trim();
+
+  if (privacy === "pubblico" || privacy === "public") return "Pubblico";
+  if (privacy === "su-invito") return "Solo su invito";
+  return "Privato";
+}
+
 function isProfileDeletionRequested(profile?: UserProfile | MemberProfile | null) {
   return Boolean(
     profile?.accountStatus === "deletion_requested" ||
@@ -238,8 +254,8 @@ const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
         name: data.name || "Gruppo Rivalo",
         city: data.city || "Nessuna città",
         sport: normalizeSport(data.sport || "calcetto"),
-        mode: data.mode || "Amichevole",
-        privacy: data.privacy || "public",
+        mode: data.mode || "amichevole",
+        privacy: data.privacy || "pubblico",
         premiumPlan: data.premiumPlan || "free",
         members,
         ownerId: data.ownerId || "",
@@ -602,7 +618,7 @@ setJoinRequests(requestsResult);
       }
 
       if (!canManageTeam({ userId: user.uid, group, team: selectedTeam })) {
-        setMessage("Solo capitano, owner o admin gruppo possono modificare questa squadra.");
+        setMessage("Solo capitano, proprietario o admin del gruppo possono modificare questa squadra.");
         return;
       }
 
@@ -839,7 +855,7 @@ async function rejectJoinRequest(request: JoinRequest) {
 
             <p className="mt-4 leading-7 text-slate-300">
               Questo gruppo è dedicato a {sportLabel(group.sport)}, mentre il tuo profilo attivo è {sportLabel(userSport)}.
-              Per usare questo sport servirà un profilo sport separato.
+              Per usare questo sport è necessario un profilo sportivo separato.
             </p>
           </div>
         </section>
@@ -929,11 +945,11 @@ async function rejectJoinRequest(request: JoinRequest) {
                   </div>
 
                   <div className="rounded-full border border-white/10 bg-white/[.04] px-4 py-2">
-                    {group.mode}
+                    {formatModeLabel(group.mode)}
                   </div>
 
                   <div className="rounded-full border border-white/10 bg-white/[.04] px-4 py-2">
-                    {group.privacy}
+                    {formatPrivacyLabel(group.privacy)}
                   </div>
                 </div>
               </div>
@@ -1372,7 +1388,7 @@ async function rejectJoinRequest(request: JoinRequest) {
 
                       {!canManageSelectedTeam && (
                         <div className="mt-5 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-400">
-                          Solo capitano, owner o admin gruppo possono modificare questa squadra.
+                          Solo capitano, proprietario o admin del gruppo possono modificare questa squadra.
                         </div>
                       )}
                     </div>
@@ -1413,25 +1429,24 @@ async function rejectJoinRequest(request: JoinRequest) {
         <section className="mt-8 grid gap-5 lg:grid-cols-[1fr_.9fr]">
           <Panel
             title="Campionato del gruppo"
-            subtitle="Season competitive, premi e ranking."
+            subtitle="Stagioni competitive, premi e ranking."
           >
             <div className="rounded-3xl border border-fuchsia-400/20 bg-fuchsia-500/[.06] p-5">
               <div className="text-sm font-black uppercase tracking-[.22em] text-fuchsia-300">
-                Season futura
+                Stagione gruppo
               </div>
 
               <h3 className="mt-3 text-3xl font-black">Campionato Rivalo</h3>
 
               <p className="mt-3 max-w-2xl leading-7 text-slate-300">
-                Classifiche live, premi finali, badge, MVP, top scorer, tornei
-                e gestione quote evento.
+                Gestisci il campionato del gruppo con ranking, premi, MVP e statistiche dedicate.
               </p>
 
               <button
                 disabled={accountLocked}
                 className="mt-5 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
               >
-                {accountLocked ? "Azione bloccata" : "Attiva campionato"}
+                {accountLocked ? "Azione bloccata" : "Gestisci campionato"}
                 <ChevronRight size={20} />
               </button>
             </div>
@@ -1454,7 +1469,7 @@ async function rejectJoinRequest(request: JoinRequest) {
 
               <Activity
                 title="Classifica pronta"
-                text="Il ranking inizierà dopo le prime partite confermate."
+                text="Il ranking si aggiorna dopo le prime partite confermate."
               />
 
               <Activity
