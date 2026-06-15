@@ -575,10 +575,10 @@ export default function PlayerCard({
 
             <div className="mt-0 text-center">
               <div
-                className={`px-2 text-center font-black uppercase ${theme.ratingText} sm:px-3 ${
+                className={`px-1 text-center font-black uppercase leading-tight ${theme.ratingText} sm:px-3 ${
                   isLongCardName
-                    ? "break-words text-[17px] leading-[0.95] sm:text-[25px]"
-                    : "break-words text-[22px] leading-tight sm:text-3xl"
+                    ? "whitespace-nowrap text-[18px] tracking-[-0.04em] sm:text-[25px] sm:tracking-[-0.03em]"
+                    : "whitespace-nowrap text-[22px] tracking-[-0.02em] sm:text-3xl sm:tracking-normal"
                 }`}
               >
                 {displayCardName}
