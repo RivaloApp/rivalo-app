@@ -138,15 +138,15 @@ function getRequestTypeFromTab(tab: MatchmakingTab): MatchmakingRequestType {
 }
 
 function getRequestTitle(type?: MatchmakingRequestType) {
-  if (type === "player") return "Trova player";
-  if (type === "opponent") return "Trova avversari";
-  return "Trova match";
+  if (type === "player") return "Ricerca giocatori";
+  if (type === "opponent") return "Ricerca avversari";
+  return "Ricerca match";
 }
 
 function getRequestActionLabel(type?: MatchmakingRequestType) {
-  if (type === "player") return "Crea annuncio player";
-  if (type === "opponent") return "Crea annuncio avversari";
-  return "Crea annuncio match";
+  if (type === "player") return "Pubblica ricerca giocatori";
+  if (type === "opponent") return "Pubblica ricerca avversari";
+  return "Pubblica ricerca match";
 }
 
 function getTabFromRequestType(type?: string): MatchmakingTab {
@@ -200,13 +200,13 @@ function getMissingPlayersHelp(sport?: string, format?: string) {
 
   if (normalizedSport === "padel" || normalizedSport === "tennis") {
     if (format === "doppio") {
-      return "Doppio: puoi cercare da 1 a 3 player. Con te il totale arriva a 4.";
+      return "Doppio: puoi cercare da 1 a 3 giocatori. Con te il totale arriva a 4.";
     }
 
     return "Singolo: puoi cercare 1 avversario. Con te il totale arriva a 2.";
   }
 
-  return "Calcetto: puoi cercare da 1 a 9 player. Con te il totale arriva fino a 10.";
+  return "Calcetto: puoi cercare da 1 a 9 giocatori. Con te il totale arriva fino a 10.";
 }
 
 function getAcceptedApplicationsCount(applications: MatchmakingApplication[]) {
@@ -1211,7 +1211,7 @@ if (alreadyRequested) {
               </h1>
 
               <p className="mt-4 max-w-3xl leading-7 text-slate-300">
-                Trova gruppi, match, player e avversari compatibili con il tuo sport attivo.
+                Trova gruppi, partite, giocatori e avversari compatibili con il tuo sport attivo.
               </p>
             </div>
 
@@ -1276,15 +1276,15 @@ if (alreadyRequested) {
             <TabButton
               active={activeTab === "players"}
               onClick={() => setActiveTab("players")}
-              title="Player"
-              text="Completa squadra"
+              title="Giocatori"
+              text="Cerca giocatori"
             />
 
             <TabButton
               active={activeTab === "opponents"}
               onClick={() => setActiveTab("opponents")}
               title="Avversari"
-              text="Sfida altra parte"
+              text="Cerca avversari"
             />
           </div>
         </section>
@@ -1495,7 +1495,7 @@ function MatchmakingRequestForm({
       <div className="mb-5 flex min-w-0 items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
-            Nuovo annuncio
+            Nuova ricerca
           </div>
 
           <h2 className="mt-2 break-words text-2xl font-black sm:text-3xl">
@@ -1617,7 +1617,7 @@ function MatchmakingRequestForm({
           <input
             value={notes}
             onChange={(event) => onNotesChange(event.target.value)}
-            placeholder="Info brevi per chi vuole unirsi"
+            placeholder="Info brevi per organizzarsi"
             maxLength={90}
             className="w-full bg-transparent outline-none placeholder:text-slate-500"
           />
