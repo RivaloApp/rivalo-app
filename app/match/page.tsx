@@ -68,8 +68,8 @@ function getMatchCopy(value?: string) {
       teamB: "Coppia 2",
       participantsLabel: "Giocatori padel",
       resultLabel: "Risultato padel",
-      postMatchText: "Inserisci risultato, MVP e conferma FairPlay. Gol e assist non vengono usati.",
-      formatHelp: "Padel: singolo o doppio. Il doppio richiede 4 giocatori.",
+      postMatchText: "Inserisci risultato, MVP e conferma FairPlay dal dettaglio match.",
+      formatHelp: "Padel: singolo o doppio. Il doppio richiede 4 giocatori del gruppo.",
       scoreMode: "racket",
     };
   }
@@ -77,12 +77,12 @@ function getMatchCopy(value?: string) {
   if (sport === "tennis") {
     return {
       title: "Match tennis",
-      teamA: "Player/Coppia 1",
-      teamB: "Player/Coppia 2",
+      teamA: "Giocatore/Coppia 1",
+      teamB: "Giocatore/Coppia 2",
       participantsLabel: "Giocatori tennis",
       resultLabel: "Risultato tennis",
-      postMatchText: "Inserisci risultato, MVP e conferma FairPlay. Gol e assist non vengono usati.",
-      formatHelp: "Tennis: singolo o doppio. Il singolo richiede 2 giocatori.",
+      postMatchText: "Inserisci risultato, MVP e conferma FairPlay dal dettaglio match.",
+      formatHelp: "Tennis: singolo o doppio. Il singolo richiede 2 giocatori del gruppo.",
       scoreMode: "racket",
     };
   }
@@ -497,7 +497,7 @@ const [awayTeamId, setAwayTeamId] = useState("");
       }
 
       if (requestData.createdBy !== currentUid) {
-        setMessage("Solo il creator dell'annuncio può creare il match.");
+        setMessage("Solo chi ha pubblicato dell'annuncio può creare il match.");
         return;
       }
 
@@ -591,7 +591,7 @@ const [awayTeamId, setAwayTeamId] = useState("");
         setAwayPlayerIds(selectedIds.slice(sideSize, sideSize * 2));
       }
 
-      setMessage("Annuncio matchmaking caricato. Controlla i dati e crea il match amichevole.");
+      setMessage("Annuncio matchmaking caricato. Controlla i dati e crea il match.");
     } catch (error) {
       console.error(error);
       setMessage("Errore nel caricamento dell'annuncio matchmaking.");
@@ -1019,7 +1019,7 @@ sourceType = "groupTeams";
         const freshRequest = freshRequestSnap.data() as MatchmakingRequestDoc;
 
         if (freshRequest.createdBy !== user.uid) {
-          setMessage("Solo il creator dell'annuncio può creare il match.");
+          setMessage("Solo chi ha pubblicato dell'annuncio può creare il match.");
           setSaving(false);
           return;
         }
@@ -1139,7 +1139,7 @@ awayScore: null,
       setHomePlayerIds(availableUsers.slice(0, 2).map((player) => player.uid));
       setAwayPlayerIds(availableUsers.slice(2, 4).map((player) => player.uid));
 
-      setMessage("Match rapido creato correttamente.");
+      setMessage("Match creato correttamente.");
       await loadData(user.uid, user.displayName || "Rivalo Player", groupId);
     } catch (error) {
       console.error(error);
@@ -1234,7 +1234,7 @@ awayScore: null,
                   className="w-full min-w-0 bg-[#0b1730] text-white outline-none"
                 >
                   <option className="bg-[#020617] text-white" value="">
-                    Nessun gruppo / Solo io
+                    Nessun gruppo
                   </option>
 
                   {groups.map((group) => (
@@ -1272,7 +1272,7 @@ awayScore: null,
                   </div>
 
                   <div className="mt-2 text-xs leading-5 text-slate-400">
-                    Per creare match in un altro sport servirà un profilo sport separato.
+                    Lo sport attivo è bloccato per proteggere ranking e statistiche. Gli altri sport richiedono un profilo sportivo separato.
                   </div>
                 </Field>
 
@@ -1392,7 +1392,7 @@ awayScore: null,
               {(sport === "padel" || sport === "tennis") && (
                 <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4">
                   <div className="text-sm font-black uppercase tracking-[0.16em] text-cyan-300">
-                    Selezione {competitionFormat === "doppio" ? "coppie" : "player"}
+                    Selezione {competitionFormat === "doppio" ? "coppie" : "giocatori"}
                   </div>
 
                   <div className="mt-2 text-sm font-bold leading-6 text-cyan-100">
@@ -1407,7 +1407,7 @@ awayScore: null,
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <RacketSideSelector
-                      title={competitionFormat === "doppio" ? pageCopy.teamA : "Player 1"}
+                      title={competitionFormat === "doppio" ? pageCopy.teamA : "Giocatore 1"}
                       side="home"
                       sideSize={getRacketSideSize(competitionFormat)}
                       availableUsers={availableUsers}
@@ -1417,7 +1417,7 @@ awayScore: null,
                     />
 
                     <RacketSideSelector
-                      title={competitionFormat === "doppio" ? pageCopy.teamB : "Player 2"}
+                      title={competitionFormat === "doppio" ? pageCopy.teamB : "Giocatore 2"}
                       side="away"
                       sideSize={getRacketSideSize(competitionFormat)}
                       availableUsers={availableUsers}
@@ -1597,7 +1597,7 @@ awayScore: null,
                   ? "Creazione bloccata"
                   : saving
                   ? "Creazione..."
-                  : "Crea match rapido"}
+                  : "Crea match"}
                 <ChevronRight className="transition group-hover:translate-x-1" />
               </button>
 
@@ -1632,7 +1632,7 @@ awayScore: null,
 
             <InfoCard
               icon={<Clock size={28} />}
-              title="Post-partita"
+              title="Dopo il match"
               text={pageCopy.postMatchText}
             />
           </section>
@@ -1942,7 +1942,7 @@ function MatchCard({ match }: { match: MatchDoc }) {
           <Badge>{match.slots || 0} slot</Badge>
           <Badge>{match.mode || "modalità"}</Badge>
           <Badge>{match.competitionFormat || "formato"}</Badge>
-          <Badge>{match.scoreMode === "racket" ? "no gol/assist" : "gol/assist"}</Badge>
+          <Badge>{match.scoreMode === "racket" ? "set" : "gol/assist"}</Badge>
 
           <div className={`max-w-full rounded-xl border px-3 py-2 font-black ${statusClass}`}>
             {statusLabel}
