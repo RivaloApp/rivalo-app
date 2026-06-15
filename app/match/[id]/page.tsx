@@ -148,8 +148,8 @@ function isRacketSport(value?: string) {
 function getMatchCopy(value?: string, format?: CompetitionFormat) {
   const sport = normalizeSport(value);
   const isSingle = format === "singolo";
-  const sideOneLabel = isSingle ? "Player 1" : "Coppia 1";
-  const sideTwoLabel = isSingle ? "Player 2" : "Coppia 2";
+  const sideOneLabel = isSingle ? "Giocatore 1" : "Coppia 1";
+  const sideTwoLabel = isSingle ? "Giocatore 2" : "Coppia 2";
 
   if (sport === "padel") {
     return {
@@ -159,15 +159,15 @@ function getMatchCopy(value?: string, format?: CompetitionFormat) {
       awayScore: `Set vinti ${sideTwoLabel}`,
       resultLabel: "Set finali",
       statsTitle: "Prestazione padel",
-      playerStatsHelp: "Per padel non esistono gol o assist: contano risultato, vittoria, MVP, streak e continuità.",
+      playerStatsHelp: "Per il padel contano risultato, vittoria, MVP, streak e continuità.",
       notesPlaceholder: "Dettaglio set/game, esempio: 6-4 3-6 10-8, tie-break o note partita...",
       officialMessage: "Match ufficiale. Risultato e statistiche padel non sono più modificabili.",
-      rankingText: "Solo i match confermati aggiornano RivalScore, XP, vittorie, MVP e streak. Gol e assist non vengono usati.",
+      rankingText: "Solo i match confermati aggiornano RivalScore, XP, vittorie, MVP e streak.",
       formTitle: "Risultato padel e FairPlay",
       formDescription: "Inserisci i set vinti e usa le note per il dettaglio game/tie-break.",
-      mvpLabel: "MVP / Player of the match",
-      mvpPlaceholder: "Nome player decisivo",
-      scoreHelp: "Per il ranking salviamo i set vinti come risultato numerico. Il dettaglio game/tie-break va nelle note.",
+      mvpLabel: "MVP del match",
+      mvpPlaceholder: "Nome giocatore decisivo",
+      scoreHelp: "I set vinti vengono salvati come risultato. Il dettaglio game/tie-break va nelle note.",
     };
   }
 
@@ -179,15 +179,15 @@ function getMatchCopy(value?: string, format?: CompetitionFormat) {
       awayScore: `Set vinti ${sideTwoLabel}`,
       resultLabel: "Set finali",
       statsTitle: "Prestazione tennis",
-      playerStatsHelp: "Per tennis non esistono gol o assist: contano risultato, vittoria, MVP, streak e continuità.",
+      playerStatsHelp: "Per il tennis contano risultato, vittoria, MVP, streak e continuità.",
       notesPlaceholder: "Dettaglio set/game, esempio: 6-3 4-6 7-5, tie-break o note partita...",
       officialMessage: "Match ufficiale. Risultato e statistiche tennis non sono più modificabili.",
-      rankingText: "Solo i match confermati aggiornano RivalScore, XP, vittorie, MVP e streak. Gol e assist non vengono usati.",
+      rankingText: "Solo i match confermati aggiornano RivalScore, XP, vittorie, MVP e streak.",
       formTitle: "Risultato tennis e FairPlay",
       formDescription: "Inserisci i set vinti e usa le note per il dettaglio game/tie-break.",
-      mvpLabel: "MVP / Player of the match",
-      mvpPlaceholder: "Nome player decisivo",
-      scoreHelp: "Per il ranking salviamo i set vinti come risultato numerico. Il dettaglio game/tie-break va nelle note.",
+      mvpLabel: "MVP del match",
+      mvpPlaceholder: "Nome giocatore decisivo",
+      scoreHelp: "I set vinti vengono salvati come risultato. Il dettaglio game/tie-break va nelle note.",
     };
   }
 
@@ -384,7 +384,7 @@ function getUserConfirmationTeam(match: MatchDoc, uid: string): "home" | "away" 
 function getPermissionLabel(match: MatchDoc) {
   return requiresCaptainRules(match)
     ? "Solo i capitani possono gestire risultato e FairPlay."
-    : "Solo i player coinvolti possono gestire il risultato.";
+    : "Solo i giocatori coinvolti possono gestire il risultato.";
 }
 
 function getOpponentCaptainLabel(match: MatchDoc, team: "home" | "away" | "") {
@@ -1007,7 +1007,7 @@ export default function MatchDetailsPage() {
       setMessage(
         requiresCaptainRules(match)
           ? "Solo un capitano di questo match può proporre il risultato."
-          : "Solo i player di questo match possono proporre il risultato."
+          : "Solo i giocatori di questo match possono proporre il risultato."
       );
       return;
     }
@@ -1052,7 +1052,7 @@ export default function MatchDetailsPage() {
         setMessage(
           requiresCaptainRules(match)
             ? "Solo un capitano di questo match può proporre il risultato."
-            : "Per proporre il risultato devi essere tra i player del match."
+            : "Per proporre il risultato devi essere tra i giocatori del match."
         );
         setSaving(false);
         return;
@@ -1147,7 +1147,7 @@ setMessage(
       setMessage(
         requiresCaptainRules(match)
           ? "Solo il capitano avversario può confermare o contestare."
-          : "Solo i player coinvolti possono confermare o contestare."
+          : "Solo i giocatori coinvolti possono confermare o contestare."
       );
       return;
     }
@@ -1491,7 +1491,7 @@ setMessage("Risultato confermato. Statistiche applicate una sola volta.");
 });
 
 await loadMatch(user?.uid);
-setMessage("Risultato contestato. Servirà revisione.");
+setMessage("Risultato contestato. Serve revisione.");
     } catch {
       setMessage("Errore durante la contestazione.");
     } finally {
@@ -1518,7 +1518,7 @@ setMessage("Risultato contestato. Servirà revisione.");
     }
 
     if (!canCancelMatch(match, user.uid)) {
-      setMessage("Solo creator o capitani possono annullare questo match.");
+      setMessage("Solo chi ha creato il match o i capitani possono annullarlo.");
       return;
     }
 
@@ -1616,7 +1616,7 @@ setMessage("Risultato contestato. Servirà revisione.");
       } else if (error?.message === "SPORT_MISMATCH") {
         setMessage("Questo match appartiene a un altro sport. Usa un profilo sport compatibile.");
       } else if (error?.message === "CANCEL_NOT_ALLOWED") {
-        setMessage("Solo creator o capitani possono annullare questo match.");
+        setMessage("Solo chi ha creato il match o i capitani possono annullarlo.");
       } else if (error?.message === "CANCEL_BLOCKED") {
         setMessage(getCancelBlockedReason(match));
       } else if (error?.message === "UNAUTHORIZED") {
@@ -1679,7 +1679,7 @@ setMessage("Risultato contestato. Servirà revisione.");
 
             <p className="mt-4 leading-7 text-slate-300">
               Questo match è dedicato a {sportLabel(match.sport)}, mentre il tuo profilo attivo è {sportLabel(userSport)}.
-              Per usare un altro sport servirà un profilo sport separato.
+              Per usare un altro sport è necessario un profilo sportivo separato.
             </p>
           </div>
         </section>
@@ -1863,7 +1863,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 </h2>
 
                 <p className="mt-1 text-sm font-semibold leading-6 text-slate-300">
-                  Apri una chat 1-to-1 con gli altri player coinvolti in questo match.
+                  Apri una chat 1-to-1 con gli altri giocatori coinvolti in questo match.
                 </p>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -1945,7 +1945,7 @@ setMessage("Risultato contestato. Servirà revisione.");
                 <div className="rounded-2xl border border-lime-400/20 bg-lime-400/10 px-4 py-3 text-sm font-bold leading-6 text-lime-100">
                   {match.competitionFormat === "doppio"
                     ? "Coppie bloccate dalla creazione match: i nomi arrivano dagli utenti selezionati nel gruppo."
-                    : "Player bloccati dalla creazione match: i nomi arrivano dagli utenti selezionati nel gruppo."}
+                    : "Giocatori bloccati dalla creazione match: i nomi arrivano dagli utenti selezionati nel gruppo."}
                 </div>
               )}
 
@@ -2033,7 +2033,7 @@ setMessage("Risultato contestato. Servirà revisione.");
 
               {racketMatch && (
                 <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-bold leading-6 text-cyan-100">
-                  Seleziona un risultato set reale: 2-0, 2-1, 1-2 o 0-2. Il dettaglio game/tie-break va nelle note. Gol e assist non vengono applicati.
+                  Seleziona un risultato set valido: 2-0, 2-1, 1-2 o 0-2. Il dettaglio game/tie-break va nelle note.
                 </div>
               )}
 
