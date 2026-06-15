@@ -138,9 +138,9 @@ function getEventCopy(value?: string) {
   if (sport === "padel") {
     return {
       title: "Eventi e Tornei Padel",
-      createText: "Crea tornei, sfide e campionati padel senza usare gol o assist.",
+      createText: "Organizza tornei, sfide e campionati padel con formato singolo o doppio.",
       formatHelp: "Padel: singolo o doppio. In doppio parteciperanno coppie da 2 giocatori.",
-      participantsLabel: "coppie/player",
+      participantsLabel: "coppie/giocatori",
       scoreMode: "racket",
     };
   }
@@ -148,16 +148,16 @@ function getEventCopy(value?: string) {
   if (sport === "tennis") {
     return {
       title: "Eventi e Tornei Tennis",
-      createText: "Crea tornei, sfide e campionati tennis senza usare gol o assist.",
+      createText: "Organizza tornei, sfide e campionati tennis con formato singolo o doppio.",
       formatHelp: "Tennis: singolo o doppio. In singolo parteciperanno player individuali.",
-      participantsLabel: "player/coppie",
+      participantsLabel: "giocatori/coppie",
       scoreMode: "racket",
     };
   }
 
   return {
     title: "Eventi e Tornei",
-    createText: "Crea tornei, campionati e sfide calcetto con squadre, gol, assist e MVP.",
+    createText: "Organizza tornei, campionati e sfide calcetto con squadre, risultati e MVP.",
     formatHelp: "Calcetto: formato squadre con classifica, gol, assist e MVP.",
     participantsLabel: "squadre/iscritti",
     scoreMode: "football",
@@ -605,7 +605,7 @@ export default function EventsPage() {
                   </div>
 
                   <div className="mt-2 text-xs leading-5 text-slate-400">
-                    Per creare eventi in un altro sport servirà un profilo sport separato.
+                    Lo sport attivo è bloccato per proteggere ranking e statistiche. Gli altri sport richiedono un profilo sportivo separato.
                   </div>
                 </Field>
               </div>
@@ -642,7 +642,7 @@ export default function EventsPage() {
 
               {isRacketSport(userSport) && (
                 <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-bold leading-6 text-cyan-100">
-                  Gli eventi racket usano player/coppie e score a set. I nomi delle coppie o dei player verranno creati dagli utenti iscritti, non scritti a mano.
+                  Gli eventi padel e tennis usano giocatori o coppie e risultati a set. Le coppie vengono composte dagli utenti iscritti.
                 </div>
               )}
 
@@ -734,7 +734,7 @@ export default function EventsPage() {
                   </select>
                 </Field>
 
-                <Field label={isRacketSport(userSport) ? "Posti player" : "Posti"}>
+                <Field label={isRacketSport(userSport) ? "Posti giocatori" : "Posti"}>
                   <input
                     type="number"
                     min="2"
@@ -780,7 +780,7 @@ export default function EventsPage() {
                 </div>
 
                 <h2 className="mt-2 text-3xl font-black leading-tight">
-                  Eventi disponibili
+                  Eventi attivi
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-slate-400">
@@ -798,7 +798,7 @@ export default function EventsPage() {
               </div>
             ) : events.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-slate-400">
-                Nessun evento disponibile per il tuo sport e la tua zona. Crea il primo evento Rivalo.
+                Nessun evento attivo per il tuo sport e la tua zona. Crea il primo evento Rivalo.
               </div>
             ) : (
               <div className="space-y-4">
@@ -842,7 +842,7 @@ function EventCard({ event }: { event: EventItem }) {
 
   const participantsCount = event.participants?.length || 0;
   const teamsCount = event.teams?.length || 0;
-  const scoreModeLabel = isRacketSport(event.activeSport || event.sport) ? "no gol/assist" : "gol/assist";
+  const scoreModeLabel = isRacketSport(event.activeSport || event.sport) ? "set" : "gol e assist";
 
   return (
     <Link
@@ -900,7 +900,7 @@ function EventCard({ event }: { event: EventItem }) {
                 {event.competitionFormat === "squadre"
                   ? `${teamsCount} squadre`
                   : event.competitionFormat === "doppio"
-                  ? `${teamsCount || participantsCount} coppie/player`
+                  ? `${teamsCount || participantsCount} coppie/giocatori`
                   : `${participantsCount}${
                       event.maxPlayers ? ` / ${event.maxPlayers}` : ""
                     } iscritti`}
