@@ -57,7 +57,7 @@ function getSportRolePlaceholder(value?: string) {
   const sport = normalizeSport(value);
 
   if (sport === "padel") return "Es. giocatore destro, sinistro, difensivo...";
-  if (sport === "tennis") return "Es. fondocampista, serve and volley...";
+  if (sport === "tennis") return "Es. fondocampista, servizio e volée...";
 
   return "Es. attaccante, difensore, portiere...";
 }
@@ -135,7 +135,7 @@ function getProfileStats(mainSport: string, {
       { label: "Ruolo", value: "POR" },
       { label: "Gol subiti", value: String(goalsConceded) },
       { label: "Media GS", value: goalsConcededAverage },
-      { label: "Clean Sheet", value: String(cleanSheets) },
+      { label: "Clean sheet", value: String(cleanSheets) },
       { label: "Rigori parati", value: String(penaltiesSaved) },
       { label: "MVP", value: String(mvp) },
       { label: "Serie vitt.", value: String(winStreak) },
@@ -205,7 +205,7 @@ const [deletionRequested, setDeletionRequested] = useState(false);
           const data = snap.data();
 
           setName(data.name || currentUser.displayName || "");
-          setNickname(data.nickname || "Rival Player");
+          setNickname(data.nickname || "Rivalo Player");
           setSport(normalizeSport(data.mainSport || data.sport || "calcetto"));
           setCity(data.city || "");
 setRole(data.role || "");
@@ -237,7 +237,7 @@ setDeletionRequested(Boolean(data.deletionRequested));
           setPenaltiesSaved(Number(data.penaltiesSaved || 0));
         } else {
           setName(currentUser.displayName || "");
-          setNickname("Rival Player");
+          setNickname("Rivalo Player");
           setSport("calcetto");
           setCity("");
 setRole("");
@@ -282,10 +282,10 @@ setDeletionRequested(false);
       if (user?.uid) {
         localStorage.setItem(`rivaloProfilePhoto:${user.uid}`, optimizedPhoto);
       }
-      setMessage("Foto caricata e ottimizzata. Ora premi Salva profilo.");
+      setMessage("Foto caricata. Premi Salva profilo per confermare.");
     } catch (error) {
       console.error(error);
-      setMessage("Errore caricamento foto.");
+      setMessage("Errore durante il caricamento della foto.");
     } finally {
       setSaving(false);
     }
@@ -352,7 +352,7 @@ setDeletionRequested(false);
       if (!user) return;
 
       if (accountStatus === "deletion_requested" || deletionRequested) {
-        setMessage("Profilo segnato per rimozione: modifiche bloccate.");
+        setMessage("Profilo non attivo: modifiche bloccate.");
         setSaving(false);
         return;
       }
@@ -399,7 +399,7 @@ setDeletionRequested(false);
       setMessage("Profilo aggiornato.");
     } catch (error) {
       console.error(error);
-      setMessage("Errore salvataggio.");
+      setMessage("Errore durante il salvataggio del profilo.");
     }
 
     setSaving(false);
@@ -453,7 +453,7 @@ setDeletionRequested(false);
 
         {(accountStatus === "deletion_requested" || deletionRequested) && (
           <div className="mb-6 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
-            Profilo segnato per rimozione sicura. Le modifiche sono bloccate e i dati pubblici verranno mostrati come profilo non attivo.
+            Profilo non attivo. Le modifiche sono bloccate e i dati pubblici verranno mostrati come “Profilo non attivo”.
           </div>
         )}
 
@@ -464,7 +464,7 @@ setDeletionRequested(false);
             <div className="relative z-10">
               <PlayerCard
                 name={name || "Player"}
-                nickname={nickname || "Rival Player"}
+                nickname={nickname || "Rivalo Player"}
                 rivalScore={rivalScore}
                 mainSport={sport}
                 photo={photoUrl}
@@ -530,7 +530,7 @@ setDeletionRequested(false);
               {sportLockedByStats && (
                 <div className="mt-3 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 p-4 text-sm font-bold leading-6 text-yellow-100">
                   Sport bloccato su {sportLabel(sport)} perché questo profilo ha già statistiche collegate.
-                  Per usare un altro sport servirà un profilo sport separato.
+                  Per usare un altro sport è necessario un profilo sportivo separato.
                 </div>
               )}
             </div>
@@ -613,7 +613,7 @@ setDeletionRequested(false);
                         : "0.0"
                     }
                   />
-                  <MiniStat label="Clean Sheet" value={String(cleanSheets)} />
+                  <MiniStat label="Clean sheet" value={String(cleanSheets)} />
                   <MiniStat label="Rigori parati" value={String(penaltiesSaved)} />
                 </div>
 
@@ -631,17 +631,17 @@ setDeletionRequested(false);
 
                 <div className="min-w-0">
                   <div className="font-black uppercase">
-                    Carica foto card
+                    Foto profilo
                   </div>
 
                   <div className="text-sm leading-5 text-slate-400">
-                    La dashboard si aggiorna automaticamente.
+                    La foto viene usata nella card e nel profilo.
                   </div>
                 </div>
               </div>
 
               <label className="mt-5 flex cursor-pointer items-center justify-center rounded-2xl border border-cyan-400/20 bg-black/25 px-5 py-4 text-center font-black text-cyan-200 transition hover:bg-cyan-400/10">
-                Scegli nuova foto
+                Scegli foto
                 <input
                   type="file"
                   accept="image/*"
@@ -663,7 +663,7 @@ setDeletionRequested(false);
               <div className="grid grid-cols-3 gap-3">
                 <StatBox
                   icon={<Shield />}
-                  label={normalizeSport(sport) === "calcetto" ? "Football Score" : `${sportLabel(sport)} Score`}
+                  label={normalizeSport(sport) === "calcetto" ? "RivalScore" : `${sportLabel(sport)} Score`}
                   value={String(rivalScore)}
                 />
 
@@ -675,7 +675,7 @@ setDeletionRequested(false);
 
                 <StatBox
                   icon={<Star />}
-                  label={isGoalkeeper ? "Clean Sheet" : normalizeSport(sport) === "calcetto" ? "MVP" : "Streak"}
+                  label={isGoalkeeper ? "Clean sheet" : normalizeSport(sport) === "calcetto" ? "MVP" : "Streak"}
                   value={isGoalkeeper ? String(cleanSheets) : normalizeSport(sport) === "calcetto" ? String(mvp) : String(winStreak)}
                 />
 
