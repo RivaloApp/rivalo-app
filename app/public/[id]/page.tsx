@@ -112,7 +112,7 @@ function getPublicStats(user: UserProfile, isGoalkeeper: boolean) {
     { label: "Gol", value: Number(user.goals || 0), color: "text-yellow-300" },
     { label: "Assist", value: Number(user.assists || 0), color: "text-cyan-300" },
     { label: "MVP", value: Number(user.mvp || 0), color: "text-yellow-100" },
-    { label: "Serie vittorie", value: Number(user.winStreak || 0), color: "text-orange-300" },
+    { label: "Serie vitt.", value: Number(user.winStreak || 0), color: "text-orange-300" },
     { label: "Miglior serie", value: Number(user.bestStreak || 0), color: "text-orange-200" },
     { label: "RivalScore", value: Number(user.rivalScore || 1000), color: "text-cyan-300" },
   ];
@@ -195,31 +195,31 @@ export default function PublicProfilePage() {
           );
         }
 
-        const currentUid = auth.currentUser?.uid || currentUser?.uid || "";
+        const matchesQuery = query(
+          collection(db, "matches"),
+          where("participants", "array-contains", id)
+        );
 
-        if (currentUid === id) {
-          const matchesQuery = query(
-            collection(db, "matches"),
-            where("participants", "array-contains", id)
-          );
+        const matchesSnap = await getDocs(matchesQuery);
 
-          const matchesSnap = await getDocs(matchesQuery);
+        const userMatches = matchesSnap.docs
+          .map((d) => ({
+            id: d.id,
+            ...d.data(),
+          }))
+          .filter(
+            (m: any) =>
+              Array.isArray(m.players) &&
+              m.players.some((p: any) => p.uid === id)
+          )
+          .sort((a: any, b: any) => {
+            const dateA = `${a.date || ""} ${a.time || ""}`;
+            const dateB = `${b.date || ""} ${b.time || ""}`;
 
-          const userMatches = matchesSnap.docs
-            .map((d) => ({
-              id: d.id,
-              ...d.data(),
-            }))
-            .filter(
-              (m: any) =>
-                Array.isArray(m.players) &&
-                m.players.some((p: any) => p.uid === id)
-            );
+            return dateB.localeCompare(dateA);
+          });
 
-          setMatches(userMatches);
-        } else {
-          setMatches([]);
-        }
+        setMatches(userMatches);
       } finally {
         setLoading(false);
       }
@@ -477,7 +477,7 @@ export default function PublicProfilePage() {
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-2xl font-black uppercase leading-tight sm:text-3xl">
 
                           <span className="max-w-full break-words">
-                            {match.homeTeam || "Squadra 1"}
+                            {match.homeTeam || "Casa"}
                           </span>
 
                           <span className="text-cyan-300">
@@ -493,7 +493,7 @@ export default function PublicProfilePage() {
                           </span>
 
                           <span className="max-w-full break-words">
-                            {match.awayTeam || "Squadra 2"}
+                            {match.awayTeam || "Trasferta"}
                           </span>
 
                         </div>
@@ -505,7 +505,7 @@ export default function PublicProfilePage() {
                       </div>
 
                       <div className="w-fit rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-300 sm:text-sm">
-                        {match.resultStatus || "Confermato"}
+                        {match.resultStatus || "confermato"}
                       </div>
 
                     </div>
