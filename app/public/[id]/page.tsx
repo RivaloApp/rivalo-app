@@ -97,10 +97,10 @@ function getPublicStats(user: UserProfile, isGoalkeeper: boolean) {
       { label: "Vittorie", value: Number(user.wins || 0), color: "text-lime-300" },
       { label: "Gol subiti", value: goalsConceded, color: "text-rose-200" },
       { label: "Media GS", value: averageConceded, color: "text-orange-200" },
-      { label: "Clean Sheet", value: Number(user.cleanSheets || 0), color: "text-lime-200" },
+      { label: "Clean sheet", value: Number(user.cleanSheets || 0), color: "text-lime-200" },
       { label: "Rigori parati", value: Number(user.penaltiesSaved || 0), color: "text-cyan-200" },
       { label: "MVP", value: Number(user.mvp || 0), color: "text-yellow-100" },
-      { label: "Best Streak", value: Number(user.bestStreak || 0), color: "text-orange-200" },
+      { label: "Miglior serie", value: Number(user.bestStreak || 0), color: "text-orange-200" },
       { label: "RivalScore", value: Number(user.rivalScore || 1000), color: "text-cyan-300" },
     ];
   }
@@ -112,8 +112,8 @@ function getPublicStats(user: UserProfile, isGoalkeeper: boolean) {
     { label: "Gol", value: Number(user.goals || 0), color: "text-yellow-300" },
     { label: "Assist", value: Number(user.assists || 0), color: "text-cyan-300" },
     { label: "MVP", value: Number(user.mvp || 0), color: "text-yellow-100" },
-    { label: "Win Streak", value: Number(user.winStreak || 0), color: "text-orange-300" },
-    { label: "Best Streak", value: Number(user.bestStreak || 0), color: "text-orange-200" },
+    { label: "Serie vittorie", value: Number(user.winStreak || 0), color: "text-orange-300" },
+    { label: "Miglior serie", value: Number(user.bestStreak || 0), color: "text-orange-200" },
     { label: "RivalScore", value: Number(user.rivalScore || 1000), color: "text-cyan-300" },
   ];
 }
@@ -233,7 +233,7 @@ export default function PublicProfilePage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-[#020617] flex items-center justify-center text-white">
-        Loading...
+        Caricamento profilo...
       </main>
     );
   }
@@ -241,7 +241,7 @@ export default function PublicProfilePage() {
   if (!user) {
     return (
       <main className="min-h-screen bg-[#020617] flex items-center justify-center text-white">
-        User not found
+        Profilo non trovato
       </main>
     );
   }
@@ -280,7 +280,7 @@ export default function PublicProfilePage() {
 
   const publicDisplayName = isRemoved
     ? "Utente rimosso"
-    : user.name || user.nickname || "Player";
+    : user.name || user.nickname || "Rivalo Player";
 
   const publicNickname = isRemoved
     ? "Profilo non attivo"
@@ -400,7 +400,7 @@ export default function PublicProfilePage() {
                 <div>
 
                   <div className="text-xs font-black uppercase tracking-[0.28em] text-cyan-300 sm:text-sm sm:tracking-[0.3em]">
-                    Level Progress
+                    Progressi livello
                   </div>
 
                   <div className="mt-2 text-4xl font-black leading-none sm:text-5xl">
@@ -452,7 +452,7 @@ export default function PublicProfilePage() {
             <div className="mt-10">
 
               <h2 className="text-4xl font-black leading-none sm:text-5xl">
-                Match History
+                Storico match
               </h2>
 
               <div className="mt-5 space-y-4">
@@ -477,7 +477,7 @@ export default function PublicProfilePage() {
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-2xl font-black uppercase leading-tight sm:text-3xl">
 
                           <span className="max-w-full break-words">
-                            {match.homeTeam || "HOME"}
+                            {match.homeTeam || "Squadra 1"}
                           </span>
 
                           <span className="text-cyan-300">
@@ -493,19 +493,19 @@ export default function PublicProfilePage() {
                           </span>
 
                           <span className="max-w-full break-words">
-                            {match.awayTeam || "AWAY"}
+                            {match.awayTeam || "Squadra 2"}
                           </span>
 
                         </div>
 
                         <div className="mt-2 text-sm text-slate-400">
-                          {match.sport || "sport"} · {match.date || "date"}
+                          {match.sport || "Sport"} · {match.date || "Data"}
                         </div>
 
                       </div>
 
                       <div className="w-fit rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-300 sm:text-sm">
-                        {match.resultStatus || "confirmed"}
+                        {match.resultStatus || "Confermato"}
                       </div>
 
                     </div>
@@ -522,7 +522,7 @@ export default function PublicProfilePage() {
                           >
 
                             <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                              Performance
+                              Prestazione
                             </div>
 
                             <div className="mt-2 flex flex-wrap gap-2 text-sm font-black">
