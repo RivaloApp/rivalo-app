@@ -101,6 +101,25 @@ function getPostAuthorName(post: Post) {
   return post.authorName || "Rivalo Player";
 }
 
+function getPostTypeLabel(type?: string) {
+  if (type === "cerco_giocatore") return "Cerco giocatore";
+  if (type === "cerco_squadra") return "Cerco avversari";
+  if (type === "cerco_match") return "Cerco match";
+  if (type === "post") return "Post community";
+
+  return "Post";
+}
+
+function getSportLabel(sport?: string) {
+  const normalizedSport = normalize(sport);
+
+  if (normalizedSport === "padel") return "Padel";
+  if (normalizedSport === "tennis") return "Tennis";
+  if (normalizedSport === "calcetto") return "Calcetto";
+
+  return "Sport non indicato";
+}
+
 function includesCurrentUser(activity: ActivityItem, uid: string) {
   if (!uid) return false;
 
@@ -296,7 +315,7 @@ export default function CommunityPage() {
     if (!user || !text.trim()) return;
 
     if (accountLocked) {
-      setMessage("Profilo non attivo: pubblicazione bloccata.");
+      setMessage("Profilo non attivo: non puoi pubblicare nuovi post.");
       return;
     }
 
@@ -304,7 +323,7 @@ export default function CommunityPage() {
 
     if (isRemovedProfile(freshProfile)) {
       setAccountLocked(true);
-      setMessage("Profilo non attivo: pubblicazione bloccata.");
+      setMessage("Profilo non attivo: non puoi pubblicare nuovi post.");
       return;
     }
 
@@ -355,7 +374,7 @@ export default function CommunityPage() {
                 </h1>
 
                 <p className="mt-1 text-slate-400">
-                  Trova giocatori, squadre e sfide nella tua città.
+                  Pubblica richieste, trova giocatori e segui le attività più rilevanti per te.
                 </p>
               </div>
             </div>
@@ -379,7 +398,7 @@ export default function CommunityPage() {
               )}
 
               <fieldset disabled={accountLocked} className="space-y-4 disabled:opacity-60">
-              <Field label="Tipo richiesta">
+              <Field label="Tipo di richiesta">
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
@@ -390,7 +409,7 @@ export default function CommunityPage() {
                   </option>
 
                   <option value="cerco_squadra">
-                    Cerco squadra avversaria
+                    Cerco avversari
                   </option>
 
                   <option value="cerco_match">
@@ -398,7 +417,7 @@ export default function CommunityPage() {
                   </option>
 
                   <option value="post">
-                    Post community
+                    Post nella community
                   </option>
                 </select>
               </Field>
@@ -408,7 +427,7 @@ export default function CommunityPage() {
                   <input
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    placeholder="Milano, Lecce..."
+                    placeholder="Milano, Lecce…"
                     className="w-full bg-transparent outline-none placeholder:text-slate-500"
                   />
                 </Field>
@@ -438,7 +457,7 @@ export default function CommunityPage() {
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="Esempio: siamo in 5, cerchiamo squadra avversaria stasera..."
+                  placeholder="Esempio: siamo in 5 e cerchiamo una squadra avversaria per stasera…"
                   className="min-h-[140px] w-full resize-none bg-transparent outline-none placeholder:text-slate-500"
                 />
               </Field>
@@ -448,7 +467,7 @@ export default function CommunityPage() {
                 disabled={accountLocked}
                 className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black disabled:opacity-60"
               >
-                Pubblica
+                Pubblica post
                 <Send size={18} />
               </button>
               </fieldset>
@@ -461,7 +480,7 @@ export default function CommunityPage() {
                 <div>
                   <div className="flex items-center gap-2 text-sm font-black uppercase tracking-[.25em] text-cyan-300">
                     <Radio size={17} />
-                    Live Feed personale
+                    Feed personale
                   </div>
 
                   <h2 className="mt-2 text-3xl font-black">
@@ -474,11 +493,11 @@ export default function CommunityPage() {
 
               {activitiesLoading ? (
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-slate-400">
-                  Caricamento attività...
+                  Caricamento attività…
                 </div>
               ) : activities.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-slate-400">
-                  Nessuna attività personale ancora. Quando giocherai match o parteciperai a eventi, comparirà qui.
+                  Nessuna attività personale disponibile. Quando giocherai match o parteciperai a eventi, comparirà qui.
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -509,11 +528,11 @@ export default function CommunityPage() {
 
               {loading ? (
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-slate-400">
-                  Caricamento...
+                  Caricamento post…
                 </div>
               ) : posts.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-slate-400">
-                  Nessun post compatibile con la tua zona o il tuo sport.
+                  Nessun post compatibile con il tuo sport o la tua zona.
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -524,11 +543,11 @@ export default function CommunityPage() {
                     >
                       <div className="mb-3 flex flex-wrap gap-2">
                         <Badge>
-                          {post.type}
+                          {getPostTypeLabel(post.type)}
                         </Badge>
 
                         <Badge>
-                          {post.sport}
+                          {getSportLabel(post.sport)}
                         </Badge>
 
                         <Badge>
@@ -567,7 +586,7 @@ function ActivityCard({
     activity.text ||
     activity.title ||
     activity.description ||
-    "Nuova attività Rivalo";
+    "Nuova attività su Rivalo";
 
   return (
     <div
@@ -586,7 +605,7 @@ function ActivityCard({
           </div>
 
           <div className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-            {activity.type || "activity"}
+            {getActivityLabel(activity.type)}
           </div>
         </div>
 
@@ -605,6 +624,16 @@ function ActivityCard({
       </div>
     </div>
   );
+}
+
+function getActivityLabel(type?: string) {
+  if (type === "mvp") return "MVP";
+  if (type === "match_win") return "Vittoria match";
+  if (type === "streak") return "Serie positiva";
+  if (type === "rivalry") return "Rivalità";
+  if (type === "event") return "Evento";
+
+  return "Attività";
 }
 
 function getActivityStyle(type?: string) {
