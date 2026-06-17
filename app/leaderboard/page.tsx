@@ -112,11 +112,11 @@ function sportLabel(filter: SportFilter) {
 }
 
 function rankScoreLabel(filter: SportFilter) {
-  if (filter === "calcetto") return "Football Score";
+  if (filter === "calcetto") return "RivalScore";
   if (filter === "padel") return "Padel Score";
   if (filter === "tennis") return "Tennis Score";
 
-  return "Rivalo Score";
+  return "RivalScore";
 }
 
 function rankingDescription(filter: SportFilter) {
@@ -125,11 +125,11 @@ function rankingDescription(filter: SportFilter) {
   }
 
   if (filter === "padel") {
-    return "Peso maggiore a vittorie, win rate, streak, MVP e costanza. Gol e assist non contano.";
+    return "Peso maggiore a vittorie, percentuale vittorie, serie positiva, MVP e costanza.";
   }
 
   if (filter === "tennis") {
-    return "Peso maggiore a vittorie, win rate, streak, RivalScore e costanza. Gol e assist non contano.";
+    return "Peso maggiore a vittorie, percentuale vittorie, serie positiva, RivalScore e costanza.";
   }
 
   return "Ranking generale Rivalo: confronta tutti gli sport usando criteri tecnici separati.";
@@ -148,10 +148,10 @@ function isRemovedUser(user?: UserRow) {
 }
 
 function getDisplayName(user?: UserRow) {
-  if (!user) return "Nessun attivo";
+  if (!user) return "Nessun utente attivo";
   if (isRemovedUser(user)) return "Utente rimosso";
 
-  return user.name || user.nickname || "Player";
+  return user.name || user.nickname || "Rivalo Player";
 }
 
 function getDisplayPhoto(user?: UserRow) {
@@ -470,7 +470,7 @@ export default function LeaderboardPage() {
 
                 <div>
                   <div className="text-xs font-black uppercase tracking-[.22em] text-cyan-300 sm:text-sm sm:tracking-[.3em]">
-                    Rivalo Global Ranking
+                    Rivalo Ranking Globale
                   </div>
 
                   <h1 className="mt-2 break-words text-[40px] font-black leading-[1.05] tracking-tight sm:text-5xl">
@@ -596,7 +596,7 @@ export default function LeaderboardPage() {
                       />
 
                       <CategoryCard
-                        title="Win Rate"
+                        title="Percentuale vittorie"
                         value={
                           topWinRate
                             ? Math.round(
@@ -614,14 +614,14 @@ export default function LeaderboardPage() {
                   )}
 
                   <CategoryCard
-                    title={isRacketView ? "Top Vittorie" : "MVP King"}
+                    title={isRacketView ? "Top Vittorie" : "Top MVP"}
                     value={isRacketView ? topWins?.wins || 0 : topMvp?.mvp || 0}
                     user={isRacketView ? topWins : topMvp}
                     icon={isRacketView ? <Target className="text-lime-300" /> : <Crown className="text-yellow-200" />}
                   />
 
                   <CategoryCard
-                    title="Best Streak"
+                    title="Miglior serie"
                     value={topStreak?.winStreak || 0}
                     user={topStreak}
                     icon={<Flame className="text-orange-300" />}
@@ -842,7 +842,7 @@ function LeaderboardPodiumCard({
 
         <div className="h-[70px] w-[70px] shrink-0 overflow-hidden rounded-2xl border-2 border-cyan-400/35 bg-black/30 shadow-lg shadow-cyan-950/40 sm:h-20 sm:w-20">
           {photo ? (
-            <img src={photo} alt="profile" className="h-full w-full object-cover" />
+            <img src={photo} alt="Profilo" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
               <UserRound className="h-9 w-9 text-cyan-200" />
@@ -899,7 +899,7 @@ function LeaderboardPodiumCard({
       </div>
 
       <div className="relative mt-3 grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
-        <MiniStat label="Win" value={wins} color="text-lime-300" />
+        <MiniStat label="Vittorie" value={wins} color="text-lime-300" />
         <MiniStat label="MVP" value={statsUser.mvp || 0} color="text-yellow-200" />
         <MiniStat label="Partite" value={matches} color="text-cyan-200" />
         {sportFilter === "padel" || sportFilter === "tennis" ? (
@@ -956,7 +956,7 @@ function CompactRow({
 
         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10">
           {photo ? (
-            <img src={photo} alt="profile" className="h-full w-full object-cover" />
+            <img src={photo} alt="Profilo" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-black/30">
               <UserRound className="text-slate-400" />
@@ -987,14 +987,14 @@ function CompactRow({
 
       <div className="grid grid-cols-4 gap-3 text-center md:flex md:items-center md:gap-6">
         <CompactStat label="Rank" value={rankScore} color="text-cyan-300" />
-        <CompactStat label="Win" value={wins} color="text-lime-300" />
+        <CompactStat label="Vittorie" value={wins} color="text-lime-300" />
         <CompactStat
           label={isRacketView ? "WR%" : goalkeeper ? "CS" : "MVP"}
           value={isRacketView ? winRate : goalkeeper ? statsUser.cleanSheets || 0 : statsUser.mvp || 0}
           color={isRacketView ? "text-cyan-200" : goalkeeper ? "text-lime-200" : "text-yellow-100"}
         />
         <CompactStat
-          label={isRacketView ? "Streak" : goalkeeper ? "GS" : "Partite"}
+          label={isRacketView ? "Serie" : goalkeeper ? "GS" : "Partite"}
           value={isRacketView ? statsUser.winStreak || 0 : goalkeeper ? statsUser.goalsConceded || 0 : matches}
           color="text-slate-200"
         />
