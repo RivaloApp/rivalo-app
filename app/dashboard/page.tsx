@@ -75,6 +75,7 @@ type NavItem = {
   icon: React.ReactNode;
   text: string;
   subtitle?: string;
+  sportOnly?: "calcetto";
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -95,6 +96,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <ShieldCheck />,
     text: "Portieri",
     subtitle: "Ranking portieri calcetto",
+    sportOnly: "calcetto",
   },
   {
     href: "/match",
@@ -501,6 +503,7 @@ export default function DashboardPage() {
   const cleanSheets = profile?.cleanSheets ?? 0;
   const penaltiesSaved = profile?.penaltiesSaved ?? 0;
   const mainSport = profile?.mainSport || profile?.sport || "calcetto";
+  const isCalcettoProfile = normalizeSport(mainSport) === "calcetto";
   const photo = isProfileDeletionRequested(profile)
     ? ""
     : profile?.photoURL || profile?.photoUrl || "";
@@ -537,11 +540,12 @@ export default function DashboardPage() {
       <Background />
 
       <section className="relative z-10 flex min-h-screen">
-        <Sidebar accountLocked={accountLocked} />
+        <Sidebar accountLocked={accountLocked} mainSport={mainSport} />
 
         <MobileMenu
           open={mobileMenuOpen}
           accountLocked={accountLocked}
+          mainSport={mainSport}
           onClose={() => setMobileMenuOpen(false)}
         />
 
@@ -680,13 +684,15 @@ export default function DashboardPage() {
                 text="Ranking globale Rivalo"
               />
 
-              <QuickAction
-                href="/goalkeepers"
-                tone="green"
-                icon={<ShieldCheck />}
-                title="Portieri"
-                text="Classifica portieri calcetto"
-              />
+              {isCalcettoProfile && (
+                <QuickAction
+                  href="/goalkeepers"
+                  tone="green"
+                  icon={<ShieldCheck />}
+                  title="Portieri"
+                  text="Classifica portieri calcetto"
+                />
+              )}
 
               <QuickAction
                 href="/seasons"
@@ -815,10 +821,12 @@ export default function DashboardPage() {
 function MobileMenu({
   open,
   accountLocked,
+  mainSport,
   onClose,
 }: {
   open: boolean;
   accountLocked: boolean;
+  mainSport: string;
   onClose: () => void;
 }) {
   async function handleLogout() {
@@ -858,7 +866,9 @@ function MobileMenu({
         </div>
 
         <nav className="mt-4 grid min-w-0 gap-3 overflow-y-auto pr-1">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter(
+            (item) => item.sportOnly !== "calcetto" || normalizeSport(mainSport) === "calcetto"
+          ).map((item) => {
             const locked = accountLocked && isOperationalHref(item.href);
 
             const content = (
@@ -916,7 +926,7 @@ function MobileMenu({
   );
 }
 
-function Sidebar({ accountLocked }: { accountLocked: boolean }) {
+function Sidebar({ accountLocked, mainSport }: { accountLocked: boolean; mainSport: string }) {
   return (
     <aside className="hidden w-[270px] shrink-0 border-r border-white/10 bg-[#020617]/82 px-4 py-7 backdrop-blur-xl lg:flex lg:flex-col">
       <Link href="/dashboard" className="mb-9 block px-2">
@@ -926,7 +936,9 @@ function Sidebar({ accountLocked }: { accountLocked: boolean }) {
       <div className="space-y-2">
         <SideLink href="/dashboard" icon={<Grid2X2 />} text="Dashboard" active />
         <SideLink href="/leaderboard" icon={<Globe2 />} text="Globale" />
-        <SideLink href="/goalkeepers" icon={<ShieldCheck />} text="Portieri" />
+        {normalizeSport(mainSport) === "calcetto" && (
+          <SideLink href="/goalkeepers" icon={<ShieldCheck />} text="Portieri" />
+        )}
         <SideLink href="/seasons" icon={<Medal />} text="Stagione" />
         <SideLink href="/groups" icon={<Users />} text="Gruppi" locked={accountLocked} />
         <SideLink href="/opponents" icon={<Search />} text="Matchmaking" locked={accountLocked} />

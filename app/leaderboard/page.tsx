@@ -527,27 +527,29 @@ export default function LeaderboardPage() {
               </FilterButton>
             </div>
 
-            <div className="mb-6 rounded-2xl border border-lime-300/20 bg-lime-400/10 p-4 sm:p-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-[0.22em] text-lime-200">
-                    Ranking portieri calcetto
+            {isCalcettoView && (
+              <div className="mb-6 rounded-2xl border border-lime-300/20 bg-lime-400/10 p-4 sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-[0.22em] text-lime-200">
+                      Ranking portieri calcetto
+                    </div>
+
+                    <div className="mt-2 text-sm font-bold leading-6 text-lime-100/90">
+                      Classifica separata per portieri con clean sheet, media gol subiti, rigori parati e RivalScore.
+                    </div>
                   </div>
 
-                  <div className="mt-2 text-sm font-bold leading-6 text-lime-100/90">
-                    Classifica separata per portieri con clean sheet, media gol subiti, rigori parati e RivalScore.
-                  </div>
+                  <Link
+                    href="/goalkeepers"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-lime-300/30 bg-lime-400/15 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-lime-100 transition hover:border-lime-200/70 hover:bg-lime-400/25"
+                  >
+                    <Shield size={18} />
+                    Apri portieri
+                  </Link>
                 </div>
-
-                <Link
-                  href="/goalkeepers"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-lime-300/30 bg-lime-400/15 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-lime-100 transition hover:border-lime-200/70 hover:bg-lime-400/25"
-                >
-                  <Shield size={18} />
-                  Apri portieri
-                </Link>
               </div>
-            </div>
+            )}
 
             <div className="mb-6 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.06] p-4 text-sm leading-6 text-cyan-100">
               Vista attiva: <span className="font-black">{sportLabel(sportFilter)}</span>.
