@@ -455,7 +455,7 @@ const [notes, setNotes] = useState("");
       setFormat(getFormatOptions(currentUserSport)[0]?.value || "amichevole");
       setAccountLocked(isProfileDeletionRequested(profile));
 
-      await loadPublicGroups(currentUserSport);
+      await loadPublicGroups(currentUserSport, currentUser.uid);
       await loadSentRequests(currentUser.uid);
       await loadMatchmakingRequests(currentUserSport, currentUser.uid);
 
@@ -479,7 +479,7 @@ const [notes, setNotes] = useState("");
     return () => unsubscribe();
   }, []);
 
-  async function loadPublicGroups(currentUserSport = userSport) {
+  async function loadPublicGroups(currentUserSport = userSport, currentUid = user?.uid || "") {
     setLoading(true);
 
     try {
@@ -488,14 +488,35 @@ const [notes, setNotes] = useState("");
         where("privacy", "==", "pubblico")
       );
 
-      const snap = await getDocs(publicGroupsQuery);
+      const publicSnap = await getDocs(publicGroupsQuery);
+      const ownSnap = currentUid
+        ? await getDocs(
+            query(
+              collection(db, "groups"),
+              where("members", "array-contains", currentUid)
+            )
+          )
+        : null;
 
-      const result = snap.docs
-        .map((docSnap) => ({
+      const groupsById = new Map<string, OpponentGroup>();
+
+      publicSnap.docs.forEach((docSnap) => {
+        groupsById.set(docSnap.id, {
           id: docSnap.id,
           ...(docSnap.data() as Omit<OpponentGroup, "id">),
-        }))
-        .filter((group) => getGroupSport(group) === normalizeSport(currentUserSport));
+        });
+      });
+
+      ownSnap?.docs.forEach((docSnap) => {
+        groupsById.set(docSnap.id, {
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<OpponentGroup, "id">),
+        });
+      });
+
+      const result = Array.from(groupsById.values()).filter(
+        (group) => getGroupSport(group) === normalizeSport(currentUserSport)
+      );
 
       setGroups(result);
     } catch (error) {
@@ -1170,11 +1191,9 @@ if (alreadyRequested) {
 
       const searchOk = !cleanSearch || searchTarget.includes(cleanSearch);
 
-      const notMine = user ? !(group.members || []).includes(user.uid) : true;
-
-      return sportOk && searchOk && notMine;
+      return sportOk && searchOk;
     });
-  }, [groups, groupSearch, user, userSport]);
+  }, [groups, groupSearch, userSport]);
 
   const filteredMatchmakingRequests = useMemo(() => {
     const cleanCity = cityFilter.trim().toLowerCase();
@@ -1326,9 +1345,9 @@ if (alreadyRequested) {
         <section className="mt-8">
           {activeTab === "groups" ? (
             loading ? (
-              <EmptyBox text="Caricamento gruppi..." />
+              <EmptyBox text="Caricamento gruppi…" />
             ) : filteredGroups.length === 0 ? (
-              <EmptyBox text="Nessun gruppo pubblico trovato con questa ricerca." />
+              <EmptyBox text="Nessun gruppo trovato con questa ricerca." />
             ) : (
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {filteredGroups.map((group) => (
@@ -1340,6 +1359,7 @@ if (alreadyRequested) {
                     alreadyRequested={sentRequests.some(
                       (request) => request.groupId === group.id
                     )}
+                    isMember={user ? (group.members || []).includes(user.uid) : false}
                     accountLocked={accountLocked}
                   />
                 ))}
@@ -2065,12 +2085,14 @@ function OpponentCard({
   onRequestJoin,
   requesting,
   alreadyRequested,
+  isMember,
   accountLocked,
 }: {
   group: OpponentGroup;
   onRequestJoin: (group: OpponentGroup) => void;
   requesting: boolean;
   alreadyRequested: boolean;
+  isMember: boolean;
   accountLocked: boolean;
 }) {
 
@@ -2110,15 +2132,17 @@ function OpponentCard({
         <button
   type="button"
   onClick={() => onRequestJoin(group)}
- disabled={requesting || alreadyRequested || accountLocked}
+ disabled={requesting || alreadyRequested || isMember || accountLocked}
   className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-5 py-3 font-black text-white disabled:opacity-60"
 >
  {accountLocked
   ? "Richiesta bloccata"
+  : isMember
+  ? "Sei già nel gruppo"
   : alreadyRequested
   ? "Richiesta già inviata"
   : requesting
-  ? "Invio richiesta..."
+  ? "Invio richiesta…"
   : "Richiedi ingresso"}
 </button>
       </div>
