@@ -119,17 +119,17 @@ function calcettoRoleLabel(value?: string) {
 }
 
 function getSportRolePlaceholder(value: Sport) {
-  if (value === "padel") return "Es. giocatore destro, sinistro, difensivo...";
-  if (value === "tennis") return "Es. fondocampista, serve and volley...";
+  if (value === "padel") return "Es. lato destro, lato sinistro, difensivo…";
+  if (value === "tennis") return "Es. fondocampista, serve and volley…";
 
-  return "Es. attaccante, difensore, portiere...";
+  return "Es. attaccante, difensore, portiere…";
 }
 
 function getSportStylePlaceholder(value: Sport) {
-  if (value === "padel") return "Es. controllo, bandeja, rete, difesa...";
-  if (value === "tennis") return "Es. aggressivo, regolare, potente, tecnico...";
+  if (value === "padel") return "Es. controllo, bandeja, rete, difesa…";
+  if (value === "tennis") return "Es. aggressivo, regolare, potente, tecnico…";
 
-  return "Es. competitivo, tecnico, veloce...";
+  return "Es. competitivo, tecnico, veloce…";
 }
 
 function buildInitialSportStats(
@@ -257,7 +257,7 @@ export default function OnboardingPage() {
       lockedSport === "calcetto" ? normalizeCalcettoRole(role) : role.trim();
 
     if (lockedSport === "calcetto" && !lockedRole) {
-      setMessage("Seleziona il tuo ruolo calcetto.");
+      setMessage("Seleziona il tuo ruolo nel calcetto.");
       return;
     }
 
@@ -371,7 +371,7 @@ export default function OnboardingPage() {
       window.location.href = "/dashboard";
     } catch (error) {
       console.error(error);
-      setMessage("Errore durante il salvataggio del profilo.");
+      setMessage("Non è stato possibile salvare il profilo. Riprova tra poco.");
     } finally {
       setSaving(false);
     }
@@ -380,7 +380,7 @@ export default function OnboardingPage() {
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-        Preparazione profilo...
+        Preparazione profilo…
       </main>
     );
   }
@@ -406,7 +406,7 @@ export default function OnboardingPage() {
                 </h1>
 
                 <p className="mt-3 max-w-2xl text-slate-300">
-                  Completa i dati base per attivare card, ranking, match e statistiche.
+                  Completa i dati principali per attivare card, ranking, match e statistiche.
                 </p>
               </div>
 
@@ -488,7 +488,7 @@ export default function OnboardingPage() {
                         Ruolo calcetto
                       </div>
                       <div className="mt-1 text-sm text-slate-400">
-                        Seleziona il ruolo principale. Potrai modificarlo dal profilo.
+                        Seleziona il ruolo principale. Potrai modificarlo dal tuo profilo.
                       </div>
                     </div>
 
@@ -569,16 +569,16 @@ export default function OnboardingPage() {
                 <input
                   value={availability}
                   onChange={(e) => setAvailability(e.target.value)}
-                  placeholder="Es. sera, weekend, 2 volte a settimana..."
+                  placeholder="Es. sera, weekend, 2 volte a settimana…"
                   className="w-full bg-transparent outline-none placeholder:text-slate-500"
                 />
               </Field>
 
-              <Field label="Foto profilo URL opzionale">
+              <Field label="URL foto profilo opzionale">
                 <input
                   value={photoUrl}
                   onChange={(e) => setPhotoUrl(e.target.value)}
-                  placeholder="Incolla URL immagine, oppure lascia vuoto"
+                  placeholder="Incolla il link di un’immagine o lascia vuoto"
                   className="w-full bg-transparent outline-none placeholder:text-slate-500"
                 />
               </Field>
@@ -594,7 +594,7 @@ export default function OnboardingPage() {
                 disabled={saving}
                 className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-6 py-4 font-black text-white shadow-[0_0_30px_rgba(34,211,238,.18)] disabled:opacity-60"
               >
-                {saving ? "Salvataggio..." : "Completa profilo"}
+                {saving ? "Salvataggio…" : "Completa profilo"}
                 <ArrowRight className="transition group-hover:translate-x-1" />
               </button>
             </div>
@@ -613,7 +613,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="mt-5 text-2xl font-black">
-                {name || "Player"}
+                {name || "Rivalo Player"}
               </div>
 
               <div className="mt-1 text-cyan-300">
@@ -624,20 +624,20 @@ export default function OnboardingPage() {
                 <CheckItem active={Boolean(name.trim())} text="Nome inserito" />
                 <CheckItem active={Boolean(nickname.trim())} text="Nickname inserito" />
                 <CheckItem active={Boolean(mainSport)} text={`Sport selezionato: ${mainSport}`} />
-                <CheckItem active={Boolean(city.trim())} text="Zona inserita" />
+                <CheckItem active={Boolean(city.trim())} text="Città o zona inserita" />
                 <CheckItem
                   active={mainSport === "calcetto" ? Boolean(normalizeCalcettoRole(role)) : Boolean(role.trim())}
                   text={
                     mainSport === "calcetto"
                       ? calcettoRoleLabel(role)
                         ? `Ruolo: ${calcettoRoleLabel(role)}`
-                        : "Ruolo calcetto da selezionare"
+                        : "Ruolo nel calcetto da selezionare"
                       : "Ruolo inserito"
                   }
                 />
-                <CheckItem active={Boolean(playStyle.trim())} text="Stile inserito" />
+                <CheckItem active={Boolean(playStyle.trim())} text="Stile di gioco inserito" />
                 <CheckItem active={Boolean(availability.trim())} text="Disponibilità inserita" />
-                <CheckItem active={Boolean(photoUrl.trim())} text="Foto opzionale" />
+                <CheckItem active={Boolean(photoUrl.trim())} text="Foto profilo opzionale" />
               </div>
             </aside>
           </form>
