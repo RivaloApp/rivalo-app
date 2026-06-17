@@ -410,6 +410,7 @@ export default function OpponentsPage() {
 
   const [sportFilter, setSportFilter] = useState("calcetto");
   const [cityFilter, setCityFilter] = useState("");
+  const [groupSearch, setGroupSearch] = useState("");
   const [message, setMessage] = useState("");
 const [requestingGroupId, setRequestingGroupId] = useState("");
 const [sentRequests, setSentRequests] = useState<JoinRequest[]>([]);
@@ -1151,20 +1152,29 @@ if (alreadyRequested) {
   }
 
   const filteredGroups = useMemo(() => {
-    const cleanCity = cityFilter.trim().toLowerCase();
+    const cleanSearch = groupSearch.trim().toLowerCase();
     const lockedSport = normalizeSport(userSport);
 
     return groups.filter((group) => {
       const sportOk = getGroupSport(group) === lockedSport;
 
-      const cityOk =
-        !cleanCity || (group.city || "").toLowerCase().includes(cleanCity);
+      const searchTarget = [
+        group.name,
+        group.city,
+        group.mode,
+        group.privacy,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const searchOk = !cleanSearch || searchTarget.includes(cleanSearch);
 
       const notMine = user ? !(group.members || []).includes(user.uid) : true;
 
-      return sportOk && cityOk && notMine;
+      return sportOk && searchOk && notMine;
     });
-  }, [groups, cityFilter, user, userSport]);
+  }, [groups, groupSearch, user, userSport]);
 
   const filteredMatchmakingRequests = useMemo(() => {
     const cleanCity = cityFilter.trim().toLowerCase();
@@ -1227,14 +1237,26 @@ if (alreadyRequested) {
           <div className="grid gap-4 md:grid-cols-[1fr_220px]">
             <div className="rounded-2xl border border-white/10 bg-[#061126]/80 px-4 py-4">
               <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
-                <MapPin size={16} />
-                Città / zona
+                {activeTab === "groups" ? (
+                  <Users size={16} />
+                ) : (
+                  <MapPin size={16} />
+                )}
+                {activeTab === "groups" ? "Cerca gruppo" : "Città / zona"}
               </div>
 
               <input
-                value={cityFilter}
-                onChange={(e) => setCityFilter(e.target.value)}
-                placeholder="Es. Lecce, Milano, Roma..."
+                value={activeTab === "groups" ? groupSearch : cityFilter}
+                onChange={(e) =>
+                  activeTab === "groups"
+                    ? setGroupSearch(e.target.value)
+                    : setCityFilter(e.target.value)
+                }
+                placeholder={
+                  activeTab === "groups"
+                    ? "Nome gruppo, città o modalità..."
+                    : "Es. Lecce, Milano, Roma..."
+                }
                 className="w-full bg-transparent outline-none placeholder:text-slate-500"
               />
             </div>
@@ -1306,7 +1328,7 @@ if (alreadyRequested) {
             loading ? (
               <EmptyBox text="Caricamento gruppi..." />
             ) : filteredGroups.length === 0 ? (
-              <EmptyBox text="Nessun gruppo pubblico trovato con questi filtri." />
+              <EmptyBox text="Nessun gruppo pubblico trovato con questa ricerca." />
             ) : (
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {filteredGroups.map((group) => (
