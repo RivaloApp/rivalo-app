@@ -86,7 +86,7 @@ function getDisplayName(user?: GoalkeeperRow) {
   if (!user) return "Nessun portiere";
   if (isRemovedUser(user)) return "Utente rimosso";
 
-  return user.nickname || user.name || "Portiere";
+  return user.nickname || user.name || "Rivalo Player";
 }
 
 function getDisplayPhoto(user?: GoalkeeperRow) {
@@ -249,7 +249,7 @@ export default function GoalkeepersPage() {
 
                 <div>
                   <div className="text-xs font-black uppercase tracking-[0.28em] text-lime-200 sm:text-sm">
-                    Rivalo Goalkeeper Ranking
+                    Ranking portieri Rivalo
                   </div>
 
                   <h1 className="mt-2 text-[40px] font-black leading-[1.05] tracking-tight sm:text-5xl">
@@ -257,7 +257,7 @@ export default function GoalkeepersPage() {
                   </h1>
 
                   <p className="mt-3 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
-                    Ranking dedicato ai portieri calcetto, ordinato per continuità,
+                    Classifica dedicata ai portieri di calcetto, ordinata per continuità,
                     clean sheet, media gol subiti, rigori parati, vittorie, MVP
                     e RivalScore.
                   </p>
@@ -295,7 +295,7 @@ export default function GoalkeepersPage() {
                   />
 
                   <CategoryCard
-                    title="Clean Sheet"
+                    title="Clean sheet"
                     value={topCleanSheets?.cleanSheets || 0}
                     user={topCleanSheets}
                     icon={<ShieldCheck className="text-lime-300" />}
@@ -432,7 +432,7 @@ function GoalkeeperRowCard({
 
           <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-lime-300/30 bg-black/30 shadow-lg sm:h-20 sm:w-20">
             {photo ? (
-              <img src={photo} alt="profile" className="h-full w-full object-cover" />
+              <img src={photo} alt="Profilo" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <UserRound className="h-9 w-9 text-lime-100" />
@@ -452,7 +452,7 @@ function GoalkeeperRowCard({
         </div>
 
         <div className="grid min-w-0 flex-1 grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-9">
-          <MiniStat label="Score" value={score} color="text-lime-200" />
+          <MiniStat label="Punteggio" value={score} color="text-lime-200" />
           <MiniStat label="Partite" value={matches} />
           <MiniStat label="GS" value={user.goalsConceded || 0} color="text-orange-100" />
           <MiniStat label="Media GS" value={average} color="text-orange-200" />
@@ -460,7 +460,7 @@ function GoalkeeperRowCard({
           <MiniStat label="RP" value={user.penaltiesSaved || 0} color="text-cyan-200" />
           <MiniStat label="Vittorie" value={user.wins || 0} color="text-lime-300" />
           <MiniStat label="MVP" value={user.mvp || 0} color="text-yellow-100" />
-          <MiniStat label="RIV" value={user.rivalScore || 1000} color="text-cyan-200" />
+          <MiniStat label="RivalScore" value={user.rivalScore || 1000} color="text-cyan-200" />
         </div>
       </div>
     </>
