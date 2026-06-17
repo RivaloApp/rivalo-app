@@ -166,7 +166,7 @@ export default function NotificationsPage() {
       setNotifications(result);
     } catch (error) {
       console.error(error);
-      setMessage("Non sono riuscito a caricare le notifiche.");
+      setMessage("Non è stato possibile caricare le notifiche.");
     } finally {
       setLoading(false);
     }
@@ -188,7 +188,7 @@ export default function NotificationsPage() {
       );
     } catch (error) {
       console.error(error);
-      setMessage("Non sono riuscito ad aggiornare la notifica.");
+      setMessage("Non è stato possibile aggiornare la notifica.");
     }
   }
 
@@ -220,7 +220,7 @@ export default function NotificationsPage() {
       router.push(notification.link);
     } catch (error) {
       console.error(error);
-      setMessage("Non sono riuscito ad aprire la notifica.");
+      setMessage("Non è stato possibile aprire la notifica.");
     }
   }
 
@@ -248,7 +248,7 @@ export default function NotificationsPage() {
       setMessage("Notifiche segnate come lette.");
     } catch (error) {
       console.error(error);
-      setMessage("Non sono riuscito ad aggiornare tutte le notifiche.");
+      setMessage("Non è stato possibile aggiornare tutte le notifiche.");
     }
   }
 
@@ -281,7 +281,7 @@ export default function NotificationsPage() {
 
                 <p className="mt-3 max-w-2xl text-slate-300">
                   Qui trovi inviti, richieste, risultati, eventi e aggiornamenti
-                  importanti.
+                  importanti per la tua attività su Rivalo.
                 </p>
               </div>
 
@@ -306,16 +306,16 @@ export default function NotificationsPage() {
 
             {accountLocked && (
               <div className="mb-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-4 py-3 text-sm font-bold leading-6 text-yellow-100">
-                Profilo non attivo: puoi leggere lo storico notifiche, ma le azioni operative sono bloccate.
+                Profilo non attivo: puoi leggere lo storico notifiche, ma non puoi eseguire nuove azioni operative.
               </div>
             )}
 
             <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="text-sm font-bold text-slate-400">
                 {loading
-                  ? "Caricamento..."
+                  ? "Caricamento…"
                   : notifications.length === 0
-                  ? "Nessuna notifica."
+                  ? "Nessuna notifica disponibile."
                   : `${notifications.length} notifiche totali`}
               </div>
 
@@ -331,7 +331,7 @@ export default function NotificationsPage() {
 
             {loading ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-slate-300">
-                Caricamento notifiche...
+                Caricamento notifiche…
               </div>
             ) : notifications.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-8 text-center">
@@ -342,7 +342,7 @@ export default function NotificationsPage() {
                 </div>
 
                 <p className="mt-2 text-sm text-slate-400">
-                  Quando riceverai inviti, richieste o aggiornamenti evento,
+                  Quando riceverai inviti, richieste o aggiornamenti sugli eventi,
                   compariranno qui.
                 </p>
               </div>
@@ -382,7 +382,7 @@ export default function NotificationsPage() {
 
                           <p className="mt-2 text-sm leading-6 text-slate-300">
                             {notification.message ||
-                              "Hai un nuovo aggiornamento Rivalo."}
+                              "Hai un nuovo aggiornamento su Rivalo."}
                           </p>
 
                           <div className="mt-3 flex flex-wrap gap-2">
@@ -397,15 +397,15 @@ export default function NotificationsPage() {
                                 className="inline-flex items-center gap-2 rounded-xl border border-lime-400/20 bg-lime-400/10 px-3 py-2 text-xs font-black text-lime-200"
                               >
                                 <CheckCircle2 size={14} />
-                                Segna letta
+                                Segna come letta
                               </button>
                             )}
 
                             {notification.link && (
                               <span className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200">
                                 {accountLocked && isOperationalNotification(notification.type)
-                                  ? "Solo storico"
-                                  : "Apri"}
+                                  ? "Solo consultazione"
+                                  : "Apri dettaglio"}
                               </span>
                             )}
                           </div>
