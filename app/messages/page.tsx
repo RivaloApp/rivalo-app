@@ -120,7 +120,7 @@ function formatMessageTime(value: any) {
 function getMessageRequestLabel(messageRequestId?: string, currentRequestId?: string) {
   if (!messageRequestId) return "Conversazione precedente";
   if (currentRequestId && messageRequestId === currentRequestId) {
-    return "Annuncio matchmaking corrente";
+    return "Annuncio matchmaking attivo";
   }
 
   return "Altro annuncio matchmaking";
@@ -142,7 +142,7 @@ export default function MessagesPage() {
     <Suspense
       fallback={
         <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-          Caricamento chat...
+          Caricamento chat…
         </main>
       }
     >
@@ -575,7 +575,7 @@ function MessagesPageContent() {
         <div className="mt-4 min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl backdrop-blur sm:mt-7 sm:rounded-[2.5rem]">
           <div className="border-b border-white/10 p-4 sm:p-7">
             <div className="text-xs font-black uppercase tracking-[0.24em] text-cyan-300">
-              Rivalo Chat
+              Chat Rivalo
             </div>
 
             <h1 className="mt-2 break-words text-3xl font-black sm:text-5xl">
@@ -583,7 +583,7 @@ function MessagesPageContent() {
             </h1>
 
             <p className="mt-2 text-sm font-semibold leading-5 text-slate-300 sm:mt-3 sm:leading-6">
-              Organizzati con gli utenti del matchmaking e prepara il match.
+              Organizza i dettagli con gli utenti del matchmaking e prepara il match.
             </p>
           </div>
 
@@ -600,7 +600,7 @@ function MessagesPageContent() {
           )}
 
           {loading ? (
-            <div className="p-5 text-slate-300">Caricamento chat...</div>
+            <div className="p-5 text-slate-300">Caricamento chat…</div>
           ) : (
             <div className="grid h-[calc(100svh-260px)] min-h-[430px] min-w-0 gap-0 overflow-hidden lg:h-[620px] lg:grid-cols-[360px_minmax(0,1fr)]">
               <aside
@@ -614,13 +614,13 @@ function MessagesPageContent() {
                   </div>
 
                   <div className="mt-1 text-sm font-semibold text-slate-400">
-                    Ordinate per ultimo messaggio.
+                    Ordinate per messaggio più recente.
                   </div>
                 </div>
 
                 {conversations.length === 0 ? (
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">
-                    Nessuna conversazione ancora.
+                    Nessuna conversazione disponibile.
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -679,7 +679,7 @@ function MessagesPageContent() {
                           </div>
 
                           <div className="mt-3 text-xs font-black uppercase tracking-[0.14em] text-slate-500">
-                            Tocca per aprire la chat
+                            Apri conversazione
                           </div>
                         </button>
                       );
@@ -708,7 +708,7 @@ function MessagesPageContent() {
                   </div>
 
                   <div className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">
-                    Chat 1-to-1
+                    Chat privata
                   </div>
                 </div>
 
@@ -719,7 +719,7 @@ function MessagesPageContent() {
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300 sm:p-5">
-                      Nessun messaggio. Scrivi il primo.
+                      Nessun messaggio. Scrivi il primo messaggio.
                     </div>
                   ) : (
                     messages.map((chatMessage, index) => {
@@ -788,7 +788,7 @@ function MessagesPageContent() {
                     <input
                       value={text}
                       onChange={(event) => setText(event.target.value)}
-                      placeholder={accountLocked ? "Profilo non attivo" : "Scrivi un messaggio..."}
+                      placeholder={accountLocked ? "Profilo non attivo" : "Scrivi un messaggio…"}
                       maxLength={500}
                       disabled={accountLocked}
                       className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-slate-500 disabled:opacity-60"
