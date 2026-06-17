@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { collection, getDocs, limit, query } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, query } from "firebase/firestore";
 
-import { db } from "../../lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "../../lib/firebase";
 
 import {
   ArrowLeft,
@@ -356,6 +357,7 @@ export default function LeaderboardPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sportFilter, setSportFilter] = useState<SportFilter>("all");
+  const [currentUserSport, setCurrentUserSport] = useState<SportFilter | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -375,6 +377,22 @@ export default function LeaderboardPage() {
     }
 
     load();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        setCurrentUserSport(null);
+        return;
+      }
+
+      const userSnap = await getDoc(doc(db, "users", currentUser.uid));
+      const profile = userSnap.exists() ? (userSnap.data() as UserRow) : null;
+
+      setCurrentUserSport(getUserSport(profile || { id: currentUser.uid }) as SportFilter);
+    });
+
+    return () => unsub();
   }, []);
 
   const filteredUsers = useMemo(() => {
@@ -445,6 +463,7 @@ export default function LeaderboardPage() {
 }, [filteredUsers, sportFilter]);
 
   const isCalcettoView = sportFilter === "calcetto" || sportFilter === "all";
+  const canShowGoalkeeperSection = currentUserSport === "calcetto" && isCalcettoView;
   const isRacketView = sportFilter === "padel" || sportFilter === "tennis";
 
   return (
@@ -527,7 +546,7 @@ export default function LeaderboardPage() {
               </FilterButton>
             </div>
 
-            {isCalcettoView && (
+            {canShowGoalkeeperSection && (
               <div className="mb-6 rounded-2xl border border-lime-300/20 bg-lime-400/10 p-4 sm:p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -630,7 +649,7 @@ export default function LeaderboardPage() {
                   />
                 </div>
 
-                {isCalcettoView && (
+                {canShowGoalkeeperSection && (
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <CategoryCard
                       title="Top Portiere"
