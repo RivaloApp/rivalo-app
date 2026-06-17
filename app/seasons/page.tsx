@@ -153,7 +153,7 @@ export default function SeasonsPage() {
             <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="text-xs font-black uppercase tracking-[0.32em] text-cyan-300 sm:text-sm sm:tracking-[0.35em]">
-                  Rivalo Seasons · {sportLabel(userSport)}
+                  Stagioni Rivalo · {sportLabel(userSport)}
                 </div>
 
                 <h1 className="mt-3 text-[48px] font-black leading-[0.95] sm:text-5xl md:text-6xl">
@@ -161,7 +161,7 @@ export default function SeasonsPage() {
                 </h1>
 
                 <p className="mt-4 max-w-2xl text-[18px] leading-relaxed text-slate-300 sm:text-xl">
-                  La competizione attiva Rivalo filtrata sul tuo sport principale.
+                  La classifica della stagione attiva, filtrata sul tuo sport principale.
                 </p>
               </div>
 
@@ -180,11 +180,11 @@ export default function SeasonsPage() {
           <div className="p-4 sm:p-8">
             {loading ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-slate-300">
-                Caricamento stagione...
+                Caricamento stagione…
               </div>
             ) : rows.length === 0 ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-slate-300">
-                Nessun dato stagionale per {sportLabel(userSport)}. Gioca e conferma un match di {sportLabel(userSport)} per entrare nella classifica.
+                Nessun dato stagionale per {sportLabel(userSport)}. Conferma un match di {sportLabel(userSport)} per entrare in classifica.
               </div>
             ) : (
               <>
@@ -192,21 +192,21 @@ export default function SeasonsPage() {
                   <SeasonHighlight
                     title="Leader"
                     value={rows[0]?.points || 0}
-                    label={rows[0]?.playerName || "Player"}
+                    label={rows[0]?.playerName || "Rivalo Player"}
                     icon={<Crown size={18} className="text-yellow-300" />}
                   />
 
                   <SeasonHighlight
                     title="Top gol"
                     value={topScorer?.goals || 0}
-                    label={topScorer?.playerName || "Player"}
+                    label={topScorer?.playerName || "Rivalo Player"}
                     icon={<Target size={18} className="text-cyan-300" />}
                   />
 
                   <SeasonHighlight
                     title="MVP"
                     value={topMvp?.mvp || 0}
-                    label={topMvp?.playerName || "Player"}
+                    label={topMvp?.playerName || "Rivalo Player"}
                     icon={<Star size={18} className="text-orange-300" />}
                   />
                 </div>
@@ -215,7 +215,7 @@ export default function SeasonsPage() {
                   <div className="mb-5 flex items-center gap-3">
                     <Trophy size={24} className="shrink-0 text-cyan-300" />
                     <h2 className="min-w-0 break-words text-[30px] font-black leading-none sm:text-4xl">
-                      Classifica Stagionale
+                      Classifica stagionale
                     </h2>
                   </div>
 
@@ -302,11 +302,11 @@ function SeasonRankRow({
 
         <div className="min-w-0 flex-1 overflow-hidden">
           <div className="truncate text-[19px] font-black uppercase leading-tight sm:text-3xl">
-            {row.playerName || "Player"}
+            {row.playerName || "Rivalo Player"}
           </div>
 
           <div className="mt-1 text-sm text-slate-400">
-            {row.matchesPlayed || 0} match giocati
+            {row.matchesPlayed || 0} match disputati
           </div>
         </div>
 
@@ -322,7 +322,7 @@ function SeasonRankRow({
 
       <div className="mt-4 grid min-w-0 grid-cols-4 gap-2">
         <MiniStat label="Punti" value={row.points || 0} color="text-cyan-300" />
-        <MiniStat label="Win" value={row.wins || 0} color="text-lime-300" />
+        <MiniStat label="Vittorie" value={row.wins || 0} color="text-lime-300" />
         <MiniStat label="Gol" value={row.goals || 0} color="text-yellow-300" />
         <MiniStat label="MVP" value={row.mvp || 0} color="text-orange-300" />
       </div>
