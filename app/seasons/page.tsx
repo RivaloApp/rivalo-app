@@ -178,6 +178,11 @@ export default function SeasonsPage() {
           </div>
 
           <div className="p-4 sm:p-8">
+            <div className="mb-6 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-sm leading-relaxed text-slate-300 sm:p-5 sm:text-base">
+              Le stagioni Rivalo sono separate per sport e raccolgono i match confermati nella stagione attiva.
+              Le amichevoli restano match singoli: non creano automaticamente una stagione privata o una rivalità.
+            </div>
+
             {loading ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-slate-300">
                 Caricamento stagione…
@@ -312,7 +317,7 @@ function SeasonRankRow({
 
         <div className="shrink-0 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-2 py-2 text-center sm:px-3">
           <div className="text-[9px] font-black uppercase tracking-[0.1em] text-cyan-200 sm:text-[10px] sm:tracking-[0.14em]">
-            Pos
+            Pos.
           </div>
           <div className="text-lg font-black text-cyan-200 sm:text-xl">
             #{index + 1}
