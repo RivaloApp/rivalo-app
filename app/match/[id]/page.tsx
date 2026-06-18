@@ -2521,7 +2521,7 @@ function PitchTeamHalf({
             {teamLabel}
           </div>
 
-          <div className="mt-1 truncate text-xl font-black text-white sm:text-2xl">
+          <div className="mt-1 break-words text-xl font-black leading-tight text-white sm:text-2xl">
             {teamName}
           </div>
         </div>
@@ -2547,7 +2547,7 @@ function PitchTeamHalf({
                 <div className="h-px flex-1 bg-white/10" />
               </div>
 
-              <div className="flex min-w-0 flex-wrap justify-center gap-2 sm:gap-3">
+              <div className="flex min-w-0 flex-wrap justify-center gap-2.5 sm:gap-3">
                 {band.players.map((player) => (
                   <LineupPlayerCard key={player.uid} player={player} />
                 ))}
@@ -2563,6 +2563,7 @@ function PitchTeamHalf({
 function LineupPlayerCard({ player }: { player: MatchPlayer }) {
   const removed = isProfileDeletionRequested(player);
   const displayName = getPlayerDisplayName(player);
+  const roleLabel = removed ? "Profilo non attivo" : getLineupRoleLabel(player);
   const initials = displayName
     .split(" ")
     .map((part) => part[0])
@@ -2571,25 +2572,17 @@ function LineupPlayerCard({ player }: { player: MatchPlayer }) {
     .toUpperCase();
 
   return (
-    <div className="min-w-0 max-w-[150px] flex-1 basis-[122px] overflow-hidden rounded-2xl border border-white/15 bg-[#020617]/80 p-2.5 shadow-[0_0_22px_rgba(15,23,42,.35)] sm:max-w-[190px] sm:basis-[150px] sm:p-3">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-sm font-black text-cyan-100 sm:h-11 sm:w-11">
-          {initials || "RP"}
-        </div>
+    <div className="min-w-[118px] max-w-[190px] flex-1 basis-[118px] rounded-[1.35rem] border border-cyan-200/15 bg-[linear-gradient(145deg,rgba(15,23,42,.96),rgba(8,47,73,.78),rgba(2,6,23,.96))] p-2.5 text-center shadow-[0_0_24px_rgba(34,211,238,.10)] ring-1 ring-white/5 sm:min-w-[138px] sm:basis-[142px] sm:p-3">
+      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-[1.1rem] border border-cyan-300/30 bg-cyan-400/10 text-sm font-black text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,.12)] sm:h-12 sm:w-12 sm:text-base">
+        {initials || "RP"}
+      </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[12px] font-black uppercase leading-tight text-white sm:text-sm">
-            {displayName}
-          </div>
+      <div className="mt-2 break-words text-[11px] font-black uppercase leading-[1.15] text-white sm:text-[13px]">
+        {displayName}
+      </div>
 
-          <div className="mt-1 truncate text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 sm:text-[10px]">
-            {removed ? "Profilo non attivo" : getLineupRoleLabel(player)}
-          </div>
-        </div>
-
-        <div className="shrink-0 rounded-xl border border-emerald-300/20 bg-emerald-400/10 px-2 py-1 text-[9px] font-black text-emerald-100 sm:text-[10px]">
-          {getLineupRoleShort(player)}
-        </div>
+      <div className="mx-auto mt-2 max-w-full rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2 py-1 text-[8px] font-black uppercase leading-tight tracking-[0.08em] text-emerald-100 sm:text-[9px]">
+        {roleLabel}
       </div>
     </div>
   );
