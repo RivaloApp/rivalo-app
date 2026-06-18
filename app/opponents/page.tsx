@@ -220,6 +220,22 @@ function getRemainingSpots(request: MatchmakingRequest, applications: Matchmakin
   return Math.max(0, totalSpots - acceptedCount);
 }
 
+function buildMapsSearchQuery({
+  matchPlace,
+  zone,
+  city,
+}: {
+  matchPlace?: string;
+  zone?: string;
+  city?: string;
+}) {
+  return [matchPlace, zone, city]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
 function buildMapsSearchUrl({
   matchPlace,
   zone,
@@ -229,11 +245,11 @@ function buildMapsSearchUrl({
   zone?: string;
   city?: string;
 }) {
-  const query = [matchPlace, zone, city].filter(Boolean).join(" ").trim();
+  const mapsQuery = buildMapsSearchQuery({ matchPlace, zone, city });
 
-  if (!query) return "";
+  if (!mapsQuery) return "";
 
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
 }
 
 const TIME_OPTIONS = [
@@ -1567,6 +1583,20 @@ function MatchmakingRequestForm({
             placeholder="Nome campo, club o indirizzo"
             className="w-full bg-transparent outline-none placeholder:text-slate-500"
           />
+
+          <div className="mt-2 break-words text-xs leading-5 text-slate-500">
+            {buildMapsSearchQuery({
+              matchPlace,
+              zone,
+              city: cityFilter,
+            })
+              ? `Maps cercherà: ${buildMapsSearchQuery({
+                  matchPlace,
+                  zone,
+                  city: cityFilter,
+                })}`
+              : "Inserisci campo, club o indirizzo per rendere il link Maps più preciso."}
+          </div>
         </SmallField>
 
         <SmallField label="Km">
@@ -1780,9 +1810,9 @@ function MatchmakingRequestCard({
             })}
             target="_blank"
             rel="noreferrer"
-            className="w-fit rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase text-cyan-200"
+            className="inline-flex max-w-full items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase text-cyan-200"
           >
-            Apri su Maps
+            Apri luogo su Maps
           </a>
         )}
 
