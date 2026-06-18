@@ -1900,6 +1900,15 @@ setMessage("Risultato contestato. Serve revisione.");
           </section>
         )}
 
+        {normalizeSport(match.sport) === "calcetto" && players.length > 0 && (
+          <CalcettoLineupPitch
+            homeTeamName={homeSideLabel}
+            awayTeamName={awaySideLabel}
+            homePlayers={homePlayers}
+            awayPlayers={awayPlayers}
+          />
+        )}
+
         <section className="mt-8 grid min-w-0 gap-5 lg:grid-cols-[1fr_.9fr]">
           <form
             onSubmit={proposeResult}
@@ -2315,6 +2324,233 @@ setMessage("Risultato contestato. Serve revisione.");
         </section>
       </section>
     </main>
+  );
+}
+
+
+function getLineupRoleLabel(player: MatchPlayer) {
+  const role = normalizeCalcettoRole(player.role);
+
+  if (role === "portiere") return "Portiere";
+  if (role === "difensore") return "Difensore";
+  if (role === "centrocampista") return "Centrocampo";
+  if (role === "attaccante") return "Attaccante";
+  if (role === "jolly") return "Jolly";
+
+  return "Giocatore";
+}
+
+function getLineupRoleShort(player: MatchPlayer) {
+  const role = normalizeCalcettoRole(player.role);
+
+  if (role === "portiere") return "POR";
+  if (role === "difensore") return "DIF";
+  if (role === "centrocampista") return "CEN";
+  if (role === "attaccante") return "ATT";
+  if (role === "jolly") return "JOL";
+
+  return "PLY";
+}
+
+function getLineupRows(players: MatchPlayer[]) {
+  const rows = [
+    {
+      key: "portieri",
+      label: "Portiere",
+      players: players.filter((player) => normalizeCalcettoRole(player.role) === "portiere"),
+    },
+    {
+      key: "difesa",
+      label: "Difesa",
+      players: players.filter((player) => normalizeCalcettoRole(player.role) === "difensore"),
+    },
+    {
+      key: "centrocampo",
+      label: "Centro",
+      players: players.filter((player) => {
+        const role = normalizeCalcettoRole(player.role);
+        return role === "centrocampista" || role === "jolly";
+      }),
+    },
+    {
+      key: "attacco",
+      label: "Attacco",
+      players: players.filter((player) => normalizeCalcettoRole(player.role) === "attaccante"),
+    },
+  ];
+
+  const assignedIds = new Set(
+    rows.flatMap((row) => row.players.map((player) => player.uid))
+  );
+
+  const unassignedPlayers = players.filter((player) => !assignedIds.has(player.uid));
+
+  if (unassignedPlayers.length > 0) {
+    rows.push({
+      key: "altri",
+      label: "In campo",
+      players: unassignedPlayers,
+    });
+  }
+
+  return rows.filter((row) => row.players.length > 0);
+}
+
+function CalcettoLineupPitch({
+  homeTeamName,
+  awayTeamName,
+  homePlayers,
+  awayPlayers,
+}: {
+  homeTeamName: string;
+  awayTeamName: string;
+  homePlayers: MatchPlayer[];
+  awayPlayers: MatchPlayer[];
+}) {
+  const totalPlayers = homePlayers.length + awayPlayers.length;
+
+  return (
+    <section className="mt-6 w-full min-w-0 overflow-hidden rounded-[2rem] border border-emerald-300/20 bg-emerald-400/[0.06] p-3 shadow-2xl sm:p-5">
+      <div className="mb-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <div className="text-xs font-black uppercase tracking-[0.22em] text-emerald-300">
+            Formazione calcetto
+          </div>
+
+          <h2 className="mt-2 break-words text-2xl font-black text-white sm:text-3xl">
+            Campo gara
+          </h2>
+
+          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">
+            Disposizione dei giocatori già collegati al match. I ruoli arrivano dal profilo o dalla creazione del match.
+          </p>
+        </div>
+
+        <div className="shrink-0 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-4 py-3 text-center">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200">
+            Giocatori
+          </div>
+
+          <div className="mt-1 text-2xl font-black text-emerald-100">
+            {totalPlayers}
+          </div>
+        </div>
+      </div>
+
+      <div className="relative min-w-0 overflow-hidden rounded-[1.7rem] border border-white/15 bg-[radial-gradient(circle_at_center,rgba(255,255,255,.12),transparent_22%),linear-gradient(135deg,rgba(16,185,129,.32),rgba(6,78,59,.68))] p-3 sm:p-5">
+        <div className="pointer-events-none absolute inset-3 rounded-[1.35rem] border border-white/20" />
+        <div className="pointer-events-none absolute left-1/2 top-3 hidden h-[calc(100%-1.5rem)] w-px -translate-x-1/2 bg-white/20 md:block" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 hidden h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20 md:block" />
+
+        <div className="relative grid min-w-0 gap-4 md:grid-cols-[1fr_auto_1fr] md:items-stretch">
+          <LineupTeamSide
+            side="home"
+            teamName={homeTeamName}
+            players={homePlayers}
+          />
+
+          <div className="flex items-center justify-center">
+            <div className="rounded-full border border-white/20 bg-[#020617]/70 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-cyan-100 shadow-xl">
+              VS
+            </div>
+          </div>
+
+          <LineupTeamSide
+            side="away"
+            teamName={awayTeamName}
+            players={awayPlayers}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LineupTeamSide({
+  side,
+  teamName,
+  players,
+}: {
+  side: "home" | "away";
+  teamName: string;
+  players: MatchPlayer[];
+}) {
+  const rows = getLineupRows(players);
+
+  return (
+    <div className="min-w-0 rounded-[1.5rem] border border-white/15 bg-[#020617]/55 p-3 shadow-xl backdrop-blur sm:p-4">
+      <div className="mb-4 flex min-w-0 items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
+            {side === "home" ? "Squadra 1" : "Squadra 2"}
+          </div>
+
+          <div className="mt-1 truncate text-lg font-black text-white sm:text-2xl">
+            {teamName}
+          </div>
+        </div>
+
+        <div className="shrink-0 rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-100">
+          {players.length}
+        </div>
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm font-semibold leading-6 text-slate-300">
+          Nessun giocatore assegnato a questa squadra.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {rows.map((row) => (
+            <div key={row.key} className="min-w-0">
+              <div className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">
+                {row.label}
+              </div>
+
+              <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+                {row.players.map((player) => (
+                  <LineupPlayerCard key={player.uid} player={player} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LineupPlayerCard({ player }: { player: MatchPlayer }) {
+  const removed = isProfileDeletionRequested(player);
+  const initials = getPlayerDisplayName(player)
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-white/15 bg-black/35 p-3 shadow-[0_0_22px_rgba(15,23,42,.25)]">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-sm font-black text-cyan-100">
+          {initials || "RP"}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-black uppercase text-white">
+            {getPlayerDisplayName(player)}
+          </div>
+
+          <div className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+            {removed ? "Profilo non attivo" : getLineupRoleLabel(player)}
+          </div>
+        </div>
+
+        <div className="shrink-0 rounded-xl border border-emerald-300/20 bg-emerald-400/10 px-2 py-1 text-[10px] font-black text-emerald-100">
+          {getLineupRoleShort(player)}
+        </div>
+      </div>
+    </div>
   );
 }
 
