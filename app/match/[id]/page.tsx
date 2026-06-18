@@ -2328,6 +2328,41 @@ setMessage("Risultato contestato. Serve revisione.");
 }
 
 
+type FormationId = "1-2-1" | "2-1-1" | "1-1-2" | "1-3";
+type LineupSide = "home" | "away";
+type LineupSlotRole = "keeper" | "defense" | "midfield" | "attack";
+
+type LineupSlot = {
+  id: string;
+  side: LineupSide;
+  role: LineupSlotRole;
+  label: string;
+  shortLabel: string;
+};
+
+const LINEUP_FORMATIONS: { id: FormationId; label: string; description: string }[] = [
+  {
+    id: "1-2-1",
+    label: "1-2-1",
+    description: "Equilibrato",
+  },
+  {
+    id: "2-1-1",
+    label: "2-1-1",
+    description: "Più coperto",
+  },
+  {
+    id: "1-1-2",
+    label: "1-1-2",
+    description: "Più offensivo",
+  },
+  {
+    id: "1-3",
+    label: "1-3",
+    description: "Pressing alto",
+  },
+];
+
 function getLineupRoleLabel(player: MatchPlayer) {
   const role = normalizeCalcettoRole(player.role);
 
@@ -2340,61 +2375,157 @@ function getLineupRoleLabel(player: MatchPlayer) {
   return "Giocatore";
 }
 
-function getLineupRoleShort(player: MatchPlayer) {
+function getSlotRoleLabel(role: LineupSlotRole) {
+  if (role === "keeper") return "Portiere";
+  if (role === "defense") return "Difensore";
+  if (role === "midfield") return "Centrocampo";
+  return "Attaccante";
+}
+
+function getSlotRoleShort(role: LineupSlotRole) {
+  if (role === "keeper") return "POR";
+  if (role === "defense") return "DIF";
+  if (role === "midfield") return "CEN";
+  return "ATT";
+}
+
+function getPlayerInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function getFormationLineRoles(formation: FormationId): LineupSlotRole[] {
+  if (formation === "2-1-1") return ["defense", "defense", "midfield", "attack"];
+  if (formation === "1-1-2") return ["defense", "midfield", "attack", "attack"];
+  if (formation === "1-3") return ["defense", "attack", "attack", "attack"];
+
+  return ["defense", "midfield", "midfield", "attack"];
+}
+
+function getTeamLineupSlots(side: LineupSide, formation: FormationId) {
+  const lineRoles = getFormationLineRoles(formation);
+  const counters: Record<LineupSlotRole, number> = {
+    keeper: 0,
+    defense: 0,
+    midfield: 0,
+    attack: 0,
+  };
+
+  const slots: LineupSlot[] = ["keeper", ...lineRoles].map((role) => {
+    const safeRole = role as LineupSlotRole;
+    counters[safeRole] += 1;
+    const roleCount = counters[safeRole];
+    const roleLabel = getSlotRoleLabel(safeRole);
+
+    return {
+      id: `${side}-${safeRole}-${roleCount}`,
+      side,
+      role: safeRole,
+      label: safeRole === "keeper" ? roleLabel : `${roleLabel} ${roleCount}`,
+      shortLabel: getSlotRoleShort(safeRole),
+    };
+  });
+
+  return side === "away" ? slots : [...slots].reverse();
+}
+
+function getSlotBandLabel(role: LineupSlotRole) {
+  if (role === "keeper") return "Porta";
+  if (role === "defense") return "Difesa";
+  if (role === "midfield") return "Centro";
+  return "Attacco";
+}
+
+function getGroupedSlots(slots: LineupSlot[]) {
+  const groups: { role: LineupSlotRole; label: string; slots: LineupSlot[] }[] = [];
+
+  slots.forEach((slot) => {
+    const lastGroup = groups[groups.length - 1];
+
+    if (lastGroup?.role === slot.role) {
+      lastGroup.slots.push(slot);
+      return;
+    }
+
+    groups.push({
+      role: slot.role,
+      label: getSlotBandLabel(slot.role),
+      slots: [slot],
+    });
+  });
+
+  return groups;
+}
+
+function playerMatchesSlotRole(player: MatchPlayer, slotRole: LineupSlotRole) {
   const role = normalizeCalcettoRole(player.role);
 
-  if (role === "portiere") return "POR";
-  if (role === "difensore") return "DIF";
-  if (role === "centrocampista") return "CEN";
-  if (role === "attaccante") return "ATT";
-  if (role === "jolly") return "JOL";
+  if (slotRole === "keeper") return role === "portiere";
+  if (slotRole === "defense") return role === "difensore";
+  if (slotRole === "midfield") return role === "centrocampista" || role === "jolly";
+  if (slotRole === "attack") return role === "attaccante";
 
-  return "PLY";
+  return false;
 }
 
-function getLineupBandPlayers(players: MatchPlayer[], band: "keeper" | "defense" | "midfield" | "attack" | "other") {
-  return players.filter((player) => {
-    const role = normalizeCalcettoRole(player.role);
+function createTeamSlotAssignments(
+  side: LineupSide,
+  teamPlayers: MatchPlayer[],
+  formation: FormationId
+) {
+  const assignments: Record<string, string> = {};
+  const used = new Set<string>();
+  const visualSlots = getTeamLineupSlots(side, formation);
+  const assignmentSlots = side === "away" ? visualSlots : [...visualSlots].reverse();
 
-    if (band === "keeper") return role === "portiere";
-    if (band === "defense") return role === "difensore";
-    if (band === "midfield") return role === "centrocampista" || role === "jolly";
-    if (band === "attack") return role === "attaccante";
+  assignmentSlots.forEach((slot) => {
+    const roleMatch = teamPlayers.find(
+      (player) =>
+        player.uid &&
+        !used.has(player.uid) &&
+        playerMatchesSlotRole(player, slot.role)
+    );
 
-    return !["portiere", "difensore", "centrocampista", "jolly", "attaccante"].includes(role);
+    const fallback = teamPlayers.find(
+      (player) => player.uid && !used.has(player.uid)
+    );
+
+    const selectedPlayer = roleMatch || fallback;
+
+    if (!selectedPlayer?.uid) return;
+
+    assignments[slot.id] = selectedPlayer.uid;
+    used.add(selectedPlayer.uid);
   });
+
+  return assignments;
 }
 
-function getLineupBands(players: MatchPlayer[], side: "home" | "away") {
-  const baseBands = [
-    {
-      key: "keeper",
-      label: "Porta",
-      players: getLineupBandPlayers(players, "keeper"),
-    },
-    {
-      key: "defense",
-      label: "Difesa",
-      players: getLineupBandPlayers(players, "defense"),
-    },
-    {
-      key: "midfield",
-      label: "Centro",
-      players: getLineupBandPlayers(players, "midfield"),
-    },
-    {
-      key: "attack",
-      label: "Attacco",
-      players: getLineupBandPlayers(players, "attack"),
-    },
-    {
-      key: "other",
-      label: "Jolly",
-      players: getLineupBandPlayers(players, "other"),
-    },
-  ].filter((band) => band.players.length > 0);
+function createInitialLineupAssignments(
+  homePlayers: MatchPlayer[],
+  awayPlayers: MatchPlayer[],
+  formation: FormationId
+) {
+  return {
+    ...createTeamSlotAssignments("home", homePlayers, formation),
+    ...createTeamSlotAssignments("away", awayPlayers, formation),
+  };
+}
 
-  return side === "away" ? baseBands : [...baseBands].reverse();
+function getPlayerByUid(players: MatchPlayer[], uid?: string) {
+  if (!uid) return null;
+  return players.find((player) => player.uid === uid) || null;
+}
+
+function getGridColsClass(length: number) {
+  if (length >= 3) return "grid-cols-3";
+  if (length === 2) return "grid-cols-2";
+  return "grid-cols-1";
 }
 
 function CalcettoLineupPitch({
@@ -2409,58 +2540,125 @@ function CalcettoLineupPitch({
   awayPlayers: MatchPlayer[];
 }) {
   const totalPlayers = homePlayers.length + awayPlayers.length;
+  const [formation, setFormation] = useState<FormationId>("1-2-1");
+  const [slotAssignments, setSlotAssignments] = useState<Record<string, string>>(() =>
+    createInitialLineupAssignments(homePlayers, awayPlayers, "1-2-1")
+  );
+  const [activeSlotId, setActiveSlotId] = useState("");
+
+  const homeSlots = getTeamLineupSlots("home", formation);
+  const awaySlots = getTeamLineupSlots("away", formation);
+  const allSlots = [...homeSlots, ...awaySlots];
+  const activeSlot = allSlots.find((slot) => slot.id === activeSlotId) || null;
+  const activeTeamPlayers = activeSlot?.side === "home" ? homePlayers : awayPlayers;
+  const activeTeamName = activeSlot?.side === "home" ? homeTeamName : awayTeamName;
+  const activeAssignedUid = activeSlot ? slotAssignments[activeSlot.id] || "" : "";
+
+  function resetFormation(nextFormation: FormationId) {
+    setFormation(nextFormation);
+    setSlotAssignments(
+      createInitialLineupAssignments(homePlayers, awayPlayers, nextFormation)
+    );
+    setActiveSlotId("");
+  }
+
+  function assignPlayerToSlot(slot: LineupSlot, uid: string) {
+    setSlotAssignments((current) => {
+      const next = { ...current };
+
+      Object.entries(next).forEach(([slotId, assignedUid]) => {
+        if (assignedUid === uid && slotId.startsWith(`${slot.side}-`)) {
+          delete next[slotId];
+        }
+      });
+
+      if (uid) {
+        next[slot.id] = uid;
+      } else {
+        delete next[slot.id];
+      }
+
+      return next;
+    });
+  }
 
   return (
     <section className="mt-6 w-full min-w-0 overflow-hidden rounded-[2rem] border border-emerald-300/20 bg-emerald-400/[0.06] p-3 shadow-2xl sm:p-5">
-      <div className="mb-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-4 flex min-w-0 flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
           <div className="text-xs font-black uppercase tracking-[0.22em] text-emerald-300">
             Formazione calcetto
           </div>
 
           <h2 className="mt-2 break-words text-2xl font-black text-white sm:text-3xl">
-            Campo gara
+            Campo tattico 5v5
           </h2>
 
           <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">
-            Anteprima visiva dei giocatori collegati al match. I ruoli arrivano dal profilo o dalla creazione del match.
+            Prova modulo e posizioni con 10 slot già pronti. Gli utenti disponibili arrivano dal match e non vengono scritti a mano.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3">
           <LineupCounter label="Squadra 1" value={homePlayers.length} />
           <LineupCounter label="Squadra 2" value={awayPlayers.length} />
           <LineupCounter label="Totale" value={totalPlayers} className="col-span-2 sm:col-span-1" />
         </div>
       </div>
 
-      <div className="relative min-w-0 overflow-hidden rounded-[1.8rem] border border-emerald-200/25 bg-[linear-gradient(180deg,rgba(5,150,105,.42),rgba(6,95,70,.78)_48%,rgba(5,150,105,.42)_52%,rgba(6,78,59,.84))] p-3 shadow-[inset_0_0_60px_rgba(2,6,23,.48)] sm:p-5">
+      <div className="mb-4 rounded-[1.5rem] border border-cyan-300/15 bg-[#020617]/60 p-3 sm:p-4">
+        <div className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200">
+          Scegli modulo
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {LINEUP_FORMATIONS.map((option) => {
+            const selected = formation === option.id;
+
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => resetFormation(option.id)}
+                className={`rounded-2xl border px-3 py-3 text-center transition ${
+                  selected
+                    ? "border-cyan-300/50 bg-cyan-400/15 text-cyan-100 shadow-[0_0_24px_rgba(34,211,238,.14)]"
+                    : "border-white/10 bg-white/[.03] text-slate-300 hover:border-cyan-300/30"
+                }`}
+              >
+                <div className="text-lg font-black leading-none">{option.label}</div>
+                <div className="mt-1 text-[9px] font-black uppercase tracking-[0.12em]">
+                  {option.description}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="relative min-w-0 overflow-hidden rounded-[1.8rem] border border-emerald-200/25 bg-[linear-gradient(180deg,rgba(5,150,105,.42),rgba(6,95,70,.78)_48%,rgba(5,150,105,.42)_52%,rgba(6,78,59,.84))] p-2.5 shadow-[inset_0_0_60px_rgba(2,6,23,.48)] sm:p-5">
         <div className="pointer-events-none absolute inset-3 rounded-[1.35rem] border-2 border-white/20" />
         <div className="pointer-events-none absolute left-3 right-3 top-1/2 h-px -translate-y-1/2 bg-white/25" />
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/20 sm:h-32 sm:w-32" />
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/25" />
 
-        <div className="pointer-events-none absolute left-1/2 top-3 h-4 w-28 -translate-x-1/2 rounded-b-2xl border-x-2 border-b-2 border-white/20 sm:w-40" />
-        <div className="pointer-events-none absolute left-1/2 top-3 h-20 w-48 -translate-x-1/2 rounded-b-[2rem] border-x-2 border-b-2 border-white/15 sm:h-24 sm:w-72" />
-        <div className="pointer-events-none absolute bottom-3 left-1/2 h-4 w-28 -translate-x-1/2 rounded-t-2xl border-x-2 border-t-2 border-white/20 sm:w-40" />
-        <div className="pointer-events-none absolute bottom-3 left-1/2 h-20 w-48 -translate-x-1/2 rounded-t-[2rem] border-x-2 border-t-2 border-white/15 sm:h-24 sm:w-72" />
+        <div className="pointer-events-none absolute left-1/2 top-3 h-4 w-24 -translate-x-1/2 rounded-b-2xl border-x-2 border-b-2 border-white/20 sm:w-40" />
+        <div className="pointer-events-none absolute left-1/2 top-3 h-16 w-40 -translate-x-1/2 rounded-b-[2rem] border-x-2 border-b-2 border-white/15 sm:h-24 sm:w-72" />
+        <div className="pointer-events-none absolute bottom-3 left-1/2 h-4 w-24 -translate-x-1/2 rounded-t-2xl border-x-2 border-t-2 border-white/20 sm:w-40" />
+        <div className="pointer-events-none absolute bottom-3 left-1/2 h-16 w-40 -translate-x-1/2 rounded-t-[2rem] border-x-2 border-t-2 border-white/15 sm:h-24 sm:w-72" />
 
-        <div className="pointer-events-none absolute left-5 top-5 rounded-full border border-white/15 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
-          Porta
-        </div>
-        <div className="pointer-events-none absolute bottom-5 right-5 rounded-full border border-white/15 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
-          Porta
-        </div>
-
-        <div className="relative grid min-w-0 gap-4">
+        <div className="relative grid min-w-0 gap-3 sm:gap-4">
           <PitchTeamHalf
             side="away"
             teamLabel="Squadra 2"
             teamName={awayTeamName}
             players={awayPlayers}
+            slots={awaySlots}
+            slotAssignments={slotAssignments}
+            onSelectSlot={setActiveSlotId}
           />
 
-          <div className="flex justify-center py-1">
+          <div className="flex justify-center py-0.5">
             <div className="rounded-full border border-white/25 bg-[#020617]/75 px-5 py-2 text-xs font-black uppercase tracking-[0.22em] text-cyan-100 shadow-xl">
               VS
             </div>
@@ -2471,9 +2669,62 @@ function CalcettoLineupPitch({
             teamLabel="Squadra 1"
             teamName={homeTeamName}
             players={homePlayers}
+            slots={homeSlots}
+            slotAssignments={slotAssignments}
+            onSelectSlot={setActiveSlotId}
           />
         </div>
       </div>
+
+      {activeSlot && (
+        <div className="mt-4 rounded-[1.5rem] border border-cyan-300/20 bg-cyan-400/10 p-4">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-200">
+                Assegna posizione
+              </div>
+
+              <div className="mt-1 break-words text-lg font-black text-white">
+                {activeTeamName} · {activeSlot.label}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveSlotId("")}
+              className="rounded-2xl border border-white/10 bg-white/[.04] px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-200"
+            >
+              Chiudi
+            </button>
+          </div>
+
+          <select
+            value={activeAssignedUid}
+            onChange={(event) => assignPlayerToSlot(activeSlot, event.target.value)}
+            className="mt-4 w-full rounded-2xl border border-white/10 bg-[#020617] px-4 py-3 text-sm font-black text-white outline-none"
+          >
+            <option value="">Slot libero</option>
+            {activeTeamPlayers.map((player) => {
+              const assignedToAnotherSlot = Object.entries(slotAssignments).some(
+                ([slotId, uid]) =>
+                  uid === player.uid &&
+                  slotId !== activeSlot.id &&
+                  slotId.startsWith(`${activeSlot.side}-`)
+              );
+
+              return (
+                <option key={player.uid} value={player.uid}>
+                  {getPlayerDisplayName(player)}{assignedToAnotherSlot ? " · già in campo" : ""}
+                </option>
+              );
+            })}
+          </select>
+
+          <p className="mt-3 text-xs font-semibold leading-5 text-slate-300">
+            Questa assegnazione serve per provare il modulo nella schermata. Il salvataggio definitivo delle formazioni arriverà nello step dedicato.
+          </p>
+        </div>
+      )}
     </section>
   );
 }
@@ -2505,17 +2756,23 @@ function PitchTeamHalf({
   teamLabel,
   teamName,
   players,
+  slots,
+  slotAssignments,
+  onSelectSlot,
 }: {
-  side: "home" | "away";
+  side: LineupSide;
   teamLabel: string;
   teamName: string;
   players: MatchPlayer[];
+  slots: LineupSlot[];
+  slotAssignments: Record<string, string>;
+  onSelectSlot: (slotId: string) => void;
 }) {
-  const bands = getLineupBands(players, side);
+  const groups = getGroupedSlots(slots);
 
   return (
-    <div className="min-w-0 rounded-[1.5rem] border border-white/15 bg-[#020617]/45 p-3 shadow-xl backdrop-blur sm:p-4">
-      <div className="mb-4 flex min-w-0 items-center justify-between gap-3">
+    <div className="min-w-0 rounded-[1.5rem] border border-white/15 bg-[#020617]/45 p-2.5 shadow-xl backdrop-blur sm:p-4">
+      <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">
             {teamLabel}
@@ -2527,64 +2784,84 @@ function PitchTeamHalf({
         </div>
 
         <div className="shrink-0 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-sm font-black text-cyan-100">
-          {players.length}
+          {players.length}/5
         </div>
       </div>
 
-      {bands.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm font-semibold leading-6 text-slate-300">
-          Nessun giocatore assegnato a questa squadra.
-        </div>
-      ) : (
-        <div className="grid min-w-0 gap-3">
-          {bands.map((band) => (
-            <div key={band.key} className="min-w-0">
-              <div className="mb-2 flex items-center justify-center gap-2">
-                <div className="h-px flex-1 bg-white/10" />
-                <div className="shrink-0 rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100">
-                  {band.label}
-                </div>
-                <div className="h-px flex-1 bg-white/10" />
+      <div className="grid min-w-0 gap-2.5 sm:gap-3">
+        {groups.map((group) => (
+          <div key={`${side}-${group.role}-${group.slots.length}`} className="min-w-0">
+            <div className="mb-1.5 flex items-center justify-center gap-2">
+              <div className="h-px flex-1 bg-white/10" />
+              <div className="shrink-0 rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-100 sm:text-[9px]">
+                {group.label}
               </div>
-
-              <div className="flex min-w-0 flex-wrap justify-center gap-2.5 sm:gap-3">
-                {band.players.map((player) => (
-                  <LineupPlayerCard key={player.uid} player={player} />
-                ))}
-              </div>
+              <div className="h-px flex-1 bg-white/10" />
             </div>
-          ))}
-        </div>
-      )}
+
+            <div className={`grid min-w-0 gap-2 ${getGridColsClass(group.slots.length)}`}>
+              {group.slots.map((slot) => {
+                const player = getPlayerByUid(players, slotAssignments[slot.id]);
+
+                return (
+                  <LineupSlotCard
+                    key={slot.id}
+                    slot={slot}
+                    player={player}
+                    onClick={() => onSelectSlot(slot.id)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function LineupPlayerCard({ player }: { player: MatchPlayer }) {
+function LineupSlotCard({
+  slot,
+  player,
+  onClick,
+}: {
+  slot: LineupSlot;
+  player: MatchPlayer | null;
+  onClick: () => void;
+}) {
   const removed = isProfileDeletionRequested(player);
-  const displayName = getPlayerDisplayName(player);
-  const roleLabel = removed ? "Profilo non attivo" : getLineupRoleLabel(player);
-  const initials = displayName
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const displayName = player ? getPlayerDisplayName(player) : "Slot libero";
+  const roleLabel = player && !removed ? getLineupRoleLabel(player) : getSlotRoleLabel(slot.role);
+  const initials = player ? getPlayerInitials(displayName) : "+";
 
   return (
-    <div className="min-w-[118px] max-w-[190px] flex-1 basis-[118px] rounded-[1.35rem] border border-cyan-200/15 bg-[linear-gradient(145deg,rgba(15,23,42,.96),rgba(8,47,73,.78),rgba(2,6,23,.96))] p-2.5 text-center shadow-[0_0_24px_rgba(34,211,238,.10)] ring-1 ring-white/5 sm:min-w-[138px] sm:basis-[142px] sm:p-3">
-      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-[1.1rem] border border-cyan-300/30 bg-cyan-400/10 text-sm font-black text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,.12)] sm:h-12 sm:w-12 sm:text-base">
-        {initials || "RP"}
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-w-0 rounded-[1.05rem] border p-2 text-center transition sm:rounded-[1.25rem] sm:p-2.5 ${
+        player
+          ? "border-cyan-200/15 bg-[linear-gradient(145deg,rgba(15,23,42,.96),rgba(8,47,73,.78),rgba(2,6,23,.96))] shadow-[0_0_20px_rgba(34,211,238,.10)] ring-1 ring-white/5 hover:border-cyan-300/35"
+          : "border-dashed border-white/15 bg-[#020617]/45 text-slate-400 hover:border-cyan-300/30 hover:bg-cyan-400/10"
+      }`}
+    >
+      <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-[0.95rem] border text-xs font-black sm:h-10 sm:w-10 ${
+        player
+          ? "border-cyan-300/30 bg-cyan-400/10 text-cyan-100 shadow-[0_0_14px_rgba(34,211,238,.12)]"
+          : "border-white/15 bg-white/[.04] text-slate-300"
+      }`}>
+        {initials || slot.shortLabel}
       </div>
 
-      <div className="mt-2 break-words text-[11px] font-black uppercase leading-[1.15] text-white sm:text-[13px]">
+      <div className={`mt-1.5 min-h-[28px] break-words text-[9px] font-black uppercase leading-[1.15] sm:text-[10px] ${
+        player ? "text-white" : "text-slate-400"
+      }`}>
         {displayName}
       </div>
 
-      <div className="mx-auto mt-2 max-w-full rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2 py-1 text-[8px] font-black uppercase leading-tight tracking-[0.08em] text-emerald-100 sm:text-[9px]">
+      <div className="mx-auto mt-1.5 max-w-full rounded-full border border-emerald-300/20 bg-emerald-400/10 px-1.5 py-1 text-[7px] font-black uppercase leading-tight tracking-[0.06em] text-emerald-100 sm:text-[8px]">
         {roleLabel}
       </div>
-    </div>
+    </button>
   );
 }
 
