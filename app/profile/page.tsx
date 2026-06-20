@@ -462,19 +462,13 @@ async function createProfileShareFile(data: ProfileShareImageData) {
     ctx.fillText("RIVALO", slotX + 90, 1051);
   });
 
-  drawShareRoundedRect(ctx, 314, 1140, 572, 80, 24);
-  const ctaGrad = ctx.createLinearGradient(314, 1140, 886, 1220);
-  ctaGrad.addColorStop(0, "rgba(163,230,53,0.24)");
-  ctaGrad.addColorStop(1, "rgba(34,211,238,0.24)");
-  ctx.fillStyle = ctaGrad;
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = tier.accentAlt;
-  ctx.stroke();
-
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
   ctx.font = "900 24px Arial, sans-serif";
-  ctx.fillText("GUARDA IL PROFILO SU RIVALO", 600, 1188);
+  ctx.fillText("GUARDA IL PROFILO SU RIVALO", 600, 1178);
+
+  ctx.fillStyle = "rgba(103,232,249,0.72)";
+  ctx.font = "700 16px Arial, sans-serif";
+  ctx.fillText("Apri la card completa nell'app", 600, 1210);
 
   const blob = await new Promise<Blob | null>((resolve) => {
     canvas.toBlob((value) => resolve(value), "image/png", 1);
