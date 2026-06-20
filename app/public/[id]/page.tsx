@@ -191,105 +191,217 @@ async function createProfileShareFile(data: ProfileShareImageData) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
+  const tier =
+    data.rivalScore >= 1150
+      ? {
+          label: "ELITE",
+          accent: "#f472b6",
+          accentSoft: "rgba(244,114,182,0.22)",
+          accentAlt: "#22d3ee",
+        }
+      : data.rivalScore >= 1050
+      ? {
+          label: "RARE",
+          accent: "#a3e635",
+          accentSoft: "rgba(163,230,53,0.22)",
+          accentAlt: "#22d3ee",
+        }
+      : {
+          label: "STARTER",
+          accent: "#67e8f9",
+          accentSoft: "rgba(103,232,249,0.22)",
+          accentAlt: "#818cf8",
+        };
+
   const background = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
   background.addColorStop(0, "#020617");
-  background.addColorStop(0.42, "#071426");
-  background.addColorStop(1, "#16051d");
+  background.addColorStop(0.42, "#06152b");
+  background.addColorStop(1, "#19061d");
   ctx.fillStyle = background;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const cyanGlow = ctx.createRadialGradient(170, 200, 20, 170, 200, 460);
-  cyanGlow.addColorStop(0, "rgba(34,211,238,0.42)");
+  const cyanGlow = ctx.createRadialGradient(120, 180, 10, 120, 180, 420);
+  cyanGlow.addColorStop(0, "rgba(34,211,238,0.38)");
   cyanGlow.addColorStop(1, "rgba(34,211,238,0)");
   ctx.fillStyle = cyanGlow;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const magentaGlow = ctx.createRadialGradient(1030, 240, 20, 1030, 240, 460);
-  magentaGlow.addColorStop(0, "rgba(217,70,239,0.32)");
+  const magentaGlow = ctx.createRadialGradient(1040, 220, 10, 1040, 220, 420);
+  magentaGlow.addColorStop(0, "rgba(217,70,239,0.30)");
   magentaGlow.addColorStop(1, "rgba(217,70,239,0)");
   ctx.fillStyle = magentaGlow;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const limeGlow = ctx.createRadialGradient(600, 1220, 20, 600, 1220, 520);
-  limeGlow.addColorStop(0, "rgba(132,204,22,0.18)");
-  limeGlow.addColorStop(1, "rgba(132,204,22,0)");
+  const limeGlow = ctx.createRadialGradient(600, 1150, 10, 600, 1150, 520);
+  limeGlow.addColorStop(0, "rgba(163,230,53,0.20)");
+  limeGlow.addColorStop(1, "rgba(163,230,53,0)");
   ctx.fillStyle = limeGlow;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  drawShareRoundedRect(ctx, 62, 72, 1076, 1350, 58);
-  ctx.fillStyle = "rgba(2,6,23,0.62)";
+  drawShareRoundedRect(ctx, 58, 64, 1084, 1372, 54);
+  ctx.fillStyle = "rgba(3,7,18,0.60)";
   ctx.fill();
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = "rgba(34,211,238,0.20)";
-  ctx.stroke();
-
-  drawShareRoundedRect(ctx, 94, 104, 1012, 1286, 42);
-  ctx.fillStyle = "rgba(3,7,18,0.44)";
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "rgba(34,211,238,0.18)";
   ctx.stroke();
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 88px Arial, sans-serif";
-  ctx.fillText("Rivalo", 600, 212);
+  ctx.font = "900 86px Arial, sans-serif";
+  ctx.fillText("Rivalo", 600, 194);
 
   ctx.fillStyle = "#67e8f9";
-  ctx.font = "800 28px Arial, sans-serif";
-  ctx.fillText("PLAYER CARD", 600, 258);
+  ctx.font = "800 25px Arial, sans-serif";
+  ctx.fillText("OWN THE GAME", 600, 232);
 
-  drawShareRoundedRect(ctx, 170, 330, 860, 610, 48);
-  const heroGradient = ctx.createLinearGradient(170, 330, 1030, 940);
-  heroGradient.addColorStop(0, "rgba(8,47,73,0.85)");
-  heroGradient.addColorStop(0.45, "rgba(15,23,42,0.96)");
-  heroGradient.addColorStop(1, "rgba(91,33,182,0.70)");
-  ctx.fillStyle = heroGradient;
+  const cardX = 170;
+  const cardY = 275;
+  const cardW = 860;
+  const cardH = 980;
+  const cardCut = 62;
+  const cardShoulder = 92;
+  const cardPointDepth = 142;
+
+  ctx.beginPath();
+  ctx.moveTo(cardX + cardCut, cardY);
+  ctx.lineTo(cardX + cardW - cardCut, cardY);
+  ctx.lineTo(cardX + cardW, cardY + cardShoulder);
+  ctx.lineTo(cardX + cardW - 36, cardY + cardH - cardPointDepth);
+  ctx.lineTo(cardX + cardW / 2, cardY + cardH);
+  ctx.lineTo(cardX + 36, cardY + cardH - cardPointDepth);
+  ctx.lineTo(cardX, cardY + cardShoulder);
+  ctx.closePath();
+
+  const cardGradient = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
+  cardGradient.addColorStop(0, "rgba(7,89,133,0.52)");
+  cardGradient.addColorStop(0.18, "rgba(15,23,42,0.96)");
+  cardGradient.addColorStop(0.72, "rgba(15,23,42,0.96)");
+  cardGradient.addColorStop(1, tier.accentSoft);
+  ctx.fillStyle = cardGradient;
   ctx.fill();
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = "rgba(132,204,22,0.30)";
+
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = tier.accent;
+  ctx.shadowColor = tier.accent;
+  ctx.shadowBlur = 26;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  ctx.beginPath();
+  ctx.moveTo(cardX + 22 + cardCut, cardY + 20);
+  ctx.lineTo(cardX + cardW - 22 - cardCut, cardY + 20);
+  ctx.lineTo(cardX + cardW - 22, cardY + 20 + cardShoulder);
+  ctx.lineTo(cardX + cardW - 58, cardY + cardH - cardPointDepth - 28);
+  ctx.lineTo(cardX + cardW / 2, cardY + cardH - 52);
+  ctx.lineTo(cardX + 58, cardY + cardH - cardPointDepth - 28);
+  ctx.lineTo(cardX + 22, cardY + 20 + cardShoulder);
+  ctx.closePath();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.14)";
+  ctx.stroke();
+
+  drawShareRoundedRect(ctx, 282, 314, 636, 36, 14);
+  const stripGradient = ctx.createLinearGradient(282, 314, 918, 350);
+  stripGradient.addColorStop(0, "rgba(34,211,238,0.12)");
+  stripGradient.addColorStop(0.5, "rgba(255,255,255,0.04)");
+  stripGradient.addColorStop(1, "rgba(244,114,182,0.12)");
+  ctx.fillStyle = stripGradient;
+  ctx.fill();
+
+  drawShareRoundedRect(ctx, 238, 386, 168, 195, 28);
+  ctx.fillStyle = "rgba(255,255,255,0.05)";
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.10)";
   ctx.stroke();
 
   ctx.fillStyle = "#fef08a";
-  ctx.font = "900 118px Arial, sans-serif";
-  ctx.fillText(String(Math.round(data.rivalScore)), 600, 490);
+  ctx.font = "900 86px Arial, sans-serif";
+  ctx.fillText(String(Math.round(data.rivalScore)), 322, 485);
 
-  ctx.fillStyle = "rgba(255,255,255,0.72)";
-  ctx.font = "800 28px Arial, sans-serif";
-  ctx.fillText("RIVALSCORE", 600, 536);
+  ctx.fillStyle = "rgba(255,255,255,0.82)";
+  ctx.font = "900 25px Arial, sans-serif";
+  ctx.fillText("RIV", 322, 528);
 
-  const displayName = data.displayName.toUpperCase();
-  const displayNameSize = fitShareText(ctx, displayName, 760, 68, 36);
-  ctx.font = `900 ${displayNameSize}px Arial, sans-serif`;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText(displayName, 600, 660);
+  ctx.fillStyle = "rgba(255,255,255,0.54)";
+  ctx.font = "700 18px Arial, sans-serif";
+  ctx.fillText("RIVALSCORE", 322, 558);
 
-  const subText = (data.nickname || "").trim() ? data.nickname.toUpperCase() : "RIVALO PLAYER";
-  const subSize = fitShareText(ctx, subText, 620, 38, 22);
-  ctx.font = `800 ${subSize}px Arial, sans-serif`;
-  ctx.fillStyle = "#67e8f9";
-  ctx.fillText(subText, 600, 718);
-
-  drawShareRoundedRect(ctx, 430, 760, 340, 62, 26);
-  ctx.fillStyle = "rgba(34,211,238,0.12)";
+  drawShareRoundedRect(ctx, 796, 390, 156, 58, 24);
+  const tierGrad = ctx.createLinearGradient(796, 390, 952, 448);
+  tierGrad.addColorStop(0, "rgba(255,255,255,0.08)");
+  tierGrad.addColorStop(1, tier.accentSoft);
+  ctx.fillStyle = tierGrad;
   ctx.fill();
   ctx.lineWidth = 2;
-  ctx.strokeStyle = "rgba(34,211,238,0.28)";
+  ctx.strokeStyle = tier.accent;
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 24px Arial, sans-serif";
+  ctx.fillText(tier.label, 874, 427);
+
+  drawShareRoundedRect(ctx, 780, 470, 172, 52, 22);
+  ctx.fillStyle = "rgba(34,211,238,0.10)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(34,211,238,0.26)";
   ctx.stroke();
 
   ctx.fillStyle = "#cffafe";
-  ctx.font = "900 24px Arial, sans-serif";
-  ctx.fillText(data.sport.toUpperCase(), 600, 801);
+  ctx.font = "900 22px Arial, sans-serif";
+  ctx.fillText(data.sport.toUpperCase(), 866, 505);
 
-  drawShareRoundedRect(ctx, 315, 846, 570, 46, 20);
+  ctx.beginPath();
+  ctx.arc(600, 470, 92, 0, Math.PI * 2);
+  const ringGrad = ctx.createLinearGradient(510, 378, 690, 562);
+  ringGrad.addColorStop(0, tier.accent);
+  ringGrad.addColorStop(1, tier.accentAlt);
+  ctx.fillStyle = ringGrad;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(600, 470, 78, 0, Math.PI * 2);
+  const innerGrad = ctx.createLinearGradient(522, 392, 678, 548);
+  innerGrad.addColorStop(0, "rgba(2,6,23,0.96)");
+  innerGrad.addColorStop(1, "rgba(17,24,39,0.96)");
+  ctx.fillStyle = innerGrad;
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 86px Arial, sans-serif";
+  ctx.fillText((data.displayName || "R").trim().charAt(0).toUpperCase(), 600, 500);
+
+  const displayName = data.displayName.toUpperCase();
+  const nameSize = fitShareText(ctx, displayName, 680, 64, 34);
+  ctx.font = `900 ${nameSize}px Arial, sans-serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(displayName, 600, 678);
+
+  const subtitle = (data.nickname || "Rivalo Player").toUpperCase();
+  const subSize = fitShareText(ctx, subtitle, 540, 34, 20);
+  ctx.font = `800 ${subSize}px Arial, sans-serif`;
+  ctx.fillStyle = "#67e8f9";
+  ctx.fillText(subtitle, 600, 728);
+
+  drawShareRoundedRect(ctx, 350, 760, 500, 48, 18);
   ctx.fillStyle = "rgba(255,255,255,0.04)";
   ctx.fill();
   ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.stroke();
 
-  ctx.fillStyle = "rgba(255,255,255,0.84)";
-  ctx.font = "700 20px Arial, sans-serif";
-  ctx.fillText("CARD RIVALE, STATISTICHE E PROFILO SPORTIVO", 600, 875);
+  ctx.fillStyle = "rgba(255,255,255,0.86)";
+  ctx.font = "700 18px Arial, sans-serif";
+  ctx.fillText("CARD RIVALO · CONDIVISIONE PROFILO", 600, 790);
+
+  drawShareRoundedRect(ctx, 246, 860, 708, 252, 36);
+  const panelGrad = ctx.createLinearGradient(246, 860, 954, 1112);
+  panelGrad.addColorStop(0, "rgba(15,23,42,0.92)");
+  panelGrad.addColorStop(1, "rgba(8,47,73,0.32)");
+  ctx.fillStyle = panelGrad;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.10)";
+  ctx.stroke();
 
   const stats = [
     { label: "PARTITE", value: data.matchesPlayed },
@@ -297,51 +409,45 @@ async function createProfileShareFile(data: ProfileShareImageData) {
     { label: "MVP", value: data.mvp },
   ];
 
-  const boxWidth = 240;
-  const gap = 45;
-  const startX = (canvas.width - (boxWidth * 3 + gap * 2)) / 2;
-  const boxY = 1015;
-  const boxHeight = 185;
-
   stats.forEach((stat, index) => {
-    const x = startX + index * (boxWidth + gap);
+    const slotX = 276 + index * 224;
 
-    drawShareRoundedRect(ctx, x, boxY, boxWidth, boxHeight, 32);
-    const statGradient = ctx.createLinearGradient(x, boxY, x + boxWidth, boxY + boxHeight);
-    statGradient.addColorStop(0, "rgba(15,23,42,0.92)");
-    statGradient.addColorStop(1, "rgba(17,24,39,0.82)");
-    ctx.fillStyle = statGradient;
+    drawShareRoundedRect(ctx, slotX, 905, 180, 162, 28);
+    const statGrad = ctx.createLinearGradient(slotX, 905, slotX + 180, 1067);
+    statGrad.addColorStop(0, "rgba(255,255,255,0.05)");
+    statGrad.addColorStop(1, "rgba(15,23,42,0.88)");
+    ctx.fillStyle = statGrad;
     ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = index === 1 ? "rgba(132,204,22,0.24)" : "rgba(34,211,238,0.20)";
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = index === 1 ? "rgba(163,230,53,0.28)" : "rgba(34,211,238,0.20)";
     ctx.stroke();
 
-    ctx.fillStyle = "#d9f99d";
-    ctx.font = "900 62px Arial, sans-serif";
-    ctx.fillText(String(stat.value), x + boxWidth / 2, boxY + 82);
+    ctx.fillStyle = index === 1 ? "#d9f99d" : "#ffffff";
+    ctx.font = "900 58px Arial, sans-serif";
+    ctx.fillText(String(stat.value), slotX + 90, 975);
 
-    ctx.fillStyle = "rgba(255,255,255,0.78)";
-    ctx.font = "800 24px Arial, sans-serif";
-    ctx.fillText(stat.label, x + boxWidth / 2, boxY + 135);
+    ctx.fillStyle = "rgba(255,255,255,0.74)";
+    ctx.font = "800 20px Arial, sans-serif";
+    ctx.fillText(stat.label, slotX + 90, 1024);
 
     ctx.fillStyle = "rgba(255,255,255,0.16)";
-    ctx.font = "900 14px Arial, sans-serif";
-    ctx.fillText("RIVALO", x + boxWidth / 2, boxY + 164);
+    ctx.font = "900 13px Arial, sans-serif";
+    ctx.fillText("RIVALO", slotX + 90, 1051);
   });
 
-  drawShareRoundedRect(ctx, 220, 1265, 760, 102, 30);
-  const ctaGradient = ctx.createLinearGradient(220, 1265, 980, 1367);
-  ctaGradient.addColorStop(0, "rgba(132,204,22,0.25)");
-  ctaGradient.addColorStop(1, "rgba(34,211,238,0.28)");
-  ctx.fillStyle = ctaGradient;
+  drawShareRoundedRect(ctx, 314, 1140, 572, 80, 24);
+  const ctaGrad = ctx.createLinearGradient(314, 1140, 886, 1220);
+  ctaGrad.addColorStop(0, "rgba(163,230,53,0.24)");
+  ctaGrad.addColorStop(1, "rgba(34,211,238,0.24)");
+  ctx.fillStyle = ctaGrad;
   ctx.fill();
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "rgba(34,211,238,0.34)";
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = tier.accentAlt;
   ctx.stroke();
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 29px Arial, sans-serif";
-  ctx.fillText("GUARDA IL PROFILO SU RIVALO", 600, 1328);
+  ctx.font = "900 24px Arial, sans-serif";
+  ctx.fillText("GUARDA IL PROFILO SU RIVALO", 600, 1188);
 
   const blob = await new Promise<Blob | null>((resolve) => {
     canvas.toBlob((value) => resolve(value), "image/png", 1);
