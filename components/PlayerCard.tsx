@@ -492,13 +492,13 @@ export default function PlayerCard({
   const cardNameLength = displayCardName.length;
 
   const cardNameClass =
-    cardNameLength > 20
-      ? "text-[15px] sm:text-[21px]"
-      : cardNameLength > 16
-      ? "text-[17px] sm:text-[23px]"
-      : cardNameLength > 12
-      ? "text-[19px] sm:text-[26px]"
-      : "text-[22px] sm:text-3xl";
+    cardNameLength > 22
+      ? "text-[14px] sm:text-[20px]"
+      : cardNameLength > 18
+      ? "text-[16px] sm:text-[22px]"
+      : cardNameLength > 13
+      ? "text-[18px] sm:text-[25px]"
+      : "text-[21px] sm:text-3xl";
   return (
     <div className="relative mx-auto w-full max-w-[258px] sm:max-w-[330px]">
       <div className={`pointer-events-none absolute -left-16 top-10 h-72 w-28 rotate-[-16deg] rounded-full border-l-2 ${theme.glowLeft} opacity-80 blur-[1px] sm:-left-20 sm:top-20 sm:h-96 sm:w-36`} />
@@ -546,7 +546,7 @@ export default function PlayerCard({
           <div className="pointer-events-none absolute left-[-40%] top-[-20%] h-[160%] w-[70%] rotate-12 bg-cyan-300/[.035] blur-xl" />
           <div className="pointer-events-none absolute right-[-36%] top-[10%] h-[130%] w-[70%] rotate-[-10deg] bg-fuchsia-400/[.04] blur-xl" />
 
-          <div className="relative z-10 flex h-[410px] flex-col px-4 pb-4 pt-4 sm:h-[505px] sm:px-5 sm:pb-5 sm:pt-5">
+          <div className="relative z-10 flex h-[438px] flex-col px-4 pb-4 pt-4 sm:h-[505px] sm:px-5 sm:pb-5 sm:pt-5">
             <div className="flex items-start justify-between">
               <div>
                 <div className={`text-4xl font-black leading-none ${theme.ratingText} sm:text-5xl`}>
@@ -584,24 +584,24 @@ export default function PlayerCard({
 
             <div className="mt-0 text-center">
               <div
-                className={`mx-auto flex min-h-[50px] max-w-[92%] items-center justify-center px-1 text-center font-black uppercase leading-[0.95] ${theme.ratingText} [overflow-wrap:anywhere] sm:min-h-[64px] sm:max-w-[88%] sm:px-3 ${cardNameClass}`}
+                className={`mx-auto flex min-h-[42px] max-w-[90%] items-center justify-center px-1 text-center font-black uppercase leading-[0.92] ${theme.ratingText} [overflow-wrap:anywhere] sm:min-h-[56px] sm:max-w-[88%] sm:px-3 ${cardNameClass}`}
               >
-                {displayCardName}
+                <span className="line-clamp-2">{displayCardName}</span>
               </div>
 
-              <div className={`mx-auto mt-0.5 flex min-h-[26px] max-w-[86%] items-center justify-center px-2 text-center text-[12px] font-black uppercase leading-tight ${theme.softText} [overflow-wrap:anywhere] sm:mt-1 sm:min-h-[30px] sm:max-w-[84%] sm:px-3 sm:text-lg`}>
-                {displayCardSubtitle}
+              <div className={`mx-auto mt-0.5 flex min-h-[22px] max-w-[84%] items-center justify-center px-2 text-center text-[11px] font-black uppercase leading-tight ${theme.softText} [overflow-wrap:anywhere] sm:mt-1 sm:min-h-[28px] sm:max-w-[84%] sm:px-3 sm:text-lg`}>
+                <span className="line-clamp-2">{displayCardSubtitle}</span>
               </div>
-              <div className="mx-auto mt-1 w-fit rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/80 sm:mt-2 sm:text-[10px]">
+              <div className="mx-auto mt-1 w-fit rounded-full border border-white/10 bg-black/30 px-3 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/80 sm:mt-2 sm:py-1 sm:text-[10px]">
                 {sportLabel(mainSport)}
               </div>
 
-              <div className={`mx-auto mt-1 w-fit rounded-full border ${theme.badgeBorder} bg-black/35 px-3 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${theme.badgeText}`}>
+              <div className={`mx-auto mt-1 w-fit rounded-full border ${theme.badgeBorder} bg-black/35 px-3 py-0.5 text-[7.5px] font-black uppercase tracking-[0.12em] ${theme.badgeText} sm:py-1 sm:text-[8px]`}>
                 {getSportPositionLabel(mainSport, role)}
               </div>
             </div>
 
-            <div className="mt-2 pb-7 pt-1 sm:mt-3 sm:pb-10 sm:pt-1">
+            <div className="mt-2 pb-3 pt-1 sm:mt-3 sm:pb-10 sm:pt-1">
               <div className="grid grid-cols-3 gap-1.5 text-center sm:gap-2">
                 {stats.map((stat) => (
                   <CardStat
@@ -613,7 +613,7 @@ export default function PlayerCard({
                 ))}
               </div>
 
-              <div className="mx-3 mt-1.5 grid grid-cols-3 gap-1.5 text-center sm:mx-4 sm:mt-2 sm:gap-2">
+              <div className="mx-3 mt-1 grid grid-cols-3 gap-1.5 text-center sm:mx-4 sm:mt-2 sm:gap-2">
                 {bottomStats.map((stat) => (
                   <CardFact
                     key={stat.label}
