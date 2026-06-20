@@ -487,9 +487,18 @@ export default function PlayerCard({
     penaltiesSaved,
   });
 
-  const displayCardName = name || "Player";
-  const isLongCardName = displayCardName.length > 16;
+  const displayCardName = (name || "Player").trim();
+  const displayCardSubtitle = (nickname || sportLabel(mainSport) || "Rivalo Player").trim();
+  const cardNameLength = displayCardName.length;
 
+  const cardNameClass =
+    cardNameLength > 20
+      ? "text-[15px] sm:text-[21px]"
+      : cardNameLength > 16
+      ? "text-[17px] sm:text-[23px]"
+      : cardNameLength > 12
+      ? "text-[19px] sm:text-[26px]"
+      : "text-[22px] sm:text-3xl";
   return (
     <div className="relative mx-auto w-full max-w-[258px] sm:max-w-[330px]">
       <div className={`pointer-events-none absolute -left-16 top-10 h-72 w-28 rotate-[-16deg] rounded-full border-l-2 ${theme.glowLeft} opacity-80 blur-[1px] sm:-left-20 sm:top-20 sm:h-96 sm:w-36`} />
@@ -575,19 +584,14 @@ export default function PlayerCard({
 
             <div className="mt-0 text-center">
               <div
-                className={`px-1 text-center font-black uppercase leading-tight ${theme.ratingText} sm:px-3 ${
-                  isLongCardName
-                    ? "whitespace-nowrap text-[18px] tracking-[-0.04em] sm:text-[25px] sm:tracking-[-0.03em]"
-                    : "whitespace-nowrap text-[22px] tracking-[-0.02em] sm:text-3xl sm:tracking-normal"
-                }`}
+                className={`mx-auto flex min-h-[50px] max-w-[92%] items-center justify-center px-1 text-center font-black uppercase leading-[0.95] ${theme.ratingText} [overflow-wrap:anywhere] sm:min-h-[64px] sm:max-w-[88%] sm:px-3 ${cardNameClass}`}
               >
                 {displayCardName}
               </div>
 
-              <div className={`mt-0.5 truncate px-2 text-[13px] font-black uppercase leading-tight ${theme.softText} sm:mt-1 sm:px-3 sm:text-lg`}>
-                {nickname || sportLabel(mainSport) || "Rivalo Player"}
+              <div className={`mx-auto mt-0.5 flex min-h-[26px] max-w-[86%] items-center justify-center px-2 text-center text-[12px] font-black uppercase leading-tight ${theme.softText} [overflow-wrap:anywhere] sm:mt-1 sm:min-h-[30px] sm:max-w-[84%] sm:px-3 sm:text-lg`}>
+                {displayCardSubtitle}
               </div>
-
               <div className="mx-auto mt-1 w-fit rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/80 sm:mt-2 sm:text-[10px]">
                 {sportLabel(mainSport)}
               </div>

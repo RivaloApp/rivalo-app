@@ -479,6 +479,285 @@ function getCancelBlockedReason(match: MatchDoc) {
   return "";
 }
 
+
+type MatchShareSummary = {
+  shareTitle: string;
+  shareText: string;
+  headline: string;
+  scoreText: string;
+  homeLabel: string;
+  awayLabel: string;
+  detailsText: string;
+};
+
+function buildMatchShareSummary(
+  match: MatchDoc,
+  homeLabel: string,
+  awayLabel: string,
+  homeScoreValue: string | number | null | undefined,
+  awayScoreValue: string | number | null | undefined
+): MatchShareSummary {
+  const parsedHome = Number(homeScoreValue);
+  const parsedAway = Number(awayScoreValue);
+
+  const hasValidScore =
+    homeScoreValue !== "" &&
+    awayScoreValue !== "" &&
+    Number.isFinite(parsedHome) &&
+    Number.isFinite(parsedAway);
+
+  let headline = "Sfida pronta su Rivalo.";
+  let scoreText = "VS";
+
+  if (hasValidScore) {
+    scoreText = `${parsedHome} - ${parsedAway}`;
+
+    if (parsedHome === parsedAway) {
+      headline = `Parità totale: ${homeLabel} e ${awayLabel} non si sono risparmiate.`;
+    } else {
+      const winnerLabel = parsedHome > parsedAway ? homeLabel : awayLabel;
+      const goalDiff = Math.abs(parsedHome - parsedAway);
+
+      if (goalDiff >= 3) {
+        headline = `Vittoria schiacciante: ${winnerLabel} prende il controllo del match.`;
+      } else if (goalDiff === 2) {
+        headline = `Prestazione solida: ${winnerLabel} gestisce il match con autorità.`;
+      } else {
+        headline = `Match tiratissimo: la spunta ${winnerLabel} di misura.`;
+      }
+    }
+  }
+
+  const details = [sportLabel(match.sport), match.city, match.date, match.time]
+    .filter(Boolean)
+    .join(" · ");
+
+  const shareTitle = hasValidScore
+    ? `${homeLabel} ${scoreText} ${awayLabel}`
+    : `${homeLabel} vs ${awayLabel}`;
+
+  const shareText = `${headline}${details ? ` ${details}.` : ""}`;
+
+  return {
+    shareTitle,
+    shareText,
+    headline,
+    scoreText,
+    homeLabel,
+    awayLabel,
+    detailsText: details,
+  };
+}
+
+function wrapCanvasText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+
+  if (words.length === 0) return lines;
+
+  let current = words[0];
+
+  for (let i = 1; i < words.length; i += 1) {
+    const next = `${current} ${words[i]}`;
+
+    if (ctx.measureText(next).width <= maxWidth) {
+      current = next;
+    } else {
+      lines.push(current);
+      current = words[i];
+    }
+  }
+
+  lines.push(current);
+  return lines;
+}
+
+function fitCanvasText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  startSize: number,
+  minSize: number,
+  weight = 900
+) {
+  let size = startSize;
+
+  while (size > minSize) {
+    ctx.font = `${weight} ${size}px Arial, sans-serif`;
+
+    if (ctx.measureText(text).width <= maxWidth) {
+      break;
+    }
+
+    size -= 2;
+  }
+
+  return size;
+}
+
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+async function createMatchShareFile(args: {
+  match: MatchDoc;
+  matchId: string;
+  homeLabel: string;
+  awayLabel: string;
+  homeScoreValue: string | number | null | undefined;
+  awayScoreValue: string | number | null | undefined;
+}) {
+  if (typeof document === "undefined") return null;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 1200;
+  canvas.height = 1500;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  const summary = buildMatchShareSummary(
+    args.match,
+    args.homeLabel,
+    args.awayLabel,
+    args.homeScoreValue,
+    args.awayScoreValue
+  );
+
+  const background = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  background.addColorStop(0, "#020617");
+  background.addColorStop(0.5, "#04142a");
+  background.addColorStop(1, "#14051f");
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const glowLeft = ctx.createRadialGradient(180, 260, 20, 180, 260, 320);
+  glowLeft.addColorStop(0, "rgba(34,211,238,0.32)");
+  glowLeft.addColorStop(1, "rgba(34,211,238,0)");
+  ctx.fillStyle = glowLeft;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const glowRight = ctx.createRadialGradient(980, 230, 20, 980, 230, 340);
+  glowRight.addColorStop(0, "rgba(217,70,239,0.28)");
+  glowRight.addColorStop(1, "rgba(217,70,239,0)");
+  ctx.fillStyle = glowRight;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawRoundedRect(ctx, 70, 110, 1060, 1280, 50);
+  ctx.fillStyle = "rgba(3,7,18,0.54)";
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "rgba(34,211,238,0.24)";
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 86px Arial, sans-serif";
+  ctx.fillText("Rivalo", 600, 220);
+
+  ctx.fillStyle = "#67e8f9";
+  ctx.font = "700 28px Arial, sans-serif";
+  ctx.fillText("OWN THE GAME", 600, 265);
+
+  drawRoundedRect(ctx, 120, 330, 960, 450, 42);
+  ctx.fillStyle = "rgba(5,14,28,0.92)";
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(132,204,22,0.35)";
+  ctx.stroke();
+
+  const homeSize = fitCanvasText(ctx, summary.homeLabel.toUpperCase(), 360, 56, 30);
+  ctx.font = `900 ${homeSize}px Arial, sans-serif`;
+  ctx.fillStyle = "#d9f99d";
+  ctx.fillText(summary.homeLabel.toUpperCase(), 300, 470);
+
+  const awaySize = fitCanvasText(ctx, summary.awayLabel.toUpperCase(), 360, 56, 30);
+  ctx.font = `900 ${awaySize}px Arial, sans-serif`;
+  ctx.fillStyle = "#a5f3fc";
+  ctx.fillText(summary.awayLabel.toUpperCase(), 900, 470);
+
+  ctx.font = "900 120px Arial, sans-serif";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(summary.scoreText, 600, 560);
+
+  ctx.font = "700 26px Arial, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.75)";
+  ctx.fillText("RISULTATO MATCH", 600, 620);
+
+  ctx.font = "700 28px Arial, sans-serif";
+  ctx.fillStyle = "#67e8f9";
+  const detailLines = wrapCanvasText(ctx, summary.detailsText || sportLabel(args.match.sport), 780);
+  detailLines.slice(0, 2).forEach((line, index) => {
+    ctx.fillText(line, 600, 690 + index * 34);
+  });
+
+  drawRoundedRect(ctx, 140, 840, 920, 260, 38);
+  ctx.fillStyle = "rgba(8,19,38,0.86)";
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(217,70,239,0.24)";
+  ctx.stroke();
+
+  ctx.font = "900 34px Arial, sans-serif";
+  ctx.fillStyle = "#d9f99d";
+  const headlineLines = wrapCanvasText(ctx, summary.headline.toUpperCase(), 800);
+  headlineLines.slice(0, 3).forEach((line, index) => {
+    ctx.fillText(line, 600, 920 + index * 48);
+  });
+
+  ctx.font = "700 24px Arial, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.88)";
+  ctx.fillText("Condiviso da Rivalo · sfida, ranking e community sportiva", 600, 1060);
+
+  drawRoundedRect(ctx, 220, 1170, 760, 110, 30);
+  const ctaGradient = ctx.createLinearGradient(220, 1170, 980, 1280);
+  ctaGradient.addColorStop(0, "rgba(132,204,22,0.20)");
+  ctaGradient.addColorStop(1, "rgba(34,211,238,0.20)");
+  ctx.fillStyle = ctaGradient;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(34,211,238,0.32)";
+  ctx.stroke();
+
+  ctx.font = "900 28px Arial, sans-serif";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText("APRI IL MATCH SU RIVALO", 600, 1236);
+
+  ctx.font = "700 20px Arial, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.72)";
+  ctx.fillText(`Match ID: ${args.matchId}`, 600, 1330);
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((value) => resolve(value), "image/png", 1);
+  });
+
+  if (!blob) return null;
+
+  return new File([blob], `rivalo-match-${args.matchId}.png`, {
+    type: "image/png",
+  });
+}
 export default function MatchDetailsPage() {
   const params = useParams();
   const matchId = params.id as string;
@@ -1779,18 +2058,40 @@ setMessage("Risultato contestato. Serve revisione.");
       ? window.location.href
       : `/match/${matchId}`;
 
-    const shareTitle = match.name || "Match Rivalo";
-    const shareText = `${shareTitle} · ${sportLabel(match.sport)}${
-      match.city ? ` · ${match.city}` : ""
-    }${match.date ? ` · ${match.date}` : ""}`;
+    const shareSummary = buildMatchShareSummary(
+      match,
+      homeTeam || match.homeTeam || "Squadra 1",
+      awayTeam || match.awayTeam || "Squadra 2",
+      homeScore || match.homeScore,
+      awayScore || match.awayScore
+    );
 
     try {
+      const shareFile = await createMatchShareFile({
+        match,
+        matchId,
+        homeLabel: homeTeam || match.homeTeam || "Squadra 1",
+        awayLabel: awayTeam || match.awayTeam || "Squadra 2",
+        homeScoreValue: homeScore || match.homeScore,
+        awayScoreValue: awayScore || match.awayScore,
+      });
+
       if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
+        const shareData: ShareData = {
+          title: shareSummary.shareTitle,
+          text: shareSummary.shareText,
           url: shareUrl,
-        });
+        };
+
+        if (
+          shareFile &&
+          typeof navigator.canShare === "function" &&
+          navigator.canShare({ files: [shareFile] })
+        ) {
+          shareData.files = [shareFile];
+        }
+
+        await navigator.share(shareData);
         return;
       }
 
@@ -1817,7 +2118,6 @@ setMessage("Risultato contestato. Serve revisione.");
       setMessage("Non è stato possibile aprire la condivisione. Copia il link dalla barra del browser.");
     }
   }
-
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_10%_4%,rgba(34,211,238,.16),transparent_28%),radial-gradient(circle_at_88%_8%,rgba(217,70,239,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
