@@ -2066,8 +2066,8 @@ setMessage("");
       awayTeam: awayTeamName,
       homeTeamId: matchHomeTeamId,
       awayTeamId: matchAwayTeamId,
-      homeCaptainId: homeTeam?.captainId || "",
-      awayCaptainId: awayTeam?.captainId || "",
+      homeCaptainId,
+      awayCaptainId,
       sourceType,
       homeScore: null,
       awayScore: null,
@@ -2093,8 +2093,8 @@ setMessage("");
       nextBracket[sourceBracketIndex] = {
         ...nextBracket[sourceBracketIndex],
         matchId: matchRef.id,
-        homeCaptainId: homeTeam?.captainId || "",
-        awayCaptainId: awayTeam?.captainId || "",
+        homeCaptainId,
+        awayCaptainId,
         status: "match creato",
       };
 
@@ -2107,8 +2107,8 @@ setMessage("");
       nextFixtures[sourceLeagueIndex] = {
         ...nextFixtures[sourceLeagueIndex],
         matchId: matchRef.id,
-        homeCaptainId: homeTeam?.captainId || "",
-        awayCaptainId: awayTeam?.captainId || "",
+        homeCaptainId,
+        awayCaptainId,
         status: "match creato",
       };
 
