@@ -1,5 +1,6 @@
 "use client";
 
+import FullScreenLoader from "../../../components/FullScreenLoader";
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -96,13 +97,7 @@ export default function RivalryDetailPage() {
   }, [id]);
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] px-5 text-white">
-        <div className="rounded-[2rem] border border-white/10 bg-white/[.04] px-7 py-5 text-center text-sm font-black uppercase tracking-[0.18em] text-cyan-300">
-          Caricamento rivalità...
-        </div>
-      </main>
-    );
+    return <FullScreenLoader />;
   }
 
   if (!rivalry) {

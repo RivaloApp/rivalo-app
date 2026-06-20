@@ -1,5 +1,6 @@
 "use client";
 
+import FullScreenLoader from "../../components/FullScreenLoader";
 import { useEffect, useState } from "react";
 import { doc, getDoc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -378,11 +379,7 @@ export default function OnboardingPage() {
   }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-        Preparazione profilo…
-      </main>
-    );
+    return <FullScreenLoader />;
   }
 
   const bonus = calculateBonus();

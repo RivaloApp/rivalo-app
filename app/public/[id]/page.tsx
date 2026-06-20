@@ -1,5 +1,6 @@
 "use client";
 
+import FullScreenLoader from "../../../components/FullScreenLoader";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -231,11 +232,7 @@ export default function PublicProfilePage() {
   }, [id, currentUser?.uid]);
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-[#020617] flex items-center justify-center text-white">
-        Caricamento profilo...
-      </main>
-    );
+    return <FullScreenLoader />;
   }
 
   if (!user) {

@@ -1,5 +1,6 @@
 "use client";
 
+import FullScreenLoader from "../../../components/FullScreenLoader";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -2290,11 +2291,7 @@ async function cancelEvent() {
 }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-        Caricamento evento...
-      </main>
-    );
+    return <FullScreenLoader />;
   }
 
   if (!event) {

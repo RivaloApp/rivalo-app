@@ -1,5 +1,6 @@
 "use client";
 
+import FullScreenLoader from "../../../components/FullScreenLoader";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -815,13 +816,7 @@ async function rejectJoinRequest(request: JoinRequest) {
   }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-        <div className="rounded-3xl border border-cyan-300/20 bg-cyan-400/10 px-8 py-5 font-black text-cyan-200">
-          Caricamento gruppo...
-        </div>
-      </main>
-    );
+    return <FullScreenLoader />;
   }
 
   if (!group) {

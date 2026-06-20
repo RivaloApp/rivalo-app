@@ -1,5 +1,6 @@
 "use client";
 
+import FullScreenLoader from "../../../components/FullScreenLoader";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -1910,11 +1911,7 @@ setMessage("Risultato contestato. Serve revisione.");
   }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-        Caricamento partita...
-      </main>
-    );
+    return <FullScreenLoader />;
   }
 
   if (unauthorized) {

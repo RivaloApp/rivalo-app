@@ -1,5 +1,6 @@
 "use client";
 
+import FullScreenLoader from "../../components/FullScreenLoader";
 import PlayerCard from "../../components/cards/PlayerCard";
 import RivaloLogo from "../../components/RivaloLogo";
 import { useEffect, useState } from "react";

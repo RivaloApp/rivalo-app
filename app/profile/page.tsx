@@ -1,5 +1,6 @@
 "use client";
 
+import FullScreenLoader from "../../components/FullScreenLoader";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -406,11 +407,7 @@ setDeletionRequested(false);
   }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-        Caricamento...
-      </main>
-    );
+    return <FullScreenLoader />;
   }
 
   const profileStats = getProfileStats(sport, {
