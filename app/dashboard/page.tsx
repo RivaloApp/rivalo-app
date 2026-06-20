@@ -38,6 +38,7 @@ import {
   Swords,
   Radio,
   Search,
+  PlayCircle,
   Menu,
   X,
 } from "lucide-react";
@@ -146,6 +147,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: <Radio />,
     text: "Feed live",
     subtitle: "Attività Rivalo",
+  },
+  {
+    href: "/tutorial",
+    icon: <PlayCircle />,
+    text: "Tutorial",
+    subtitle: "Guida rapida Rivalo",
   },
   {
     href: "/rivalries",
@@ -761,6 +768,14 @@ export default function DashboardPage() {
               />
 
               <QuickAction
+                href="/tutorial"
+                tone="purple"
+                icon={<PlayCircle />}
+                title="Tutorial"
+                text="Guida rapida Rivalo"
+              />
+
+              <QuickAction
                 href="/match"
                 tone="cyan"
                 icon={<CircleDot />}
@@ -960,6 +975,7 @@ function Sidebar({ accountLocked, mainSport }: { accountLocked: boolean; mainSpo
         <SideLink href="/messages" icon={<MessageCircle />} text="Messaggi" />
         <SideLink href="/match" icon={<CircleDot />} text="Match" locked={accountLocked} />
         <SideLink href="/community" icon={<MessageCircle />} text="Community" />
+        <SideLink href="/tutorial" icon={<PlayCircle />} text="Tutorial" />
         <SideLink href="/events" icon={<CalendarDays />} text="Eventi" locked={accountLocked} />
         <SideLink href="/rivalries" icon={<Swords />} text="Rivalità" />
         <SideLink href="/profile" icon={<UserRound />} text="Profilo" />
