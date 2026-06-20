@@ -1192,24 +1192,38 @@ if (alreadyRequested) {
     const cleanSearch = groupSearch.trim().toLowerCase();
     const lockedSport = normalizeSport(userSport);
 
-    return groups.filter((group) => {
-      const sportOk = getGroupSport(group) === lockedSport;
+    return groups
+      .filter((group) => {
+        const sportOk = getGroupSport(group) === lockedSport;
 
-      const searchTarget = [
-        group.name,
-        group.city,
-        group.mode,
-        group.privacy,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+        const searchTarget = [
+          group.name,
+          group.city,
+          group.mode,
+          group.privacy,
+          group.premiumPlan,
+          sportLabel(group.activeSport || group.sport),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
 
-      const searchOk = !cleanSearch || searchTarget.includes(cleanSearch);
+        const searchOk = !cleanSearch || searchTarget.includes(cleanSearch);
 
-      return sportOk && searchOk;
-    });
-  }, [groups, groupSearch, userSport]);
+        return sportOk && searchOk;
+      })
+      .sort((a, b) => {
+        const aIsMember = user ? (a.members || []).includes(user.uid) : false;
+        const bIsMember = user ? (b.members || []).includes(user.uid) : false;
+
+        if (aIsMember !== bIsMember) return aIsMember ? -1 : 1;
+
+        return (a.name || "Gruppo Rivalo").localeCompare(
+          b.name || "Gruppo Rivalo",
+          "it"
+        );
+      });
+  }, [groups, groupSearch, user, userSport]);
 
   const filteredMatchmakingRequests = useMemo(() => {
     const cleanCity = cityFilter.trim().toLowerCase();
@@ -1256,7 +1270,7 @@ if (alreadyRequested) {
               </h1>
 
               <p className="mt-4 max-w-3xl leading-7 text-slate-300">
-                Trova gruppi, partite, giocatori e avversari compatibili con il tuo sport attivo.
+                Trova gruppi pubblici, partite, giocatori e avversari compatibili con il tuo sport attivo.
               </p>
             </div>
 
@@ -1277,7 +1291,7 @@ if (alreadyRequested) {
                 ) : (
                   <MapPin size={16} />
                 )}
-                {activeTab === "groups" ? "Cerca gruppo" : "Città / zona"}
+                {activeTab === "groups" ? "Cerca gruppi pubblici" : "Città / zona"}
               </div>
 
               <input
@@ -1289,7 +1303,7 @@ if (alreadyRequested) {
                 }
                 placeholder={
                   activeTab === "groups"
-                    ? "Nome gruppo, città o modalità..."
+                    ? "Nome gruppo, città, modalità o piano..."
                     : "Es. Lecce, Milano, Roma..."
                 }
                 className="w-full bg-transparent outline-none placeholder:text-slate-500"
@@ -1363,11 +1377,40 @@ if (alreadyRequested) {
             loading ? (
               <EmptyBox text="Caricamento gruppi…" />
             ) : filteredGroups.length === 0 ? (
-              <EmptyBox text="Nessun gruppo trovato con questa ricerca." />
+              <EmptyBox text={`Nessun gruppo ${sportLabel(userSport)} trovato con questa ricerca.`} />
             ) : (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {filteredGroups.map((group) => (
-                  <OpponentCard
+              <div className="space-y-5">
+                <div className="rounded-[2rem] border border-cyan-300/15 bg-cyan-400/[.06] p-5 sm:p-6">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <div className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                        Gruppi {sportLabel(userSport)}
+                      </div>
+
+                      <h2 className="mt-2 text-2xl font-black uppercase tracking-tight">
+                        Community compatibili
+                      </h2>
+
+                      <p className="mt-2 max-w-2xl text-sm font-bold leading-6 text-slate-300">
+                        Qui trovi solo gruppi pubblici o gruppi di cui fai già parte, filtrati per il tuo sport attivo. Cerca per nome, città, modalità o piano.
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-cyan-300/20 bg-[#020617]/50 px-5 py-4 text-center">
+                      <div className="text-3xl font-black text-cyan-200">
+                        {filteredGroups.length}
+                      </div>
+
+                      <div className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                        gruppi trovati
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {filteredGroups.map((group) => (
+                    <OpponentCard
                     key={group.id}
                     group={group}
                     onRequestJoin={requestJoinGroup}
@@ -1379,6 +1422,7 @@ if (alreadyRequested) {
                     accountLocked={accountLocked}
                   />
                 ))}
+                </div>
               </div>
             )
           ) : (
@@ -2159,6 +2203,10 @@ function OpponentCard({
 
       <h2 className="break-words text-2xl font-black sm:text-3xl">{group.name || "Gruppo Rivalo"}</h2>
 
+      <p className="mt-3 text-sm font-bold leading-6 text-slate-300">
+        Community {sportLabel(group.activeSport || group.sport)} per trovare player, organizzare match e seguire attività del gruppo.
+      </p>
+
       <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-300">
         <MapPin size={17} className="text-fuchsia-300" />
         {group.city || "Città non inserita"}
@@ -2175,7 +2223,7 @@ function OpponentCard({
           href={`/groups/${group.id}`}
           className="flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 py-3 font-black text-cyan-200"
         >
-          Apri gruppo
+          {isMember ? "Apri gruppo" : "Vedi gruppo"}
           <ChevronRight size={18} />
         </Link>
         <button
