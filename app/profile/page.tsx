@@ -156,6 +156,191 @@ function getProfileStats(mainSport: string, {
   ];
 }
 
+
+type ProfileShareImageData = {
+  displayName: string;
+  nickname: string;
+  sport: string;
+  rivalScore: number;
+  wins: number;
+  matchesPlayed: number;
+  mvp: number;
+};
+
+function drawShareRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+function fitShareText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  startSize: number,
+  minSize: number
+) {
+  let size = startSize;
+
+  while (size > minSize) {
+    ctx.font = `900 ${size}px Arial, sans-serif`;
+
+    if (ctx.measureText(text).width <= maxWidth) break;
+
+    size -= 2;
+  }
+
+  return size;
+}
+
+async function createProfileShareFile(data: ProfileShareImageData) {
+  if (typeof document === "undefined") return null;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 1200;
+  canvas.height = 1500;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  const background = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  background.addColorStop(0, "#020617");
+  background.addColorStop(0.46, "#071426");
+  background.addColorStop(1, "#16051d");
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const cyanGlow = ctx.createRadialGradient(180, 230, 20, 180, 230, 430);
+  cyanGlow.addColorStop(0, "rgba(34,211,238,0.42)");
+  cyanGlow.addColorStop(1, "rgba(34,211,238,0)");
+  ctx.fillStyle = cyanGlow;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const magentaGlow = ctx.createRadialGradient(1010, 250, 20, 1010, 250, 430);
+  magentaGlow.addColorStop(0, "rgba(217,70,239,0.30)");
+  magentaGlow.addColorStop(1, "rgba(217,70,239,0)");
+  ctx.fillStyle = magentaGlow;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawShareRoundedRect(ctx, 70, 80, 1060, 1340, 58);
+  ctx.fillStyle = "rgba(2,6,23,0.62)";
+  ctx.fill();
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "rgba(34,211,238,0.20)";
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 88px Arial, sans-serif";
+  ctx.fillText("Rivalo", 600, 220);
+
+  ctx.fillStyle = "#67e8f9";
+  ctx.font = "800 28px Arial, sans-serif";
+  ctx.fillText("PLAYER CARD", 600, 265);
+
+  drawShareRoundedRect(ctx, 180, 355, 840, 610, 52);
+  const cardGradient = ctx.createLinearGradient(180, 355, 1020, 965);
+  cardGradient.addColorStop(0, "rgba(34,211,238,0.18)");
+  cardGradient.addColorStop(0.42, "rgba(15,23,42,0.95)");
+  cardGradient.addColorStop(1, "rgba(217,70,239,0.18)");
+  ctx.fillStyle = cardGradient;
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "rgba(132,204,22,0.34)";
+  ctx.stroke();
+
+  ctx.fillStyle = "#fde68a";
+  ctx.font = "900 120px Arial, sans-serif";
+  ctx.fillText(String(Math.round(data.rivalScore)), 600, 520);
+
+  ctx.fillStyle = "rgba(255,255,255,0.72)";
+  ctx.font = "800 28px Arial, sans-serif";
+  ctx.fillText("RIVALSCORE", 600, 565);
+
+  const name = data.displayName.toUpperCase();
+  const nameSize = fitShareText(ctx, name, 720, 70, 36);
+  ctx.font = `900 ${nameSize}px Arial, sans-serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(name, 600, 690);
+
+  const nickname = data.nickname ? data.nickname.toUpperCase() : data.sport.toUpperCase();
+  const nicknameSize = fitShareText(ctx, nickname, 620, 38, 22);
+  ctx.font = `800 ${nicknameSize}px Arial, sans-serif`;
+  ctx.fillStyle = "#67e8f9";
+  ctx.fillText(nickname, 600, 745);
+
+  drawShareRoundedRect(ctx, 405, 780, 390, 62, 28);
+  ctx.fillStyle = "rgba(34,211,238,0.12)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(34,211,238,0.28)";
+  ctx.stroke();
+  ctx.fillStyle = "#cffafe";
+  ctx.font = "900 24px Arial, sans-serif";
+  ctx.fillText(data.sport.toUpperCase(), 600, 820);
+
+  const stats = [
+    { label: "PARTITE", value: data.matchesPlayed },
+    { label: "VITTORIE", value: data.wins },
+    { label: "MVP", value: data.mvp },
+  ];
+
+  stats.forEach((stat, index) => {
+    const x = 255 + index * 345;
+    drawShareRoundedRect(ctx, x, 1010, 250, 160, 30);
+    ctx.fillStyle = "rgba(15,23,42,0.86)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.stroke();
+
+    ctx.fillStyle = "#d9f99d";
+    ctx.font = "900 54px Arial, sans-serif";
+    ctx.fillText(String(stat.value), x + 125, 1080);
+
+    ctx.fillStyle = "rgba(255,255,255,0.72)";
+    ctx.font = "800 22px Arial, sans-serif";
+    ctx.fillText(stat.label, x + 125, 1132);
+  });
+
+  drawShareRoundedRect(ctx, 230, 1245, 740, 98, 30);
+  const cta = ctx.createLinearGradient(230, 1245, 970, 1343);
+  cta.addColorStop(0, "rgba(132,204,22,0.25)");
+  cta.addColorStop(1, "rgba(34,211,238,0.26)");
+  ctx.fillStyle = cta;
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(34,211,238,0.34)";
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 28px Arial, sans-serif";
+  ctx.fillText("GUARDA IL PROFILO SU RIVALO", 600, 1304);
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((value) => resolve(value), "image/png", 1);
+  });
+
+  if (!blob) return null;
+
+  return new File([blob], `rivalo-profile-${data.displayName || "player"}.png`, {
+    type: "image/png",
+  });
+}
+
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
 
@@ -427,12 +612,32 @@ setDeletionRequested(false);
     setShareMessage("");
 
     try {
+      const shareFile = await createProfileShareFile({
+        displayName,
+        nickname,
+        sport: sportLabel(sport),
+        rivalScore,
+        wins,
+        matchesPlayed,
+        mvp,
+      });
+
       if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({
+        const shareData: ShareData = {
           title: shareTitle,
           text: shareText,
           url: shareUrl,
-        });
+        };
+
+        if (
+          shareFile &&
+          typeof navigator.canShare === "function" &&
+          navigator.canShare({ files: [shareFile] })
+        ) {
+          shareData.files = [shareFile];
+        }
+
+        await navigator.share(shareData);
         return;
       }
 
