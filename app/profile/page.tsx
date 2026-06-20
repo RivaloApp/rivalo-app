@@ -6,7 +6,7 @@ import Link from "next/link";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "../../lib/firebase";
-import { Camera, Shield, Star, Trophy } from "lucide-react";
+import { Camera, Share2, Shield, Star, Trophy } from "lucide-react";
 import RivaloLogo from "../../components/RivaloLogo";
 import PlayerCard from "../../components/cards/PlayerCard";
 
@@ -171,6 +171,7 @@ const [playStyle, setPlayStyle] = useState("");
 const [availability, setAvailability] = useState("");
 const [photoUrl, setPhotoUrl] = useState("");
 const [message, setMessage] = useState("");
+const [shareMessage, setShareMessage] = useState("");
 const [accountStatus, setAccountStatus] = useState("");
 const [deletionRequested, setDeletionRequested] = useState(false);
 
@@ -406,6 +407,59 @@ setDeletionRequested(false);
     setSaving(false);
   }
 
+  async function shareProfile() {
+    if (!user) return;
+
+    if (accountStatus === "deletion_requested" || deletionRequested) {
+      setShareMessage("Profilo non attivo: condivisione non disponibile.");
+      return;
+    }
+
+    const shareUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/public/${user.uid}`
+        : `/public/${user.uid}`;
+
+    const displayName = name || nickname || "Rivalo Player";
+    const shareTitle = `${displayName} su Rivalo`;
+    const shareText = `Guarda la mia card Rivalo: ${sportLabel(sport)}, RivalScore ${rivalScore}, statistiche e profilo sportivo.`;
+
+    setShareMessage("");
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareMessage("Link profilo copiato negli appunti.");
+        return;
+      }
+
+      setShareMessage("Copia il link dalla barra del browser per condividere il profilo.");
+    } catch (error: any) {
+      if (error?.name === "AbortError") return;
+
+      try {
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          await navigator.clipboard.writeText(shareUrl);
+          setShareMessage("Link profilo copiato negli appunti.");
+          return;
+        }
+      } catch {
+        // Fallback gestito sotto.
+      }
+
+      setShareMessage("Non è stato possibile aprire la condivisione. Copia il link dalla barra del browser.");
+    }
+  }
+
   if (loading) {
     return <FullScreenLoader />;
   }
@@ -478,6 +532,22 @@ setDeletionRequested(false);
                 cleanSheets={cleanSheets}
                 penaltiesSaved={penaltiesSaved}
               />
+
+              <button
+                type="button"
+                onClick={shareProfile}
+                disabled={!user || accountStatus === "deletion_requested" || deletionRequested}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase text-cyan-100 transition hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                <Share2 size={18} />
+                Condividi profilo
+              </button>
+
+              {shareMessage && (
+                <div className="mt-3 rounded-2xl border border-lime-300/20 bg-lime-400/10 px-4 py-3 text-center text-xs font-bold leading-5 text-lime-100">
+                  {shareMessage}
+                </div>
+              )}
             </div>
           </div>
 
