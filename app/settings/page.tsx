@@ -1,5 +1,6 @@
 "use client";
 
+import FullScreenLoader from "../../components/FullScreenLoader";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -232,11 +233,7 @@ export default function SettingsPage() {
   }
 
   if (loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-        Caricamento impostazioni...
-      </main>
-    );
+    return <FullScreenLoader />;
   }
 
   return (
