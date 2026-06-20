@@ -26,6 +26,7 @@ import {
   Clock,
   MapPin,
   MessageCircle,
+  Share2,
   ShieldCheck,
   Trophy,
   Users,
@@ -1771,18 +1772,75 @@ setMessage("Risultato contestato. Serve revisione.");
   const chatPlayers = getUniqueChatPlayers(players, user?.uid);
   const chatContextId = match.matchmakingRequestId || matchId;
 
+  async function shareMatch() {
+    if (!match) return;
+
+    const shareUrl = typeof window !== "undefined"
+      ? window.location.href
+      : `/match/${matchId}`;
+
+    const shareTitle = match.name || "Match Rivalo";
+    const shareText = `${shareTitle} · ${sportLabel(match.sport)}${
+      match.city ? ` · ${match.city}` : ""
+    }${match.date ? ` · ${match.date}` : ""}`;
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        setMessage("Link match copiato negli appunti.");
+        return;
+      }
+
+      setMessage("Copia il link dalla barra del browser per condividere il match.");
+    } catch (error: any) {
+      if (error?.name === "AbortError") return;
+
+      try {
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          await navigator.clipboard.writeText(shareUrl);
+          setMessage("Link match copiato negli appunti.");
+          return;
+        }
+      } catch {
+        // Fallback handled below.
+      }
+
+      setMessage("Non è stato possibile aprire la condivisione. Copia il link dalla barra del browser.");
+    }
+  }
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_10%_4%,rgba(34,211,238,.16),transparent_28%),radial-gradient(circle_at_88%_8%,rgba(217,70,239,.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_50%,#020617_100%)]" />
 
       <section className="relative z-10 mx-auto w-full max-w-7xl min-w-0 px-3 py-8 sm:px-5">
-        <Link
-          href="/match"
-          className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
-        >
-          <ArrowLeft size={17} />
-          Torna ai match
-        </Link>
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Link
+            href="/match"
+            className="inline-flex items-center gap-2 text-sm font-black text-cyan-300"
+          >
+            <ArrowLeft size={17} />
+            Torna ai match
+          </Link>
+
+          <button
+            type="button"
+            onClick={shareMatch}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/20 sm:w-auto"
+          >
+            <Share2 size={16} />
+            Condividi match
+          </button>
+        </div>
 
         <section className="mt-8 w-full min-w-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[.04] shadow-2xl backdrop-blur sm:rounded-[2.5rem]">
           <div className="relative min-w-0 overflow-hidden p-4 sm:p-8 md:p-10">
