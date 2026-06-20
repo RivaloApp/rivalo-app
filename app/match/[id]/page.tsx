@@ -663,55 +663,55 @@ async function createMatchShareFile(args: {
         : summary.awayLabel
       : "";
 
-  const tier =
+  const resultTone =
     hasScore && Math.abs(parsedHome - parsedAway) >= 3
       ? {
           label: "DOMINIO",
           accent: "#f472b6",
-          accentSoft: "rgba(244,114,182,0.22)",
+          accentSoft: "rgba(244,114,182,0.18)",
           accentAlt: "#a3e635",
         }
       : hasScore && Math.abs(parsedHome - parsedAway) >= 2
       ? {
-          label: "SOLIDA",
+          label: "VITTORIA SOLIDA",
           accent: "#a3e635",
-          accentSoft: "rgba(163,230,53,0.22)",
+          accentSoft: "rgba(163,230,53,0.18)",
           accentAlt: "#22d3ee",
         }
       : {
-          label: "BATTLE",
+          label: "MATCH BATTLE",
           accent: "#67e8f9",
-          accentSoft: "rgba(103,232,249,0.22)",
+          accentSoft: "rgba(103,232,249,0.18)",
           accentAlt: "#f472b6",
         };
 
-  const background = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-  background.addColorStop(0, "#020617");
-  background.addColorStop(0.42, "#06152b");
-  background.addColorStop(1, "#19061d");
-  ctx.fillStyle = background;
+  const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  bg.addColorStop(0, "#020617");
+  bg.addColorStop(0.48, "#071426");
+  bg.addColorStop(1, "#16051f");
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const cyanGlow = ctx.createRadialGradient(130, 190, 10, 130, 190, 440);
-  cyanGlow.addColorStop(0, "rgba(34,211,238,0.40)");
+  const cyanGlow = ctx.createRadialGradient(150, 230, 10, 150, 230, 430);
+  cyanGlow.addColorStop(0, "rgba(34,211,238,0.36)");
   cyanGlow.addColorStop(1, "rgba(34,211,238,0)");
   ctx.fillStyle = cyanGlow;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const magentaGlow = ctx.createRadialGradient(1040, 210, 10, 1040, 210, 440);
-  magentaGlow.addColorStop(0, "rgba(217,70,239,0.30)");
-  magentaGlow.addColorStop(1, "rgba(217,70,239,0)");
-  ctx.fillStyle = magentaGlow;
+  const pinkGlow = ctx.createRadialGradient(1030, 230, 10, 1030, 230, 430);
+  pinkGlow.addColorStop(0, "rgba(217,70,239,0.28)");
+  pinkGlow.addColorStop(1, "rgba(217,70,239,0)");
+  ctx.fillStyle = pinkGlow;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const limeGlow = ctx.createRadialGradient(600, 1160, 10, 600, 1160, 540);
-  limeGlow.addColorStop(0, "rgba(163,230,53,0.18)");
+  const limeGlow = ctx.createRadialGradient(600, 1120, 10, 600, 1120, 520);
+  limeGlow.addColorStop(0, "rgba(163,230,53,0.16)");
   limeGlow.addColorStop(1, "rgba(163,230,53,0)");
   ctx.fillStyle = limeGlow;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  drawRoundedRect(ctx, 58, 64, 1084, 1372, 54);
-  ctx.fillStyle = "rgba(3,7,18,0.60)";
+  drawRoundedRect(ctx, 64, 72, 1072, 1356, 56);
+  ctx.fillStyle = "rgba(2,6,23,0.64)";
   ctx.fill();
   ctx.lineWidth = 4;
   ctx.strokeStyle = "rgba(34,211,238,0.18)";
@@ -719,181 +719,144 @@ async function createMatchShareFile(args: {
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 86px Arial, sans-serif";
-  ctx.fillText("Rivalo", 600, 194);
+  ctx.font = "900 88px Arial, sans-serif";
+  ctx.fillText("Rivalo", 600, 200);
 
   ctx.fillStyle = "#67e8f9";
   ctx.font = "800 25px Arial, sans-serif";
-  ctx.fillText("MATCH RESULT", 600, 232);
+  ctx.fillText("MATCH RESULT", 600, 238);
 
-  const cardX = 145;
-  const cardY = 300;
-  const cardW = 910;
-  const cardH = 865;
-  const cut = 64;
-  const shoulder = 86;
-  const pointDepth = 118;
-
-  ctx.beginPath();
-  ctx.moveTo(cardX + cut, cardY);
-  ctx.lineTo(cardX + cardW - cut, cardY);
-  ctx.lineTo(cardX + cardW, cardY + shoulder);
-  ctx.lineTo(cardX + cardW - 32, cardY + cardH - pointDepth);
-  ctx.lineTo(cardX + cardW / 2, cardY + cardH);
-  ctx.lineTo(cardX + 32, cardY + cardH - pointDepth);
-  ctx.lineTo(cardX, cardY + shoulder);
-  ctx.closePath();
-
-  const cardGradient = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
-  cardGradient.addColorStop(0, "rgba(7,89,133,0.46)");
-  cardGradient.addColorStop(0.20, "rgba(15,23,42,0.96)");
-  cardGradient.addColorStop(0.70, "rgba(15,23,42,0.96)");
-  cardGradient.addColorStop(1, tier.accentSoft);
+  drawRoundedRect(ctx, 130, 310, 940, 940, 46);
+  const cardGradient = ctx.createLinearGradient(130, 310, 1070, 1250);
+  cardGradient.addColorStop(0, "rgba(7,89,133,0.36)");
+  cardGradient.addColorStop(0.28, "rgba(15,23,42,0.96)");
+  cardGradient.addColorStop(0.74, "rgba(15,23,42,0.96)");
+  cardGradient.addColorStop(1, resultTone.accentSoft);
   ctx.fillStyle = cardGradient;
   ctx.fill();
-
-  ctx.lineWidth = 8;
-  ctx.strokeStyle = tier.accent;
-  ctx.shadowColor = tier.accent;
-  ctx.shadowBlur = 24;
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = resultTone.accent;
+  ctx.shadowColor = resultTone.accent;
+  ctx.shadowBlur = 20;
   ctx.stroke();
   ctx.shadowBlur = 0;
 
-  ctx.beginPath();
-  ctx.moveTo(cardX + 24 + cut, cardY + 22);
-  ctx.lineTo(cardX + cardW - 24 - cut, cardY + 22);
-  ctx.lineTo(cardX + cardW - 24, cardY + 22 + shoulder);
-  ctx.lineTo(cardX + cardW - 58, cardY + cardH - pointDepth - 28);
-  ctx.lineTo(cardX + cardW / 2, cardY + cardH - 52);
-  ctx.lineTo(cardX + 58, cardY + cardH - pointDepth - 28);
-  ctx.lineTo(cardX + 24, cardY + 22 + shoulder);
-  ctx.closePath();
+  drawRoundedRect(ctx, 165, 345, 870, 870, 34);
   ctx.lineWidth = 2;
-  ctx.strokeStyle = "rgba(255,255,255,0.14)";
+  ctx.strokeStyle = "rgba(255,255,255,0.10)";
   ctx.stroke();
 
-  drawRoundedRect(ctx, 282, 340, 636, 36, 14);
-  const topStrip = ctx.createLinearGradient(282, 340, 918, 376);
-  topStrip.addColorStop(0, "rgba(34,211,238,0.12)");
-  topStrip.addColorStop(0.5, "rgba(255,255,255,0.04)");
-  topStrip.addColorStop(1, "rgba(244,114,182,0.12)");
-  ctx.fillStyle = topStrip;
+  drawRoundedRect(ctx, 220, 392, 220, 62, 22);
+  ctx.fillStyle = "rgba(34,211,238,0.10)";
   ctx.fill();
+  ctx.strokeStyle = "rgba(34,211,238,0.24)";
+  ctx.stroke();
+  ctx.fillStyle = "#cffafe";
+  ctx.font = "900 22px Arial, sans-serif";
+  ctx.fillText(sportLabel(args.match.sport).toUpperCase(), 330, 432);
 
-  drawRoundedRect(ctx, 226, 420, 185, 74, 26);
-  ctx.fillStyle = "rgba(255,255,255,0.05)";
+  drawRoundedRect(ctx, 760, 392, 220, 62, 22);
+  ctx.fillStyle = resultTone.accentSoft;
+  ctx.fill();
+  ctx.strokeStyle = resultTone.accent;
+  ctx.stroke();
+  ctx.fillStyle = "#ffffff";
+  const toneSize = fitCanvasText(ctx, resultTone.label, 170, 22, 15);
+  ctx.font = `900 ${toneSize}px Arial, sans-serif`;
+  ctx.fillText(resultTone.label, 870, 432);
+
+  drawRoundedRect(ctx, 210, 500, 780, 320, 38);
+  const boardGradient = ctx.createLinearGradient(210, 500, 990, 820);
+  boardGradient.addColorStop(0, "rgba(2,6,23,0.82)");
+  boardGradient.addColorStop(0.5, "rgba(15,23,42,0.96)");
+  boardGradient.addColorStop(1, "rgba(2,6,23,0.82)");
+  ctx.fillStyle = boardGradient;
   ctx.fill();
   ctx.lineWidth = 2;
   ctx.strokeStyle = "rgba(255,255,255,0.10)";
   ctx.stroke();
 
-  ctx.fillStyle = "#cffafe";
-  ctx.font = "900 24px Arial, sans-serif";
-  ctx.fillText(sportLabel(args.match.sport).toUpperCase(), 318, 467);
-
-  drawRoundedRect(ctx, 790, 420, 184, 74, 26);
-  const tierGrad = ctx.createLinearGradient(790, 420, 974, 494);
-  tierGrad.addColorStop(0, "rgba(255,255,255,0.08)");
-  tierGrad.addColorStop(1, tier.accentSoft);
-  ctx.fillStyle = tierGrad;
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = tier.accent;
-  ctx.stroke();
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "900 24px Arial, sans-serif";
-  ctx.fillText(tier.label, 882, 467);
-
   const homeName = summary.homeLabel.toUpperCase();
   const awayName = summary.awayLabel.toUpperCase();
 
-  const homeSize = fitCanvasText(ctx, homeName, 360, 42, 24);
-  ctx.font = `900 ${homeSize}px Arial, sans-serif`;
-  ctx.fillStyle = "#d9f99d";
-  ctx.fillText(homeName, 360, 610);
-
-  const awaySize = fitCanvasText(ctx, awayName, 360, 42, 24);
-  ctx.font = `900 ${awaySize}px Arial, sans-serif`;
-  ctx.fillStyle = "#a5f3fc";
-  ctx.fillText(awayName, 840, 610);
-
-  // Center score ring.
-  ctx.beginPath();
-  ctx.arc(600, 610, 114, 0, Math.PI * 2);
-  const ringGrad = ctx.createLinearGradient(486, 496, 714, 724);
-  ringGrad.addColorStop(0, tier.accent);
-  ringGrad.addColorStop(1, tier.accentAlt);
-  ctx.fillStyle = ringGrad;
+  drawRoundedRect(ctx, 255, 550, 255, 130, 26);
+  ctx.fillStyle = "rgba(163,230,53,0.08)";
   ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(600, 610, 96, 0, Math.PI * 2);
-  const innerScoreGrad = ctx.createLinearGradient(506, 516, 696, 704);
-  innerScoreGrad.addColorStop(0, "rgba(2,6,23,0.98)");
-  innerScoreGrad.addColorStop(1, "rgba(17,24,39,0.98)");
-  ctx.fillStyle = innerScoreGrad;
-  ctx.fill();
-
-  const scoreSize = fitCanvasText(ctx, summary.scoreText, 190, 70, 38);
-  ctx.font = `900 ${scoreSize}px Arial, sans-serif`;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText(summary.scoreText, 600, 632);
-
-  ctx.fillStyle = "rgba(255,255,255,0.62)";
-  ctx.font = "800 18px Arial, sans-serif";
-  ctx.fillText("FINAL SCORE", 600, 682);
-
-  drawRoundedRect(ctx, 330, 745, 540, 54, 20);
-  ctx.fillStyle = "rgba(255,255,255,0.04)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.strokeStyle = "rgba(163,230,53,0.18)";
   ctx.stroke();
 
-  ctx.fillStyle = "#67e8f9";
-  ctx.font = "800 22px Arial, sans-serif";
-  ctx.fillText((summary.detailsText || sportLabel(args.match.sport)).toUpperCase(), 600, 781);
+  const homeSize = fitCanvasText(ctx, homeName, 210, 32, 18);
+  ctx.font = `900 ${homeSize}px Arial, sans-serif`;
+  ctx.fillStyle = "#d9f99d";
+  ctx.fillText(homeName, 382, 625);
 
-  drawRoundedRect(ctx, 210, 850, 780, 185, 34);
-  const headlinePanel = ctx.createLinearGradient(210, 850, 990, 1035);
+  drawRoundedRect(ctx, 690, 550, 255, 130, 26);
+  ctx.fillStyle = "rgba(34,211,238,0.08)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(34,211,238,0.18)";
+  ctx.stroke();
+
+  const awaySize = fitCanvasText(ctx, awayName, 210, 32, 18);
+  ctx.font = `900 ${awaySize}px Arial, sans-serif`;
+  ctx.fillStyle = "#a5f3fc";
+  ctx.fillText(awayName, 818, 625);
+
+  drawRoundedRect(ctx, 522, 525, 156, 180, 32);
+  ctx.fillStyle = "rgba(255,255,255,0.06)";
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.14)";
+  ctx.stroke();
+
+  const scoreSize = fitCanvasText(ctx, summary.scoreText, 130, 52, 34);
+  ctx.font = `900 ${scoreSize}px Arial, sans-serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(summary.scoreText, 600, 620);
+
+  ctx.fillStyle = "rgba(255,255,255,0.62)";
+  ctx.font = "800 16px Arial, sans-serif";
+  ctx.fillText("FINALE", 600, 663);
+
+  ctx.font = "800 23px Arial, sans-serif";
+  ctx.fillStyle = "#67e8f9";
+  const detailSize = fitCanvasText(ctx, (summary.detailsText || sportLabel(args.match.sport)).toUpperCase(), 650, 23, 15);
+  ctx.font = `800 ${detailSize}px Arial, sans-serif`;
+  ctx.fillText((summary.detailsText || sportLabel(args.match.sport)).toUpperCase(), 600, 760);
+
+  drawRoundedRect(ctx, 220, 875, 760, 170, 34);
+  const headlinePanel = ctx.createLinearGradient(220, 875, 980, 1045);
   headlinePanel.addColorStop(0, "rgba(15,23,42,0.92)");
-  headlinePanel.addColorStop(1, "rgba(8,47,73,0.34)");
+  headlinePanel.addColorStop(1, "rgba(8,47,73,0.32)");
   ctx.fillStyle = headlinePanel;
   ctx.fill();
   ctx.lineWidth = 2;
   ctx.strokeStyle = "rgba(255,255,255,0.10)";
   ctx.stroke();
 
-  ctx.font = "900 31px Arial, sans-serif";
+  ctx.font = "900 30px Arial, sans-serif";
   ctx.fillStyle = "#d9f99d";
-  const headlineLines = wrapCanvasText(ctx, summary.headline.toUpperCase(), 690);
+  const headlineLines = wrapCanvasText(ctx, summary.headline.toUpperCase(), 650);
   headlineLines.slice(0, 3).forEach((line, index) => {
-    ctx.fillText(line, 600, 918 + index * 42);
+    ctx.fillText(line, 600, 935 + index * 38);
   });
 
   if (winnerLabel) {
-    drawRoundedRect(ctx, 340, 1065, 520, 58, 22);
-    ctx.fillStyle = "rgba(163,230,53,0.10)";
-    ctx.fill();
-    ctx.strokeStyle = "rgba(163,230,53,0.25)";
-    ctx.stroke();
-
-    const winnerSize = fitCanvasText(ctx, `MVP TEAM · ${winnerLabel.toUpperCase()}`, 460, 22, 16);
-    ctx.font = `900 ${winnerSize}px Arial, sans-serif`;
     ctx.fillStyle = "#fef08a";
-    ctx.fillText(`MVP TEAM · ${winnerLabel.toUpperCase()}`, 600, 1102);
+    const winnerSize = fitCanvasText(ctx, `TEAM VINCENTE · ${winnerLabel.toUpperCase()}`, 560, 22, 15);
+    ctx.font = `900 ${winnerSize}px Arial, sans-serif`;
+    ctx.fillText(`TEAM VINCENTE · ${winnerLabel.toUpperCase()}`, 600, 1108);
   }
 
   ctx.fillStyle = "rgba(255,255,255,0.92)";
-  ctx.font = "900 26px Arial, sans-serif";
-  ctx.fillText("APRI IL MATCH SU RIVALO", 600, 1218);
+  ctx.font = "900 25px Arial, sans-serif";
+  ctx.fillText("APRI IL MATCH SU RIVALO", 600, 1170);
 
   ctx.fillStyle = "rgba(103,232,249,0.72)";
   ctx.font = "700 16px Arial, sans-serif";
-  ctx.fillText("Risultato, FairPlay e statistiche complete nell'app", 600, 1248);
+  ctx.fillText("Risultato, FairPlay e statistiche complete nell'app", 600, 1200);
 
-  ctx.font = "700 18px Arial, sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.50)";
+  ctx.font = "700 17px Arial, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.46)";
   ctx.fillText(`Match ID: ${args.matchId}`, 600, 1328);
 
   const blob = await new Promise<Blob | null>((resolve) => {
