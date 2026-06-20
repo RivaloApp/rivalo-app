@@ -49,6 +49,14 @@ const STEPS = [
   },
 ];
 
+const VIDEO_POINTS = [
+  "Creare e completare il profilo sportivo",
+  "Trovare gruppi, player e avversari",
+  "Creare un match e gestire le squadre",
+  "Confermare risultato, FairPlay e statistiche",
+  "Condividere card profilo e risultato match",
+];
+
 const SPORT_RULES = [
   {
     title: "Calcetto",
@@ -107,6 +115,70 @@ export default function TutorialPage() {
             </div>
           </div>
         </div>
+
+        <section className="mt-8 overflow-hidden rounded-[2.4rem] border border-fuchsia-300/15 bg-[#071126]/80 shadow-[0_0_45px_rgba(217,70,239,.08)]">
+          <div className="grid gap-0 lg:grid-cols-[1.15fr_.85fr]">
+            <div className="relative min-h-[300px] overflow-hidden border-b border-white/10 bg-black/25 p-5 sm:p-7 lg:border-b-0 lg:border-r">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(34,211,238,.22),transparent_32%),radial-gradient(circle_at_78%_28%,rgba(217,70,239,.18),transparent_34%)]" />
+
+              <div className="relative flex min-h-[260px] items-center justify-center rounded-[2rem] border border-cyan-300/20 bg-[#020617]/80 p-5 shadow-[inset_0_0_40px_rgba(34,211,238,.08)]">
+                <div className="absolute left-5 top-5 rounded-full border border-lime-300/25 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-lime-200">
+                  In arrivo
+                </div>
+
+                <div className="text-center">
+                  <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-400/10 text-cyan-100 shadow-[0_0_35px_rgba(34,211,238,.18)]">
+                    <PlayCircle size={48} />
+                  </div>
+
+                  <div className="mt-5 text-2xl font-black uppercase tracking-tight sm:text-3xl">
+                    Video tutorial Rivalo
+                  </div>
+
+                  <p className="mx-auto mt-3 max-w-md text-sm font-bold leading-6 text-slate-300">
+                    Qui verrà inserito il video ufficiale per mostrare l’app in modo veloce, chiaro e condivisibile.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 sm:p-7">
+              <div className="text-xs font-black uppercase tracking-[0.24em] text-fuchsia-200">
+                Video dimostrativo
+              </div>
+
+              <h2 className="mt-2 text-3xl font-black uppercase leading-tight">
+                Cosa mostrerà
+              </h2>
+
+              <div className="mt-5 space-y-3">
+                {VIDEO_POINTS.map((point, index) => (
+                  <div
+                    key={point}
+                    className="flex gap-3 rounded-2xl border border-white/10 bg-white/[.035] p-4"
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-xs font-black text-cyan-200">
+                      {index + 1}
+                    </div>
+
+                    <div className="text-sm font-bold leading-6 text-slate-200">
+                      {point}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                disabled
+                className="mt-6 inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[.04] px-5 py-4 text-sm font-black uppercase text-white/45 sm:w-auto"
+              >
+                <PlayCircle size={18} />
+                Guarda tutorial · in arrivo
+              </button>
+            </div>
+          </div>
+        </section>
 
         <section className="mt-8">
           <div className="flex items-end justify-between gap-4">
