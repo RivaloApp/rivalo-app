@@ -21,6 +21,7 @@ import { db } from "../../../lib/firebase";
 
 import {
   ArrowLeft,
+  Share2,
 } from "lucide-react";
 
 import { getPlayerBadges } from "../../../lib/badges";
@@ -67,6 +68,15 @@ function normalizeSport(value?: string) {
   if (sport === "tennis") return "tennis";
 
   return "calcetto";
+}
+
+function sportLabel(value?: string) {
+  const sport = normalizeSport(value);
+
+  if (sport === "padel") return "Padel";
+  if (sport === "tennis") return "Tennis";
+
+  return "Calcetto";
 }
 
 function normalizeCalcettoRole(value?: string) {
@@ -158,6 +168,9 @@ export default function PublicProfilePage() {
 
   const [loading, setLoading] =
     useState(true);
+
+  const [shareMessage, setShareMessage] =
+    useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
@@ -287,6 +300,53 @@ export default function PublicProfilePage() {
   const goalkeeperProfile = isGoalkeeperProfile(user);
   const publicStats = getPublicStats(user, goalkeeperProfile);
 
+  async function shareProfile() {
+    if (!user || isRemoved) return;
+
+    const shareUrl =
+      typeof window !== "undefined"
+        ? window.location.href
+        : `/public/${id}`;
+
+    const shareTitle = `${publicDisplayName} su Rivalo`;
+    const shareText = `Guarda la card Rivalo di ${publicDisplayName}: ${sportLabel(mainSport)}, RivalScore ${user.rivalScore || 1000}, statistiche e profilo sportivo.`;
+
+    setShareMessage("");
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareMessage("Link profilo copiato negli appunti.");
+        return;
+      }
+
+      setShareMessage("Copia il link dalla barra del browser per condividere il profilo.");
+    } catch (error: any) {
+      if (error?.name === "AbortError") return;
+
+      try {
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          await navigator.clipboard.writeText(shareUrl);
+          setShareMessage("Link profilo copiato negli appunti.");
+          return;
+        }
+      } catch {
+        // Fallback gestito sotto.
+      }
+
+      setShareMessage("Non è stato possibile aprire la condivisione. Copia il link dalla barra del browser.");
+    }
+  }
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#020617] px-3 py-7 text-white sm:px-5 sm:py-8">
 
@@ -362,6 +422,25 @@ export default function PublicProfilePage() {
               {!isRemoved && currentUser && currentUser.uid !== id && currentUserLocked && (
                 <div className="mt-5 rounded-2xl border border-yellow-300/20 bg-yellow-400/10 px-5 py-3 text-sm font-bold text-yellow-100">
                   Profilo non attivo: chat bloccata.
+                </div>
+              )}
+
+              {!isRemoved && (
+                <div className="mt-5 flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={shareProfile}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-400/10 px-5 py-3 text-sm font-black uppercase text-cyan-100 transition hover:bg-cyan-400/20"
+                  >
+                    <Share2 size={18} />
+                    Condividi profilo
+                  </button>
+
+                  {shareMessage && (
+                    <div className="max-w-[320px] rounded-2xl border border-lime-300/20 bg-lime-400/10 px-4 py-2 text-center text-xs font-bold leading-5 text-lime-100">
+                      {shareMessage}
+                    </div>
+                  )}
                 </div>
               )}
 
