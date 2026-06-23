@@ -37,7 +37,7 @@ export default function Home() {
               href="/signup"
               className="hidden rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-7 py-4 font-black sm:inline-flex"
             >
-              Prova la Beta
+              Registrati
             </Link>
           </div>
         </nav>
@@ -71,15 +71,7 @@ export default function Home() {
             <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-5">
               <Link
                 href="/login"
-                className="group flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-7 py-4 text-base font-black sm:gap-4 sm:px-10 sm:py-5 sm:text-lg"
-              >
-                Entra in Rivalo
-                <ChevronRight className="transition group-hover:translate-x-1" size={22} />
-              </Link>
-
-              <Link
-                href="/login"
-                className="flex items-center justify-center gap-3 rounded-2xl border border-white/20 bg-white/[.03] px-7 py-4 text-base font-black sm:gap-4 sm:px-8 sm:py-5 sm:text-lg"
+                className="group flex items-center justify-center gap-3 rounded-2xl border border-white/20 bg-white/[.03] px-7 py-4 text-base font-black transition hover:border-cyan-300/40 hover:bg-cyan-400/10 sm:gap-4 sm:px-8 sm:py-5 sm:text-lg"
               >
                 Accedi
                 <UserRound size={23} />
@@ -87,9 +79,10 @@ export default function Home() {
 
               <Link
                 href="/signup"
-                className="flex items-center justify-center rounded-2xl border border-fuchsia-400/30 bg-fuchsia-500/10 px-7 py-4 text-base font-black text-fuchsia-100 sm:hidden"
+                className="group flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-7 py-4 text-base font-black text-white shadow-[0_0_28px_rgba(34,211,238,.18)] transition hover:scale-[1.01] sm:gap-4 sm:px-10 sm:py-5 sm:text-lg"
               >
-                Prova la Beta
+                Registrati
+                <ChevronRight className="transition group-hover:translate-x-1" size={22} />
               </Link>
             </div>
 
@@ -156,7 +149,7 @@ export default function Home() {
               Ogni partita è un passo verso la leggenda.
             </p>
             <Link href="/signup" className="relative mt-9 inline-block rounded-2xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-8 py-4 font-black">
-              Unisciti alla Beta
+              Registrati
             </Link>
           </div>
         </section>
@@ -278,22 +271,82 @@ function PhoneMockup() {
   return (
     <div className="relative mx-auto w-full max-w-[480px]">
       <div className="absolute inset-0 rounded-[3rem] bg-cyan-400/20 blur-3xl" />
-      <div className="relative overflow-hidden rounded-[3rem] border border-white/10 bg-[#071126] p-5 shadow-[0_0_60px_rgba(34,211,238,.12)]">
-        <div className="rounded-[2rem] border border-white/10 bg-[#0b1730] p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-cyan-300">RivalScore</div>
-              <div className="mt-2 text-5xl font-black text-white">91</div>
-            </div>
-            <div className="rounded-2xl bg-gradient-to-br from-cyan-400 to-fuchsia-500 px-5 py-3 text-lg font-black text-white">
-              MVP
-            </div>
-          </div>
+      <div className="absolute -left-10 top-12 h-40 w-40 rounded-full bg-fuchsia-500/20 blur-3xl" />
+      <div className="absolute -right-8 bottom-8 h-44 w-44 rounded-full bg-lime-300/10 blur-3xl" />
 
-          <div className="mt-8 grid grid-cols-3 gap-3">
-            <Mini value="24" label="Vittorie" />
-            <Mini value="11" label="MVP" />
-            <Mini value="+320" label="XP" />
+      <div className="relative overflow-hidden rounded-[3rem] border border-white/10 bg-[#071126] p-4 shadow-[0_0_60px_rgba(34,211,238,.12)] sm:p-5">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(34,211,238,.18),transparent_30%),radial-gradient(circle_at_82%_5%,rgba(217,70,239,.14),transparent_32%)]" />
+
+        <div className="relative overflow-hidden rounded-[2rem] border border-cyan-300/15 bg-[#050b1d] p-4 sm:p-5">
+          <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/70 to-transparent" />
+          <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-fuchsia-500/15 blur-2xl" />
+          <div className="absolute -bottom-12 -left-10 h-40 w-40 rounded-full bg-cyan-400/14 blur-2xl" />
+
+          <div className="relative rounded-[1.7rem] border border-white/10 bg-gradient-to-br from-slate-950 via-[#101a36] to-slate-950 p-4 shadow-[inset_0_0_40px_rgba(255,255,255,.035)] sm:p-5">
+            <div className="absolute inset-0 rounded-[1.7rem] bg-[linear-gradient(135deg,rgba(34,211,238,.16),transparent_30%,rgba(217,70,239,.13)_72%,transparent)]" />
+
+            <div className="relative flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="inline-flex items-center rounded-full border border-lime-300/25 bg-lime-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[.18em] text-lime-200">
+                  Elite Card
+                </div>
+
+                <div className="mt-4 flex items-end gap-3">
+                  <div className="text-[58px] font-black leading-none tracking-[-.06em] text-white sm:text-[70px]">
+                    91
+                  </div>
+
+                  <div className="pb-2">
+                    <div className="text-[11px] font-black uppercase tracking-[.18em] text-cyan-200">
+                      RivalScore
+                    </div>
+                    <div className="mt-1 text-xs font-bold text-slate-400">
+                      Calcetto · Stagione beta
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex shrink-0 flex-col items-center gap-2">
+                <div className="grid h-16 w-16 place-items-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 shadow-[0_0_24px_rgba(34,211,238,.14)] sm:h-20 sm:w-20">
+                  <span className="text-3xl font-black text-white sm:text-4xl">R</span>
+                </div>
+
+                <div className="rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-3 py-1 text-[10px] font-black uppercase tracking-[.16em] text-white">
+                  MVP
+                </div>
+              </div>
+            </div>
+
+            <div className="relative mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+              <Mini value="24" label="Vittorie" tone="lime" />
+              <Mini value="11" label="MVP" tone="cyan" />
+              <Mini value="+320" label="XP" tone="pink" />
+            </div>
+
+            <div className="relative mt-4 grid grid-cols-4 gap-2">
+              <Skill value="88" label="TEC" />
+              <Skill value="92" label="VEL" />
+              <Skill value="84" label="PAS" />
+              <Skill value="90" label="CLT" />
+            </div>
+
+            <div className="relative mt-5 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-black text-white">
+                    Rivalo Player
+                  </div>
+                  <div className="mt-0.5 text-xs font-bold text-slate-400">
+                    Badge, ranking e progressione live
+                  </div>
+                </div>
+
+                <div className="shrink-0 rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-200">
+                  LVL 12
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -301,11 +354,39 @@ function PhoneMockup() {
   );
 }
 
-function Mini({ value, label }: { value: string; label: string }) {
+function Mini({
+  value,
+  label,
+  tone,
+}: {
+  value: string;
+  label: string;
+  tone: "lime" | "cyan" | "pink";
+}) {
+  const toneClass =
+    tone === "lime"
+      ? "text-lime-300"
+      : tone === "pink"
+      ? "text-fuchsia-300"
+      : "text-cyan-300";
+
   return (
-    <div className="rounded-2xl bg-white/[.04] p-4 text-center">
-      <div className="text-2xl font-black text-cyan-300">{value}</div>
-      <div className="mt-1 text-xs text-slate-400">{label}</div>
+    <div className="rounded-2xl border border-white/10 bg-white/[.045] p-3 text-center sm:p-4">
+      <div className={`text-xl font-black sm:text-2xl ${toneClass}`}>{value}</div>
+      <div className="mt-1 text-[10px] font-bold uppercase tracking-[.12em] text-slate-400">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function Skill({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/20 px-2 py-2 text-center">
+      <div className="text-base font-black text-white">{value}</div>
+      <div className="mt-0.5 text-[9px] font-black tracking-[.14em] text-cyan-200">
+        {label}
+      </div>
     </div>
   );
 }
